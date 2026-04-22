@@ -1,0 +1,92 @@
+name: 🐛 Bug report
+description: Algo no funciona como debería
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar un bug. Rellena el formulario con el máximo detalle posible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción del problema
+      description: ¿Qué ocurre? ¿Qué esperabas que ocurriera?
+      placeholder: "Al ejecutar ./wizard.sh con --add-member, el wizard..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: Pasos exactos para reproducir el problema.
+      placeholder: |
+        1. Ejecuta `./wizard.sh --add-member`
+        2. Selecciona "data-engineer"
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+      description: ¿Qué debería haber pasado?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamiento actual
+      description: ¿Qué pasó realmente? Incluye el output completo si es posible.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plataforma de destino
+      description: ¿A qué plataforma ibas a desplegar?
+      multiple: true
+      options:
+        - GitHub Copilot / VS Code
+        - Claude Code
+        - Cursor
+        - No aplica (problema en el wizard)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema operativo
+      placeholder: "Ubuntu 24.04 / macOS 15 / WSL2 en Windows 11"
+    validations:
+      required: true
+
+  - type: input
+    id: bash_version
+    attributes:
+      label: Versión de bash
+      description: "`bash --version`"
+      placeholder: "GNU bash, version 5.2.21"
+    validations:
+      required: true
+
+  - type: input
+    id: understudy_version
+    attributes:
+      label: Versión de Understudy
+      description: "`git describe --tags`"
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Capturas de pantalla, archivos de configuración relevantes, etc.

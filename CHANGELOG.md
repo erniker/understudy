@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto se documentan aquí.
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 
+## [No publicado]
+
+### Added
+- `CONTRIBUTING.md`: guía completa de contribución con convenciones de commits
+  (Conventional Commits), versionado semántico, proceso de tags y mantenimiento del CHANGELOG.
+- `.github/PULL_REQUEST_TEMPLATE.md`: template de PR con checklist estándar.
+- `.github/ISSUE_TEMPLATE/bug_report.yml`: formulario estructurado para reportar bugs.
+- `.github/ISSUE_TEMPLATE/feature_request.yml`: formulario estructurado para proponer features.
+- `CODE_OF_CONDUCT.md`: Contributor Covenant v2.1 en español.
+- `SECURITY.md`: política de divulgación responsable de vulnerabilidades.
+
 ## [0.1.0] - 2026-04-22
 
 ### Added

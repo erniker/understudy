@@ -366,3 +366,14 @@ CLAUDE.md                              → Siempre activo (incluye guardrails cr
 .cursor/rules/understudy-global.mdc        → Reglas globales (siempre activas)
 .cursor/rules/guardrails.mdc          → Guardrails (siempre activos)
 ```
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Lee la [guía de contribución](CONTRIBUTING.md) antes
+de abrir una PR — incluye convenciones de commits, versionado, mantenimiento del
+CHANGELOG y el proceso de review.
+
+Para reportar bugs o proponer mejoras usa las [issue templates](https://github.com/erniker/understudy/issues/new/choose).
+Para reportar vulnerabilidades de seguridad, consulta la [política de seguridad](SECURITY.md).
+
+Este proyecto sigue el [Contributor Covenant](CODE_OF_CONDUCT.md) como código de conducta.
