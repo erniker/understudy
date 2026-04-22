@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Read(secrets/**)",
+      "Edit(secrets/**)",
+      "Write(secrets/**)",
+      "Read(**/*.key)",
+      "Read(**/*.pem)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guardrails-check.sh \"$TOOL_INPUT\""
+          }
+        ]
+      }
+    ]
+  }
+}

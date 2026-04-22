@@ -1,0 +1,9 @@
+---
+description: "Guardrails de seguridad y comportamiento — siempre activos para todos los agentes"
+globs:
+alwaysApply: true
+---
+
+<!-- GUARDRAILS_START -->
+{{GUARDRAILS_SECTION}}
+<!-- GUARDRAILS_END -->

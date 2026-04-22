@@ -1,0 +1,21 @@
+# macOS / Windows cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+$RECYCLE.BIN/
+
+# Node (por si alguien prueba npm tooling)
+node_modules/
+
+# Sesión local y temporales
+*.log
+.tmp/
+tmp/
