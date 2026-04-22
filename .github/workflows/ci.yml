@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shellcheck:
+    name: ShellCheck (bash scripts)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        env:
+          SHELLCHECK_OPTS: -e SC2155 -e SC1091
+        with:
+          scandir: "."
+          severity: warning
+
+  bash-syntax:
+    name: Bash syntax validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate wizard.sh syntax
+        run: bash -n wizard.sh
+
+      - name: Validate hook scripts syntax
+        run: |
+          find templates -name "*.sh" -print0 | xargs -0 -I {} bash -n {}
+
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: |
+            README.md
+            docs/**/*.md
+        continue-on-error: true
