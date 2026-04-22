@@ -15,6 +15,9 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
 - `.github/ISSUE_TEMPLATE/feature_request.yml`: formulario estructurado para proponer features.
 - `CODE_OF_CONDUCT.md`: Contributor Covenant v2.1 en español.
 - `SECURITY.md`: política de divulgación responsable de vulnerabilidades.
+- `docs/assets/social-preview.html` + `docs/assets/social-preview.png`:
+  banner 1280×640 para el *social preview* del repositorio en GitHub,
+  con logo ASCII (ANSI Shadow) en gradiente cyan→violeta y pills por rol.
 
 ## [0.1.0] - 2026-04-22
 
