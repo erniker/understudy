@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Understudy — Social Preview</title>
+<style>
+  :root {
+    --c1: #22d3ee;
+    --c2: #38bdf8;
+    --c3: #60a5fa;
+    --c4: #818cf8;
+    --c5: #a78bfa;
+    --c6: #c4b5fd;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #05081a;
+  }
+  html { height: 640px; }
+  body {
+    width: 1280px;
+    height: 640px;
+    background:
+      radial-gradient(ellipse 90% 70% at center, rgba(79,70,229,0.55) 0%, rgba(79,70,229,0.12) 55%, rgba(79,70,229,0) 100%),
+      linear-gradient(180deg, #0a0e2a 0%, #0b1030 50%, #140a2e 100%);
+    color: #e2e8f0;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    position: relative;
+  }
+  .wrapper {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  /* Grid overlay */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#1a2048 1px, transparent 1px),
+      linear-gradient(90deg, #1a2048 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Corner brackets */
+  .corner {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    border-color: transparent;
+    border-style: solid;
+    border-width: 2px;
+    opacity: 0.7;
+  }
+  .corner.tl { top: 48px; left: 48px;    border-top-color: var(--c1); border-left-color: var(--c1); }
+  .corner.tr { top: 48px; right: 48px;   border-top-color: var(--c5); border-right-color: var(--c5); }
+  .corner.bl { bottom: 48px; left: 48px; border-bottom-color: var(--c5); border-left-color: var(--c5); }
+  .corner.br { bottom: 48px; right: 48px; border-bottom-color: var(--c1); border-right-color: var(--c1); }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    width: 100%;
+  }
+
+  .tag {
+    font-size: 18px;
+    font-weight: 500;
+    color: #7dd3fc;
+    letter-spacing: 0;
+    margin-bottom: 18px;
+  }
+
+  /* ASCII logo */
+  .ascii {
+    font-family: 'Cascadia Mono', 'Consolas', 'DejaVu Sans Mono', 'Courier New', monospace;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.05;
+    white-space: pre;
+    margin: 0 auto 22px auto;
+    letter-spacing: 0;
+  }
+  .ascii .l1 { color: var(--c1); }
+  .ascii .l2 { color: var(--c2); }
+  .ascii .l3 { color: var(--c3); }
+  .ascii .l4 { color: var(--c4); }
+  .ascii .l5 { color: var(--c5); }
+  .ascii .l6 { color: var(--c6); }
+
+  .ascii span {
+    display: block;
+    text-shadow: 0 0 18px rgba(96, 165, 250, 0.25);
+  }
+
+  .tagline {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #7dd3fc 0%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .roles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 auto 16px auto;
+    max-width: 1100px;
+  }
+  .roles .pill {
+    display: inline-block;
+    padding: 7px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+    background: rgba(15, 26, 61, 0.7);
+    border: 1.5px solid;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+  }
+  .roles .pill.r1 { border-color: var(--c1); }
+  .roles .pill.r2 { border-color: var(--c2); }
+  .roles .pill.r3 { border-color: var(--c3); }
+  .roles .pill.r4 { border-color: var(--c4); }
+  .roles .pill.r5 { border-color: var(--c5); }
+  .roles .pill.r6 { border-color: var(--c6); }
+  .roles .pill.more {
+    border-color: #475569;
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .platforms {
+    font-size: 14px;
+    font-weight: 500;
+    color: #7dd3fc;
+    letter-spacing: 1.5px;
+    margin-bottom: 18px;
+  }
+
+  .footer {
+    margin-top: 4px;
+    text-align: center;
+    font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+    font-size: 12px;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+  .footer .line {
+    display: inline-block;
+    width: 320px;
+    height: 1px;
+    background: #2a3566;
+    vertical-align: middle;
+    margin: 0 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="wrapper">
+  <div class="content">
+    <div class="ascii">
+<span class="l1">██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ███████╗████████╗██╗   ██╗██████╗ ██╗   ██╗</span
+><span class="l2">██║   ██║████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔════╝╚══██╔══╝██║   ██║██╔══██╗╚██╗ ██╔╝</span
+><span class="l3">██║   ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝███████╗   ██║   ██║   ██║██║  ██║ ╚████╔╝ </span
+><span class="l4">██║   ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗╚════██║   ██║   ██║   ██║██║  ██║  ╚██╔╝  </span
+><span class="l5">╚██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║███████║   ██║   ╚██████╔╝██████╔╝   ██║   </span
+><span class="l6"> ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝ ╚═════╝    ╚═╝   </span>
+    </div>
+
+    <div class="tagline">One AI, Every Role</div>
+    <div class="roles">
+      <span class="pill r1">🏛️ Architect</span>
+      <span class="pill r2">⚙️ Backend</span>
+      <span class="pill r3">🎨 Frontend</span>
+      <span class="pill r4">🚀 DevOps</span>
+      <span class="pill r5">🔒 Security</span>
+      <span class="pill r6">🧪 QA</span>
+      <span class="pill more">+ more</span>
+    </div>
+    <div class="platforms">GitHub Copilot CLI &nbsp;·&nbsp; VS Code &nbsp;·&nbsp; Claude Code &nbsp;·&nbsp; Cursor</div>
+    <div class="footer">
+      <span class="line"></span>github.com/erniker/understudy<span class="line"></span>
+    </div>
+  </div>
+  </div>
+</body>
+</html>
