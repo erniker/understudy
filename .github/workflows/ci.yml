@@ -17,7 +17,11 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
         env:
-          SHELLCHECK_OPTS: -e SC2155 -e SC1091
+          # SC2155: declare and assign separately (stylistic, widely accepted pattern)
+          # SC1091: cannot follow sourced files (not needed for this project)
+          # SC2034: variable assigned but unused (false positive — consumed across functions)
+          # SC2154: variable referenced but not assigned (false positive — ask() uses eval to assign)
+          SHELLCHECK_OPTS: -e SC2155 -e SC1091 -e SC2034 -e SC2154
         with:
           scandir: "."
           severity: warning
