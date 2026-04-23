@@ -3,27 +3,27 @@
 # 🎭  UNDERSTUDY WIZARD — One AI, Every Role
 # ═══════════════════════════════════════════════════════════════
 #
-# TUTORIAL: ¿Qué hace este wizard?
+# TUTORIAL: What does this wizard do?
 #
-#   Este script despliega el sistema Understudy en cualquier proyecto.
-#   Genera todos los archivos que Copilot CLI necesita para
-#   activar un equipo completo de agentes IA especializados:
+#   This script deploys the Understudy system in any project.
+#   It generates all the files Copilot CLI needs to
+#   activate a complete team of specialized AI agents:
 #
-#   - AGENTS.md → definición del equipo (seleccionable con /agent)
-#   - .github/copilot-instructions.md → instrucciones globales
-#   - .github/instructions/*.instructions.md → instrucciones por rol
-#   - docs/ → plantillas de spec, decisiones, session log
+#   - AGENTS.md → team definition (selectable with /agent)
+#   - .github/copilot-instructions.md → global instructions
+#   - .github/instructions/*.instructions.md → per-role instructions
+#   - docs/ → spec, decisions, session log templates
 #
-#   Uso:
-#     ./wizard.sh                    → Despliegue interactivo
-#     ./wizard.sh --add-member       → Añadir un miembro al equipo
-#     ./wizard.sh --help             → Ayuda
+#   Usage:
+#     ./wizard.sh                    → Interactive deployment
+#     ./wizard.sh --add-member       → Add a team member
+#     ./wizard.sh --help             → Help
 #
 # ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
-# ─── Configuración ───────────────────────────────────────────
+# ─── Configuration ──────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
 ROLES_DIR="${SCRIPT_DIR}/roles"
@@ -64,7 +64,7 @@ NC='\033[0m'
 # ─── Funciones de UI ─────────────────────────────────────────
 
 # ─── Config parser ───────────────────────────────────────────
-# Lee valores de un archivo YAML simple (estructura plana/1 nivel de anidación).
+# Reads values from a simple YAML file (flat structure / 1 level of nesting).
 # Uso: config_read "models" "architect" "default-value" "config-file"
 config_read() {
     local section="$1"
@@ -95,13 +95,13 @@ config_read() {
     echo "${value:-$default}"
 }
 
-# Lee la configuración del sistema, luego override del proyecto si existe
+# Reads system configuration, then project override if it exists
 load_config() {
     local project_config="${TARGET_DIR:-}/understudy.yaml"
 
     # Capa 1: defaults del sistema (junto a wizard.sh)
     if [[ -f "$DEFAULT_CONFIG" ]]; then
-        info "Leyendo config global: $(basename "$DEFAULT_CONFIG")"
+        info "Reading global config: $(basename "$DEFAULT_CONFIG")"
         MODEL_ARCHITECT=$(config_read "models" "architect" "$MODEL_ARCHITECT" "$DEFAULT_CONFIG")
         MODEL_BACKEND=$(config_read "models" "backend" "$MODEL_BACKEND" "$DEFAULT_CONFIG")
         MODEL_FRONTEND=$(config_read "models" "frontend" "$MODEL_FRONTEND" "$DEFAULT_CONFIG")
@@ -130,7 +130,7 @@ load_config() {
 
     # Capa 2: override del proyecto (si existe)
     if [[ -f "$project_config" ]]; then
-        info "Override de proyecto encontrado: $project_config"
+        info "Project override found: $project_config"
         MODEL_ARCHITECT=$(config_read "models" "architect" "$MODEL_ARCHITECT" "$project_config")
         MODEL_BACKEND=$(config_read "models" "backend" "$MODEL_BACKEND" "$project_config")
         MODEL_FRONTEND=$(config_read "models" "frontend" "$MODEL_FRONTEND" "$project_config")
@@ -150,13 +150,13 @@ load_config() {
         [[ "$val_cursor" == "false" ]] && PLATFORM_CURSOR=false || PLATFORM_CURSOR=true
     fi
 
-    success "Configuración cargada — modelos: Arch=${MODEL_ARCHITECT}, Back=${MODEL_BACKEND}, Front=${MODEL_FRONTEND}, Ops=${MODEL_DEVOPS}, Sec=${MODEL_SECURITY}, QA=${MODEL_QA}"
-    info "Guardrails: modo ${BOLD}${GUARDRAILS_MODE}${NC}"
+    success "Configuration loaded — models: Arch=${MODEL_ARCHITECT}, Back=${MODEL_BACKEND}, Front=${MODEL_FRONTEND}, Ops=${MODEL_DEVOPS}, Sec=${MODEL_SECURITY}, QA=${MODEL_QA}"
+    info "Guardrails: mode ${BOLD}${GUARDRAILS_MODE}${NC}"
     local platforms_str=""
     $PLATFORM_COPILOT && platforms_str+="Copilot "
     $PLATFORM_CLAUDE && platforms_str+="Claude "
     $PLATFORM_CURSOR && platforms_str+="Cursor "
-    info "Plataformas: ${BOLD}${platforms_str}${NC}"
+    info "Platforms: ${BOLD}${platforms_str}${NC}"
 }
 
 # ─── Funciones de UI (original) ──────────────────────────────
@@ -195,7 +195,7 @@ ask() {
         echo -ne "  ${YELLOW}?${NC}  ${prompt}: "
         read -r input
         while [[ -z "$input" ]]; do
-            echo -ne "  ${RED}!${NC}  Este campo es obligatorio: "
+            echo -ne "  ${RED}!${NC}  This field is required: "
             read -r input
         done
         eval "$var_name=\"$input\""
@@ -209,16 +209,16 @@ confirm() {
     [[ "${answer,,}" != "n" ]]
 }
 
-# ─── Validaciones ────────────────────────────────────────────
+# ─── Validations ────────────────────────────────────────────
 
 validate_templates() {
     if [[ ! -d "$TEMPLATES_DIR" ]]; then
-        error "Directorio de templates no encontrado: $TEMPLATES_DIR"
-        error "Asegúrate de ejecutar el wizard desde su directorio."
+        error "Templates directory not found: $TEMPLATES_DIR"
+        error "Make sure you run the wizard from its directory."
         exit 1
     fi
 
-    # Templates compartidos (siempre requeridos)
+    # Shared templates (always required)
     local shared_files=(
         "docs/spec.md"
         "docs/decisions.md"
@@ -228,11 +228,11 @@ validate_templates() {
 
     for f in "${shared_files[@]}"; do
         if [[ ! -f "${TEMPLATES_DIR}/${f}" ]]; then
-            error "Template compartido faltante: ${f}"
+            error "Missing shared template: ${f}"
             exit 1
         fi
     done
-    success "Templates compartidos validados"
+    success "Shared templates validated"
 }
 
 validate_copilot_templates() {
@@ -250,11 +250,11 @@ validate_copilot_templates() {
 
     for f in "${copilot_files[@]}"; do
         if [[ ! -f "${TEMPLATES_DIR}/${f}" ]]; then
-            error "Template Copilot faltante: ${f}"
+            error "Missing Copilot template: ${f}"
             exit 1
         fi
     done
-    success "Templates Copilot validados"
+    success "Copilot templates validated"
 }
 
 validate_claude_templates() {
@@ -276,11 +276,11 @@ validate_claude_templates() {
 
     for f in "${claude_files[@]}"; do
         if [[ ! -f "${TEMPLATES_DIR}/${f}" ]]; then
-            error "Template Claude faltante: ${f}"
+            error "Missing Claude template: ${f}"
             exit 1
         fi
     done
-    success "Templates Claude validados"
+    success "Claude templates validated"
 }
 
 validate_cursor_templates() {
@@ -297,14 +297,14 @@ validate_cursor_templates() {
 
     for f in "${cursor_files[@]}"; do
         if [[ ! -f "${TEMPLATES_DIR}/${f}" ]]; then
-            error "Template Cursor faltante: ${f}"
+            error "Missing Cursor template: ${f}"
             exit 1
         fi
     done
-    success "Templates Cursor validados"
+    success "Cursor templates validated"
 }
 
-# ─── Detección de proyecto existente ─────────────────────────
+# ─── Existing project detection ─────────────────────────────
 
 detect_existing_project() {
     local dir="$1"
@@ -518,16 +518,16 @@ detect_existing_project() {
     fi
 }
 
-# ─── Recopilar información del proyecto ──────────────────────
+# ─── Gather project information ─────────────────────────────
 
 gather_project_info() {
-    step "Spec-Driven Development — Datos del proyecto"
+    step "Spec-Driven Development — Project data"
     echo ""
-    info "Necesito algunos datos para desplegar tu equipo."
+    info "I need some data to deploy your team."
     echo ""
 
-    ask "Nombre del proyecto (sin espacios, ej: customer-portal)" PROJECT_NAME
-    ask "Directorio base (se creará ${PROJECT_NAME}/ dentro)" BASE_DIR "."
+    ask "Project name (no spaces, e.g. customer-portal)" PROJECT_NAME
+    ask "Base directory (${PROJECT_NAME}/ will be created inside)" BASE_DIR "."
     TARGET_DIR="${BASE_DIR}/${PROJECT_NAME}"
 
     INTEGRATION_MODE=false
@@ -539,46 +539,46 @@ gather_project_info() {
         case "$EXISTING_MODE" in
             "understudy")
                 echo ""
-                warn "Este proyecto ya tiene Understudy desplegado."
-                info "Los archivos existentes se preservarán."
-                info "Solo se añadirán archivos que falten."
+                warn "This project already has Understudy deployed."
+                info "Existing files will be preserved."
+                info "Only missing files will be added."
                 echo ""
-                if ! confirm "¿Continuar y añadir archivos faltantes?"; then
-                    warn "Operación cancelada."
+                if ! confirm "Continue and add missing files?"; then
+                    warn "Operation cancelled."
                     exit 0
                 fi
                 INTEGRATION_MODE=true
                 ;;
             "project")
                 echo ""
-                step "🔍 Proyecto existente detectado"
+                step "🔍 Existing project detected"
                 echo ""
-                [[ -n "$DETECTED_STACK" ]] && info "  Stack detectado:   ${BOLD}${DETECTED_STACK}${NC}"
-                [[ -n "$DETECTED_REPO" ]]  && info "  Repositorio:       ${DETECTED_REPO}"
-                [[ -n "$DETECTED_DESC" ]]  && info "  Descripción:       ${DETECTED_DESC}"
+                [[ -n "$DETECTED_STACK" ]] && info "  Stack detected:    ${BOLD}${DETECTED_STACK}${NC}"
+                [[ -n "$DETECTED_REPO" ]]  && info "  Repository:        ${DETECTED_REPO}"
+                [[ -n "$DETECTED_DESC" ]]  && info "  Description:       ${DETECTED_DESC}"
 
                 if [[ ${#DETECTED_COMPONENTS[@]} -gt 0 ]]; then
                     echo ""
-                    info "  Componentes encontrados:"
+                    info "  Components found:"
                     for comp in "${DETECTED_COMPONENTS[@]}"; do
                         echo -e "    ${CYAN}•${NC} ${comp}"
                     done
                 fi
 
                 echo ""
-                info "El Understudy se integrará sin tocar archivos existentes."
+                info "Understudy will be integrated without touching existing files."
                 echo ""
-                if ! confirm "¿Integrar Understudy en este proyecto?"; then
-                    warn "Operación cancelada."
+                if ! confirm "Integrate Understudy into this project?"; then
+                    warn "Operation cancelled."
                     exit 0
                 fi
                 INTEGRATION_MODE=true
                 ;;
             "directory")
                 echo ""
-                info "El directorio ${TARGET_DIR} ya existe."
-                if ! confirm "¿Desplegar el Understudy en este directorio?"; then
-                    warn "Operación cancelada."
+                info "Directory ${TARGET_DIR} already exists."
+                if ! confirm "Deploy Understudy in this directory?"; then
+                    warn "Operation cancelled."
                     exit 0
                 fi
                 ;;
@@ -586,139 +586,139 @@ gather_project_info() {
     fi
 
     echo ""
-    ask "Descripción breve del proyecto" PROJECT_DESCRIPTION "${DETECTED_DESC:-}"
-    ask "Stack principal (ej: .NET + React, Node.js + Vue)" TECH_STACK "${DETECTED_STACK:-}"
-    ask "Tu nombre (Project Manager)" TEAM_LEAD "$(git config user.name 2>/dev/null || echo '')"
-    ask "URL del repositorio (o 'local' si no tiene)" REPOSITORY_URL "${DETECTED_REPO:-local}"
+    ask "Short project description" PROJECT_DESCRIPTION "${DETECTED_DESC:-}"
+    ask "Main stack (e.g. .NET + React, Node.js + Vue)" TECH_STACK "${DETECTED_STACK:-}"
+    ask "Your name (Project Manager)" TEAM_LEAD "$(git config user.name 2>/dev/null || echo '')"
+    ask "Repository URL (or 'local' if none)" REPOSITORY_URL "${DETECTED_REPO:-local}"
 
     echo ""
-    step "Guardrails — Protección del equipo"
+    step "Guardrails — Team protection"
     echo ""
-    info "Los guardrails son límites de seguridad y comportamiento para todos los agentes."
+    info "Guardrails are security and behavioral limits for all agents."
     echo ""
-    echo -e "    ${CYAN}1)${NC} ${BOLD}split${NC} (recomendado) — Críticos siempre activos + archivo completo con detalles"
-    echo -e "    ${CYAN}2)${NC} ${BOLD}embedded${NC} — Solo guardrails críticos incrustados (siempre activos, más ligero)"
+    echo -e "    ${CYAN}1)${NC} ${BOLD}split${NC} (recommended) — Critical always active + full details file"
+    echo -e "    ${CYAN}2)${NC} ${BOLD}embedded${NC} — Only critical guardrails embedded (always active, lighter)"
     echo ""
-    ask "Modo de guardrails [1=split, 2=embedded]" GUARDRAILS_CHOICE "1"
+    ask "Guardrails mode [1=split, 2=embedded]" GUARDRAILS_CHOICE "1"
     case "$GUARDRAILS_CHOICE" in
         2|embedded) GUARDRAILS_MODE="embedded" ;;
         *) GUARDRAILS_MODE="split" ;;
     esac
 
     echo ""
-    step "Plataformas — ¿Dónde usarás el Understudy?"
+    step "Platforms — Where will you use Understudy?"
     echo ""
-    info "Selecciona las plataformas de IA donde quieres desplegar el Understudy."
+    info "Select the AI platforms where you want to deploy Understudy."
     echo ""
 
     local ans_copilot ans_claude ans_cursor
-    ask "¿Desplegar para GitHub Copilot? [S/n]" ans_copilot "S"
+    ask "Deploy for GitHub Copilot? [Y/n]" ans_copilot "Y"
     case "${ans_copilot,,}" in
         n|no) PLATFORM_COPILOT=false ;;
         *) PLATFORM_COPILOT=true ;;
     esac
 
-    ask "¿Desplegar para Claude Code? [S/n]" ans_claude "S"
+    ask "Deploy for Claude Code? [Y/n]" ans_claude "Y"
     case "${ans_claude,,}" in
         n|no) PLATFORM_CLAUDE=false ;;
         *) PLATFORM_CLAUDE=true ;;
     esac
 
-    ask "¿Desplegar para Cursor? [S/n]" ans_cursor "S"
+    ask "Deploy for Cursor? [Y/n]" ans_cursor "Y"
     case "${ans_cursor,,}" in
         n|no) PLATFORM_CURSOR=false ;;
         *) PLATFORM_CURSOR=true ;;
     esac
 
     if ! $PLATFORM_COPILOT && ! $PLATFORM_CLAUDE && ! $PLATFORM_CURSOR; then
-        warn "Debes seleccionar al menos una plataforma."
+        warn "You must select at least one platform."
         PLATFORM_COPILOT=true
-        info "Seleccionada Copilot por defecto."
+        info "Copilot selected by default."
     fi
 
     PROJECT_DATE="$(date +%Y-%m-%d)"
 
     echo ""
-    step "Resumen del despliegue"
+    step "Deployment summary"
     echo ""
     if $INTEGRATION_MODE; then
-        info "Modo:         ${BOLD}🔄 INTEGRACIÓN en proyecto existente${NC}"
+        info "Mode:         ${BOLD}🔄 INTEGRATION into existing project${NC}"
     else
-        info "Modo:         ${BOLD}🆕 NUEVO PROYECTO${NC}"
+        info "Mode:         ${BOLD}🆕 NEW PROJECT${NC}"
     fi
-    info "Proyecto:     ${BOLD}${PROJECT_NAME}${NC}"
-    info "Descripción:  ${PROJECT_DESCRIPTION}"
+    info "Project:      ${BOLD}${PROJECT_NAME}${NC}"
+    info "Description:  ${PROJECT_DESCRIPTION}"
     info "Stack:        ${TECH_STACK}"
     info "PM:           ${TEAM_LEAD}"
-    info "Repositorio:  ${REPOSITORY_URL}"
+    info "Repository:   ${REPOSITORY_URL}"
     info "Guardrails:   ${BOLD}${GUARDRAILS_MODE}${NC}"
     local platforms_display=""
     $PLATFORM_COPILOT && platforms_display+="Copilot "
     $PLATFORM_CLAUDE && platforms_display+="Claude "
     $PLATFORM_CURSOR && platforms_display+="Cursor "
-    info "Plataformas:  ${BOLD}${platforms_display}${NC}"
-    info "Destino:      ${TARGET_DIR}"
-    info "Fecha:        ${PROJECT_DATE}"
+    info "Platforms:    ${BOLD}${platforms_display}${NC}"
+    info "Target:       ${TARGET_DIR}"
+    info "Date:         ${PROJECT_DATE}"
     echo ""
 
-    if ! confirm "¿Desplegar el Understudy con estos datos?"; then
-        warn "Operación cancelada."
+    if ! confirm "Deploy Understudy with these settings?"; then
+        warn "Operation cancelled."
         exit 0
     fi
 }
 
-# ─── Generar bloque de guardrails críticos ───────────────────
-# Genera el contenido compacto de guardrails para incrustar en copilot-instructions.md
+# ─── Generate critical guardrails block ──────────────────────
+# Generates the compact guardrails content to embed in copilot-instructions.md
 generate_guardrails_critical() {
     local mode="${1:-split}"
     local ref_line=""
     if [[ "$mode" == "split" ]]; then
-        ref_line="Para la versión completa con detalles y ejemplos, consulta \`.github/instructions/guardrails.instructions.md\`."
+        ref_line="For the full version with details and examples, see \`.github/instructions/guardrails.instructions.md\`."
     fi
 
     cat << GUARDRAILS_EOF
-## 🛡️ Guardrails — Límites no negociables
+## 🛡️ Guardrails — Non-negotiable limits
 
-Todos los agentes del equipo DEBEN respetar estos guardrails en todo momento.
+All team agents MUST respect these guardrails at all times.
 ${ref_line}
 
-### Seguridad
-- **NUNCA** hardcodear secretos, tokens, API keys o passwords en código, logs o config
-- **SIEMPRE** usar vault services (Key Vault, Secrets Manager) para secretos
-- **SIEMPRE** validar y sanitizar inputs en las fronteras del sistema
-- **SIEMPRE** aplicar principio de mínimo privilegio
-- Si detectas un secreto expuesto → **PARA y alerta al PM**
+### Security
+- **NEVER** hardcode secrets, tokens, API keys or passwords in code, logs or config
+- **ALWAYS** use vault services (Key Vault, Secrets Manager) for secrets
+- **ALWAYS** validate and sanitize inputs at system boundaries
+- **ALWAYS** apply the principle of least privilege
+- If you detect an exposed secret → **STOP and alert the PM**
 
-### Operaciones destructivas
-- **NUNCA** borrar archivos, recursos cloud, datos o revocar accesos sin confirmación explícita del PM
-- Antes de destruir: explica qué, por qué, impacto y reversibilidad — espera aprobación
+### Destructive operations
+- **NEVER** delete files, cloud resources, data or revoke access without explicit PM confirmation
+- Before destroying: explain what, why, impact and reversibility — wait for approval
 
-### Datos y PII
-- **NUNCA** incluir, procesar o repetir datos reales de clientes o producción
-- **NUNCA** loguear datos sensibles (tokens, passwords, PII)
-- Si detectas datos reales → **PARA inmediatamente**, no los proceses ni repitas
+### Data and PII
+- **NEVER** include, process or repeat real customer or production data
+- **NEVER** log sensitive data (tokens, passwords, PII)
+- If you detect real data → **STOP immediately**, do not process or repeat it
 
-### Entornos
-- **NUNCA** ejecutar cambios directamente en producción sin change request aprobado
-- **SIEMPRE** seguir el orden de promoción: dev → test → acc → eng → prd
-- **SIEMPRE** usar IaC y pipelines — nunca cambios manuales en consola
+### Environments
+- **NEVER** make changes directly in production without an approved change request
+- **ALWAYS** follow the promotion order: dev → test → acc → eng → prd
+- **ALWAYS** use IaC and pipelines — never manual console changes
 
-### Scope y proceso
-- Cada agente respeta la ownership de sus áreas (cruzar boundaries requiere justificación)
-- No se escribe código sin spec aprobada (excepto bugfixes, emergencias, CVE, config)
-- Proponer plan al PM y esperar aprobación antes de ejecutar cambios significativos
-- Actualizar \`docs/session-log.md\` al final de cada sesión
+### Scope and process
+- Each agent respects ownership of its areas (crossing boundaries requires justification)
+- No code written without an approved spec (except bugfixes, emergencies, CVE, config)
+- Propose a plan to the PM and wait for approval before executing significant changes
+- Update \`docs/session-log.md\` at the end of each session
 
-### Calidad
-- Self-review antes de presentar código
-- Tests apropiados para código nuevo (unit, integration, dry-run según el tipo)
-- Sin código muerto, imports sin usar, o TODOs en commits
-- Error handling explícito con contexto — nunca fallos silenciosos
+### Quality
+- Self-review before presenting code
+- Appropriate tests for new code (unit, integration, dry-run depending on type)
+- No dead code, unused imports or TODOs in commits
+- Explicit error handling with context — never silent failures
 GUARDRAILS_EOF
 }
 
-# ─── Insertar guardrails en copilot-instructions.md ──────────
-# Reemplaza el bloque entre GUARDRAILS_START y GUARDRAILS_END con el contenido generado
+# ─── Inject guardrails into copilot-instructions.md ─────────
+# Replaces the block between GUARDRAILS_START and GUARDRAILS_END with the generated content
 inject_guardrails_block() {
     local target_file="$1"
     local mode="$2"
@@ -727,7 +727,7 @@ inject_guardrails_block() {
         local guardrails_content
         guardrails_content=$(generate_guardrails_critical "$mode")
 
-        # Usar awk para reemplazar el bloque entre marcadores
+        # Use awk to replace the block between markers
         awk -v content="$guardrails_content" '
             /<!-- GUARDRAILS_START -->/ {
                 print
@@ -742,9 +742,9 @@ inject_guardrails_block() {
             }
             !skip { print }
         ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
-        success "Guardrails críticos incrustados en copilot-instructions.md"
+        success "Critical guardrails embedded in copilot-instructions.md"
     else
-        # Eliminar el bloque de marcadores si no se quieren guardrails
+        # Remove the marker block if no guardrails are wanted
         awk '
             /<!-- GUARDRAILS_START -->/ { skip=1; next }
             /<!-- GUARDRAILS_END -->/ { skip=0; next }
@@ -753,20 +753,20 @@ inject_guardrails_block() {
     fi
 }
 
-# ─── Desplegar archivos ─────────────────────────────────────
+# ─── Deploy files ───────────────────────────────────────────
 
-# Función para copiar template y reemplazar placeholders
+# Function to copy a template and replace placeholders
 deploy_file() {
     local src="$1"
     local dst="$2"
 
     if [[ -f "$dst" ]]; then
-        warn "Archivo ya existe, se preserva: $(basename "$dst")"
+        warn "File already exists, preserving: $(basename "$dst")"
         return
     fi
 
     cp "$src" "$dst"
-    # Reemplazar placeholders
+    # Replace placeholders
     sed -i "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" "$dst" 2>/dev/null || \
         sed -i'' "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" "$dst"
     sed -i "s|{{PROJECT_DESCRIPTION}}|${PROJECT_DESCRIPTION}|g" "$dst" 2>/dev/null || \
@@ -780,7 +780,7 @@ deploy_file() {
     sed -i "s|{{DATE}}|${PROJECT_DATE}|g" "$dst" 2>/dev/null || \
         sed -i'' "s|{{DATE}}|${PROJECT_DATE}|g" "$dst"
 
-    # Reemplazar placeholders de modelo (desde config)
+    # Replace model placeholders (from config)
     sed -i "s|{{MODEL_ARCHITECT}}|${MODEL_ARCHITECT}|g" "$dst" 2>/dev/null || \
         sed -i'' "s|{{MODEL_ARCHITECT}}|${MODEL_ARCHITECT}|g" "$dst"
     sed -i "s|{{MODEL_BACKEND}}|${MODEL_BACKEND}|g" "$dst" 2>/dev/null || \
@@ -794,7 +794,7 @@ deploy_file() {
     sed -i "s|{{MODEL_QA}}|${MODEL_QA}|g" "$dst" 2>/dev/null || \
         sed -i'' "s|{{MODEL_QA}}|${MODEL_QA}|g" "$dst"
 
-    # Reemplazar placeholders de applyTo (desde config)
+    # Replace applyTo placeholders (from config)
     sed -i "s|{{APPLY_TO_ARCHITECT}}|${APPLY_TO_ARCHITECT}|g" "$dst" 2>/dev/null || \
         sed -i'' "s|{{APPLY_TO_ARCHITECT}}|${APPLY_TO_ARCHITECT}|g" "$dst"
     sed -i "s|{{APPLY_TO_BACKEND}}|${APPLY_TO_BACKEND}|g" "$dst" 2>/dev/null || \
@@ -811,10 +811,10 @@ deploy_file() {
     success "$(basename "$dst")"
 }
 
-# ─── Desplegar archivos Copilot ─────────────────────────────
+# ─── Deploy Copilot files ───────────────────────────────────
 
 deploy_copilot() {
-    step "Desplegando archivos Copilot"
+    step "Deploying Copilot files"
 
     mkdir -p "${TARGET_DIR}/.github/instructions"
 
@@ -827,8 +827,8 @@ deploy_copilot() {
     deploy_file "${TEMPLATES_DIR}/.github/instructions/security.instructions.md" "${TARGET_DIR}/.github/instructions/security.instructions.md"
     deploy_file "${TEMPLATES_DIR}/.github/instructions/qa-engineer.instructions.md" "${TARGET_DIR}/.github/instructions/qa-engineer.instructions.md"
 
-    # Guardrails Copilot
-    step "Desplegando guardrails Copilot (modo: ${GUARDRAILS_MODE})"
+    # Copilot Guardrails
+    step "Deploying Copilot guardrails (mode: ${GUARDRAILS_MODE})"
     if [[ "$GUARDRAILS_MODE" == "split" ]]; then
         deploy_file "${TEMPLATES_DIR}/.github/instructions/guardrails.instructions.md" "${TARGET_DIR}/.github/instructions/guardrails.instructions.md"
     fi
@@ -838,8 +838,8 @@ deploy_copilot() {
         inject_guardrails_block "$copilot_instructions" "$GUARDRAILS_MODE"
     fi
 
-    # Prompt files para VS Code
-    step "Desplegando prompt files (VS Code)"
+    # Prompt files for VS Code
+    step "Deploying prompt files (VS Code)"
     mkdir -p "${TARGET_DIR}/.github/prompts"
     for prompt_file in "${TEMPLATES_DIR}/.github/prompts/"*.prompt.md; do
         if [[ -f "$prompt_file" ]]; then
@@ -848,65 +848,65 @@ deploy_copilot() {
     done
 }
 
-# ─── Desplegar archivos Claude Code ─────────────────────────
+# ─── Deploy Claude Code files ───────────────────────────────
 
 deploy_claude() {
-    step "Desplegando archivos Claude Code"
+    step "Deploying Claude Code files"
 
     mkdir -p "${TARGET_DIR}/.claude/agents"
     mkdir -p "${TARGET_DIR}/.claude/commands"
     mkdir -p "${TARGET_DIR}/.claude/hooks"
 
-    # CLAUDE.md — instrucciones globales
+    # CLAUDE.md — global instructions
     deploy_file "${TEMPLATES_DIR}/CLAUDE.md" "${TARGET_DIR}/CLAUDE.md"
 
-    # Agentes
+    # Agents
     for agent_file in "${TEMPLATES_DIR}/.claude/agents/"*.md; do
         if [[ -f "$agent_file" ]]; then
             deploy_file "$agent_file" "${TARGET_DIR}/.claude/agents/$(basename "$agent_file")"
         fi
     done
 
-    # Comandos
+    # Commands
     for cmd_file in "${TEMPLATES_DIR}/.claude/commands/"*.md; do
         if [[ -f "$cmd_file" ]]; then
             deploy_file "$cmd_file" "${TARGET_DIR}/.claude/commands/$(basename "$cmd_file")"
         fi
     done
 
-    # Settings y hooks
+    # Settings and hooks
     deploy_file "${TEMPLATES_DIR}/.claude/settings.json" "${TARGET_DIR}/.claude/settings.json"
     deploy_file "${TEMPLATES_DIR}/.claude/hooks/guardrails-check.sh" "${TARGET_DIR}/.claude/hooks/guardrails-check.sh"
     chmod +x "${TARGET_DIR}/.claude/hooks/guardrails-check.sh" 2>/dev/null || true
 
-    # Inyectar guardrails en CLAUDE.md
-    step "Desplegando guardrails Claude Code"
+    # Inject guardrails into CLAUDE.md
+    step "Deploying Claude Code guardrails"
     local claude_md="${TARGET_DIR}/CLAUDE.md"
     if [[ -f "$claude_md" ]]; then
         inject_guardrails_block "$claude_md" "$GUARDRAILS_MODE"
     fi
 }
 
-# ─── Desplegar archivos Cursor ──────────────────────────────
+# ─── Deploy Cursor files ──────────────────────────────────
 
 deploy_cursor() {
-    step "Desplegando archivos Cursor"
+    step "Deploying Cursor files"
 
     mkdir -p "${TARGET_DIR}/.cursor/agents"
     mkdir -p "${TARGET_DIR}/.cursor/rules"
 
-    # Reglas globales
+    # Global rules
     deploy_file "${TEMPLATES_DIR}/.cursor/rules/understudy-global.mdc" "${TARGET_DIR}/.cursor/rules/understudy-global.mdc"
 
-    # Agentes
+    # Agents
     for agent_file in "${TEMPLATES_DIR}/.cursor/agents/"*.md; do
         if [[ -f "$agent_file" ]]; then
             deploy_file "$agent_file" "${TARGET_DIR}/.cursor/agents/$(basename "$agent_file")"
         fi
     done
 
-    # Inyectar guardrails en guardrails.mdc
-    step "Desplegando guardrails Cursor"
+    # Inject guardrails into guardrails.mdc
+    step "Deploying Cursor guardrails"
     deploy_file "${TEMPLATES_DIR}/.cursor/rules/guardrails.mdc" "${TARGET_DIR}/.cursor/rules/guardrails.mdc"
     local guardrails_mdc="${TARGET_DIR}/.cursor/rules/guardrails.mdc"
     if [[ -f "$guardrails_mdc" ]]; then
@@ -914,19 +914,19 @@ deploy_cursor() {
     fi
 }
 
-# ─── Orquestador de despliegue ──────────────────────────────
+# ─── Deployment orchestrator ───────────────────────────────
 
 deploy_team() {
-    step "Desplegando estructura del proyecto"
+    step "Deploying project structure"
 
-    # Crear directorios comunes
+    # Create common directories
     mkdir -p "${TARGET_DIR}/docs"
     mkdir -p "${TARGET_DIR}/src"
     mkdir -p "${TARGET_DIR}/tests"
     mkdir -p "${TARGET_DIR}/scripts"
-    success "Directorios comunes creados"
+    success "Common directories created"
 
-    # Desplegar por plataforma
+    # Deploy per platform
     if $PLATFORM_COPILOT; then
         deploy_copilot
     fi
@@ -939,48 +939,48 @@ deploy_team() {
         deploy_cursor
     fi
 
-    # Docs compartidos
-    step "Desplegando documentación compartida"
+    # Shared docs
+    step "Deploying shared documentation"
     deploy_file "${TEMPLATES_DIR}/docs/spec.md" "${TARGET_DIR}/docs/spec.md"
     deploy_file "${TEMPLATES_DIR}/docs/decisions.md" "${TARGET_DIR}/docs/decisions.md"
     deploy_file "${TEMPLATES_DIR}/docs/session-log.md" "${TARGET_DIR}/docs/session-log.md"
     deploy_file "${TEMPLATES_DIR}/docs/team-roster.md" "${TARGET_DIR}/docs/team-roster.md"
 
-    # Copiar config al proyecto para override local
+    # Copy config to project for local override
     if [[ -f "$DEFAULT_CONFIG" ]] && [[ ! -f "${TARGET_DIR}/understudy.yaml" ]]; then
         cp "$DEFAULT_CONFIG" "${TARGET_DIR}/understudy.yaml"
-        success "understudy.yaml (edítalo para override por proyecto)"
+        success "understudy.yaml (edit it to override per-project settings)"
     fi
 
-    # Inicializar git si no existe
+    # Initialize git if not present
     if [[ ! -d "${TARGET_DIR}/.git" ]]; then
-        if confirm "¿Inicializar repositorio git?"; then
+        if confirm "Initialize git repository?"; then
             git -C "${TARGET_DIR}" init --quiet
-            success "Repositorio git inicializado"
+            success "Git repository initialized"
         fi
     else
-        info "Repositorio git ya existe"
+        info "Git repository already exists"
     fi
 }
 
-# ─── Añadir miembro al equipo ───────────────────────────────
+# ─── Add team member ────────────────────────────────────────
 
 add_team_member() {
-    step "Añadir miembro al equipo"
+    step "Add team member"
 
-    # Listar roles disponibles en /roles
+    # List available roles in /roles
     if [[ ! -d "$ROLES_DIR" ]] || [[ -z "$(ls -A "$ROLES_DIR" 2>/dev/null)" ]]; then
-        warn "No hay roles adicionales en: $ROLES_DIR"
-        info "Puedes crear uno manualmente en esa carpeta."
+        warn "No additional roles found in: $ROLES_DIR"
+        info "You can create one manually in that folder."
         echo ""
-        if confirm "¿Quieres crear un nuevo rol desde cero?"; then
+        if confirm "Do you want to create a new role from scratch?"; then
             create_custom_role
         fi
         return
     fi
 
     echo ""
-    info "Roles disponibles:"
+    info "Available roles:"
     echo ""
 
     local roles=()
@@ -992,10 +992,10 @@ add_team_member() {
         echo -e "    ${CYAN}${i})${NC} ${role_name}"
         i=$((i + 1))
     done
-    echo -e "    ${CYAN}${i})${NC} Crear rol personalizado"
+    echo -e "    ${CYAN}${i})${NC} Create custom role"
     echo ""
 
-    ask "Selecciona un número" selection
+    ask "Select a number" selection
     if [[ "$selection" -eq "$i" ]]; then
         create_custom_role
         return
@@ -1005,82 +1005,82 @@ add_team_member() {
     local selected_name
     selected_name="$(basename "$selected_file" .instructions.md)"
 
-    ask "Directorio del proyecto donde añadir el miembro" TARGET_DIR
+    ask "Project directory where to add the member" TARGET_DIR
 
     if [[ ! -d "${TARGET_DIR}/.github/instructions" ]]; then
-        error "No parece un proyecto con Understudy. Ejecuta el wizard primero."
+        error "This does not look like an Understudy project. Run the wizard first."
         exit 1
     fi
 
     local dest="${TARGET_DIR}/.github/instructions/${selected_name}.instructions.md"
     if [[ -f "$dest" ]]; then
-        warn "El rol ${selected_name} ya existe en este proyecto."
+        warn "Role ${selected_name} already exists in this project."
         return
     fi
 
     cp "$selected_file" "$dest"
-    success "Rol '${selected_name}' añadido a ${TARGET_DIR}"
+    success "Role '${selected_name}' added to ${TARGET_DIR}"
 
-    # Actualizar team-roster.md
+    # Update team-roster.md
     local roster="${TARGET_DIR}/docs/team-roster.md"
     if [[ -f "$roster" ]]; then
         local display_name
         display_name="$(echo "$selected_name" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')"
-        sed -i "/<!-- nuevos miembros aquí -->/a | **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Activo |" "$roster" 2>/dev/null || \
-            sed -i'' "/<!-- nuevos miembros aquí -->/a\\
-| **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Activo |" "$roster"
-        success "team-roster.md actualizado"
+        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Active |" "$roster" 2>/dev/null || \
+            sed -i'' "/<!-- new members here -->/a\\
+| **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Active |" "$roster"
+        success "team-roster.md updated"
     fi
 
-    info "Activa el nuevo agente en Copilot CLI con: /instructions"
+    info "Activate the new agent in Copilot CLI with: /instructions"
 }
 
-# ─── Crear rol personalizado ────────────────────────────────
+# ─── Create custom role ─────────────────────────────────────
 
 create_custom_role() {
-    step "Crear rol personalizado"
+    step "Create custom role"
     echo ""
 
-    ask "Nombre del rol (ej: data-engineer, qa-tester)" ROLE_NAME
-    ask "Título del rol (ej: Data Engineer, QA Tester)" ROLE_TITLE
-    ask "Descripción breve del rol" ROLE_DESC
-    ask "Áreas de expertise (separadas por coma)" ROLE_EXPERTISE
-    ask "Lema del personaje (una frase corta)" ROLE_MOTTO
+    ask "Role name (e.g. data-engineer, qa-tester)" ROLE_NAME
+    ask "Role title (e.g. Data Engineer, QA Tester)" ROLE_TITLE
+    ask "Short role description" ROLE_DESC
+    ask "Areas of expertise (comma-separated)" ROLE_EXPERTISE
+    ask "Character motto (a short phrase)" ROLE_MOTTO
 
     local role_file="${ROLES_DIR}/${ROLE_NAME}.instructions.md"
 
     cat > "$role_file" << EOF
 # ${ROLE_TITLE} — ${ROLE_TITLE} Instructions
 
-## Identidad
+## Identity
 
-Eres el ${ROLE_TITLE} del Understudy. Tu nombre en código es **${ROLE_TITLE}**.
+You are the ${ROLE_TITLE} of the Understudy team. Your code name is **${ROLE_TITLE}**.
 ${ROLE_DESC}
-Tu lema: "${ROLE_MOTTO}"
+Your motto: "${ROLE_MOTTO}"
 
 ## Expertise
 $(echo "$ROLE_EXPERTISE" | tr ',' '\n' | sed 's/^[[:space:]]*/- /')
 
-## Cómo trabajas
-1. Lees \`docs/spec.md\` para entender los requisitos
-2. Consultas \`docs/decisions.md\` para decisiones ya tomadas
-3. Coordinas con los demás agentes del equipo según necesidad
-4. Documentas tus decisiones y progreso
+## How you work
+1. You read \`docs/spec.md\` to understand the requirements
+2. You consult \`docs/decisions.md\` for decisions already made
+3. You coordinate with the other team agents as needed
+4. You document your decisions and progress
 
-## Estándares
-- Código limpio y mantenible
-- Error handling explícito
-- Sin secretos hardcodeados
-- Documentación de lo que produces
+## Standards
+- Clean and maintainable code
+- Explicit error handling
+- No hardcoded secrets
+- Documentation of what you produce
 
-## Interacción con el equipo
-- **← Architect**: Recibes decisiones de diseño
-- **→ Security**: Consultas sobre seguridad
-- **← PM**: Resuelves dudas de requisitos
+## Team interaction
+- **← Architect**: You receive design decisions
+- **→ Security**: You consult on security matters
+- **← PM**: You resolve requirements questions
 EOF
 
-    success "Rol '${ROLE_NAME}' creado en: ${role_file}"
-    info "Ahora puedes añadirlo a un proyecto con: ./wizard.sh --add-member"
+    success "Role '${ROLE_NAME}' created at: ${role_file}"
+    info "You can now add it to a project with: ./wizard.sh --add-member"
 }
 
 # ─── Post-deploy ─────────────────────────────────────────────
@@ -1091,48 +1091,48 @@ post_deploy() {
     if $INTEGRATION_MODE; then
         echo "    ╔═══════════════════════════════════════════════╗"
         echo "    ║                                               ║"
-        echo "    ║    🎭  UNDERSTUDY INTEGRADO CON ÉXITO          ║"
-        echo "    ║    Proyecto existente potenciado               ║"
+        echo "    ║    🎭  UNDERSTUDY INTEGRATED SUCCESSFULLY      ║"
+        echo "    ║    Existing project enhanced                   ║"
         echo "    ║                                               ║"
         echo "    ╚═══════════════════════════════════════════════╝"
     else
         echo "    ╔═══════════════════════════════════════════════╗"
         echo "    ║                                               ║"
-        echo "    ║    🎭  UNDERSTUDY DESPLEGADO CON ÉXITO         ║"
+        echo "    ║    🎭  UNDERSTUDY DEPLOYED SUCCESSFULLY        ║"
         echo "    ║                                               ║"
         echo "    ╚═══════════════════════════════════════════════╝"
     fi
     echo -e "${NC}"
 
-    step "Próximos pasos"
+    step "Next steps"
     echo ""
 
     if $PLATFORM_COPILOT; then
         info "${BOLD}── GitHub Copilot ──${NC}"
         echo ""
-        info "1. Abre Copilot CLI en el directorio del proyecto:"
+        info "1. Open Copilot CLI in the project directory:"
         echo -e "      ${CYAN}cd ${TARGET_DIR} && copilot${NC}"
         echo ""
-        info "2. Empieza con la spec — cuéntale al Architect qué necesitas:"
+        info "2. Start with the spec — tell the Architect what you need:"
         echo -e "      ${CYAN}/agent → Architect${NC}"
         echo ""
-        info "3. Cuando la spec esté lista, activa Backend/Frontend:"
-        echo -e "      ${CYAN}/agent → Backend${NC}  o  ${CYAN}/agent → Frontend${NC}"
+        info "3. When the spec is ready, activate Backend/Frontend:"
+        echo -e "      ${CYAN}/agent → Backend${NC}  or  ${CYAN}/agent → Frontend${NC}"
         echo ""
     fi
 
     if $PLATFORM_CLAUDE; then
         info "${BOLD}── Claude Code ──${NC}"
         echo ""
-        info "1. Abre Claude Code en el directorio del proyecto:"
+        info "1. Open Claude Code in the project directory:"
         echo -e "      ${CYAN}cd ${TARGET_DIR} && claude${NC}"
         echo ""
-        info "2. Inicia sesión cargando contexto:"
+        info "2. Start a session by loading context:"
         echo -e "      ${CYAN}/project:start-session${NC}"
         echo ""
-        info "3. Los agentes están en .claude/agents/ — invócalos por nombre"
+        info "3. Agents are in .claude/agents/ — invoke them by name"
         echo ""
-        info "4. Diseña features con el comando:"
+        info "4. Design features with the command:"
         echo -e "      ${CYAN}/project:design-feature${NC}"
         echo ""
     fi
@@ -1140,25 +1140,25 @@ post_deploy() {
     if $PLATFORM_CURSOR; then
         info "${BOLD}── Cursor ──${NC}"
         echo ""
-        info "1. Abre Cursor en el directorio del proyecto:"
+        info "1. Open Cursor in the project directory:"
         echo -e "      ${CYAN}cd ${TARGET_DIR} && cursor .${NC}"
         echo ""
-        info "2. Las reglas globales se aplican automáticamente (.cursor/rules/)"
+        info "2. Global rules are applied automatically (.cursor/rules/)"
         echo ""
-        info "3. Los agentes están en .cursor/agents/ — invócalos desde el Agent panel"
+        info "3. Agents are in .cursor/agents/ — invoke them from the Agent panel"
         echo ""
     fi
 
-    info "Al terminar la sesión, actualiza el log:"
+    info "At the end of the session, update the log:"
     if $PLATFORM_COPILOT || $PLATFORM_CURSOR; then
-        echo -e "      Copilot/Cursor: ${CYAN}\"Actualiza docs/session-log.md\"${NC}"
+        echo -e "      Copilot/Cursor: ${CYAN}\"Update docs/session-log.md\"${NC}"
     fi
     if $PLATFORM_CLAUDE; then
         echo -e "      Claude:  ${CYAN}/project:end-session${NC}"
     fi
     echo ""
 
-    step "Estructura desplegada"
+    step "Deployed structure"
     echo ""
     if command -v tree &>/dev/null; then
         tree -a -I '.git' "${TARGET_DIR}" --charset=utf-8
@@ -1167,67 +1167,67 @@ post_deploy() {
     fi
     echo ""
 
-    step "Comandos útiles"
+    step "Useful commands"
     echo ""
 
     if $PLATFORM_COPILOT; then
         echo -e "    ${BOLD}Copilot CLI:${NC}"
-        echo -e "    ${CYAN}./wizard.sh --add-member${NC}   → Añadir Data Engineer, QA, etc."
-        echo -e "    ${CYAN}/agent${NC}                     → Seleccionar agente del equipo"
-        echo -e "    ${CYAN}/instructions${NC}              → Activar/desactivar instrucciones"
-        echo -e "    ${CYAN}/model${NC}                     → Cambiar modelo (ver understudy.yaml)"
+        echo -e "    ${CYAN}./wizard.sh --add-member${NC}   → Add Data Engineer, QA, etc."
+        echo -e "    ${CYAN}/agent${NC}                     → Select team agent"
+        echo -e "    ${CYAN}/instructions${NC}              → Enable/disable instructions"
+        echo -e "    ${CYAN}/model${NC}                     → Change model (see understudy.yaml)"
         echo ""
         echo -e "    ${BOLD}VS Code:${NC}"
-        echo -e "    Las instrucciones se aplican automáticamente según el archivo que editas."
-        echo -e "    Los prompt files están en ${CYAN}.github/prompts/${NC} — úsalos desde Copilot Chat."
+        echo -e "    Instructions are applied automatically based on the file you are editing."
+        echo -e "    Prompt files are in ${CYAN}.github/prompts/${NC} — use them from Copilot Chat."
         echo ""
     fi
 
     if $PLATFORM_CLAUDE; then
         echo -e "    ${BOLD}Claude Code:${NC}"
-        echo -e "    ${CYAN}/project:start-session${NC}     → Cargar contexto al iniciar"
-        echo -e "    ${CYAN}/project:end-session${NC}       → Cerrar sesión y actualizar logs"
-        echo -e "    ${CYAN}/project:design-feature${NC}    → Diseñar nueva feature"
-        echo -e "    ${CYAN}/project:security-review${NC}   → Security review de cambios"
+        echo -e "    ${CYAN}/project:start-session${NC}     → Load context at startup"
+        echo -e "    ${CYAN}/project:end-session${NC}       → Close session and update logs"
+        echo -e "    ${CYAN}/project:design-feature${NC}    → Design a new feature"
+        echo -e "    ${CYAN}/project:security-review${NC}   → Security review of changes"
         echo ""
     fi
 
     if $PLATFORM_CURSOR; then
         echo -e "    ${BOLD}Cursor:${NC}"
-        echo -e "    Los agentes están en ${CYAN}.cursor/agents/${NC} — invócalos desde el Agent panel."
-        echo -e "    Las reglas se aplican automáticamente desde ${CYAN}.cursor/rules/${NC}."
-        echo -e "    Los guardrails están en ${CYAN}.cursor/rules/guardrails.mdc${NC}."
+        echo -e "    Agents are in ${CYAN}.cursor/agents/${NC} — invoke them from the Agent panel."
+        echo -e "    Rules are applied automatically from ${CYAN}.cursor/rules/${NC}."
+        echo -e "    Guardrails are in ${CYAN}.cursor/rules/guardrails.mdc${NC}."
         echo ""
     fi
 
-    echo -e "    Para override: edita ${CYAN}understudy.yaml${NC} en la raíz del proyecto."
+    echo -e "    To override: edit ${CYAN}understudy.yaml${NC} at the project root."
     echo ""
 }
 
-# ─── Ayuda ───────────────────────────────────────────────────
+# ─── Help ────────────────────────────────────────────────────
 
 show_help() {
     banner
-    echo "  Uso:"
-    echo "    ./wizard.sh                  Despliegue interactivo del Understudy"
-    echo "    ./wizard.sh --add-member     Añadir un miembro al equipo"
-    echo "    ./wizard.sh --create-role    Crear un nuevo rol personalizado"
-    echo "    ./wizard.sh --help           Mostrar esta ayuda"
+    echo "  Usage:"
+    echo "    ./wizard.sh                  Interactive Understudy deployment"
+    echo "    ./wizard.sh --add-member     Add a team member"
+    echo "    ./wizard.sh --create-role    Create a new custom role"
+    echo "    ./wizard.sh --help           Show this help"
     echo ""
-    echo "  Plataformas soportadas:"
+    echo "  Supported platforms:"
     echo "    • GitHub Copilot CLI / VS Code"
     echo "    • Claude Code"
     echo "    • Cursor"
     echo ""
-    echo "  El wizard despliega un equipo completo de agentes IA en tu proyecto:"
-    echo "    • Architect — Diseño de soluciones"
-    echo "    • Backend   — Implementación de APIs y servicios"
-    echo "    • Frontend  — Interfaces de usuario"
-    echo "    • DevOps    — Infraestructura y CI/CD"
-    echo "    • Security  — Seguridad integrada"
-    echo "    • QA        — Testing y calidad del software"
+    echo "  The wizard deploys a complete AI agent team to your project:"
+    echo "    • Architect — Solution design"
+    echo "    • Backend   — API and service implementation"
+    echo "    • Frontend  — User interfaces"
+    echo "    • DevOps    — Infrastructure and CI/CD"
+    echo "    • Security  — Integrated security"
+    echo "    • QA        — Testing and software quality"
     echo ""
-    echo "  Roles adicionales disponibles en: ${ROLES_DIR}/"
+    echo "  Additional roles available in: ${ROLES_DIR}/"
     echo ""
 }
 

@@ -1,22 +1,22 @@
 ---
 name: security-review
-description: "Security review de los cambios actuales"
+description: "Security review of current changes"
 ---
 
-Actúa como el Experto en Seguridad del equipo. Revisa los cambios actuales del proyecto.
+Act as the team's Security Expert. Review the current project changes.
 
-Proceso:
-1. Analiza los cambios recientes (archivos modificados o nuevos)
-2. Verifica contra la checklist de seguridad:
-   - Input validation en toda boundary
-   - Output encoding adecuado
-   - Autenticación y autorización correctas
-   - No hay secretos hardcodeados
-   - Error handling no revela información interna
-   - Dependencias seguras
-   - CORS, CSRF, XSS protegidos
-3. Documenta hallazgos con severity (Critical, High, Medium, Low)
-4. Propón fixes para cada hallazgo
+Process:
+1. Analyze recent changes (modified or new files)
+2. Verify against the security checklist:
+   - Input validation at every boundary
+   - Adequate output encoding
+   - Correct authentication and authorization
+   - No hardcoded secrets
+   - Error handling does not reveal internal information
+   - Secure dependencies
+   - CORS, CSRF, XSS protected
+3. Document findings with severity (Critical, High, Medium, Low)
+4. Propose fixes for each finding
 
-Si la arquitectura está documentada en `docs/decisions.md`, úsala para entender
-el threat model y los controles de seguridad esperados.
+If the architecture is documented in `docs/decisions.md`, use it to understand
+the threat model and expected security controls.

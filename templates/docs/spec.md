@@ -1,89 +1,89 @@
-# 📋 Especificación del Proyecto — {{PROJECT_NAME}}
+# 📋 Project Specification — {{PROJECT_NAME}}
 #
 # ┌───────────────────────────────────────────────────────────┐
 # │  TUTORIAL: Spec-Driven Development                       │
 # │                                                           │
-# │  Este archivo es LA FUENTE DE VERDAD del proyecto.        │
-# │  Ningún agente escribe código sin leer este archivo       │
-# │  primero. Esto garantiza que:                             │
+# │  This file is THE SOURCE OF TRUTH for the project.       │
+# │  No agent writes code without reading this file          │
+# │  first. This ensures that:                               │
 # │                                                           │
-# │  1. Todos los agentes trabajan con los mismos requisitos  │
-# │  2. Se reducen malentendidos y re-trabajo                 │
-# │  3. Los cambios de alcance se documentan aquí primero     │
-# │  4. En sesiones futuras, cualquier agente puede           │
-# │     re-leer esta spec y retomar el contexto               │
+# │  1. All agents work with the same requirements           │
+# │  2. Misunderstandings and rework are reduced             │
+# │  3. Scope changes are documented here first              │
+# │  4. In future sessions, any agent can re-read this       │
+# │     spec and resume with full context                    │
 # │                                                           │
-# │  El PM (tú) escribe la versión inicial. El Architect      │
-# │  la refina con preguntas técnicas. El resto del equipo    │
-# │  la usa como referencia.                                  │
+# │  The PM (you) writes the initial version. The Architect  │
+# │  refines it with technical questions. The rest of the    │
+# │  team uses it as reference.                              │
 # └───────────────────────────────────────────────────────────┘
 
-## 1. Resumen ejecutivo
+## 1. Executive summary
 
-**Nombre del proyecto**: {{PROJECT_NAME}}
-**Descripción**: {{PROJECT_DESCRIPTION}}
-**Objetivo de negocio**: (¿Qué problema resuelve? ¿Para quién?)
+**Project name**: {{PROJECT_NAME}}
+**Description**: {{PROJECT_DESCRIPTION}}
+**Business objective**: (What problem does it solve? For whom?)
 
 ## 2. Stakeholders
 
-| Rol | Nombre | Responsabilidad |
+| Role | Name | Responsibility |
 |---|---|---|
-| Project Manager | {{TEAM_LEAD}} | Definición de requisitos y priorización |
-| Product Owner | (por definir) | Validación de negocio |
-| Usuarios finales | (describir) | Uso del sistema |
+| Project Manager | {{TEAM_LEAD}} | Requirements definition and prioritization |
+| Product Owner | (TBD) | Business validation |
+| End users | (describe) | System usage |
 
-## 3. Requisitos funcionales
+## 3. Functional requirements
 
-### RF-001: (nombre del requisito)
-- **Descripción**: ...
-- **Actor**: ¿Quién usa esta funcionalidad?
-- **Flujo principal**: Paso a paso del happy path
-- **Flujos alternativos**: Qué pasa si algo falla
-- **Criterios de aceptación**:
-  - [ ] Criterio 1
-  - [ ] Criterio 2
-- **Prioridad**: Alta / Media / Baja
+### FR-001: (requirement name)
+- **Description**: ...
+- **Actor**: Who uses this functionality?
+- **Main flow**: Step by step of the happy path
+- **Alternative flows**: What happens if something fails
+- **Acceptance criteria**:
+  - [ ] Criterion 1
+  - [ ] Criterion 2
+- **Priority**: High / Medium / Low
 
-### RF-002: ...
-(repetir para cada requisito funcional)
+### FR-002: ...
+(repeat for each functional requirement)
 
-## 4. Requisitos no funcionales
+## 4. Non-functional requirements
 
-| ID | Categoría | Requisito | Métrica |
+| ID | Category | Requirement | Metric |
 |---|---|---|---|
-| NFR-001 | Performance | Tiempo de respuesta API | < 200ms p95 |
-| NFR-002 | Disponibilidad | Uptime | 99.9% |
-| NFR-003 | Escalabilidad | Usuarios concurrentes | (definir) |
-| NFR-004 | Seguridad | Autenticación | (definir método) |
-| NFR-005 | Accesibilidad | Estándar | WCAG 2.1 AA |
+| NFR-001 | Performance | API response time | < 200ms p95 |
+| NFR-002 | Availability | Uptime | 99.9% |
+| NFR-003 | Scalability | Concurrent users | (define) |
+| NFR-004 | Security | Authentication | (define method) |
+| NFR-005 | Accessibility | Standard | WCAG 2.1 AA |
 
-## 5. Integraciones
+## 5. Integrations
 
-| Sistema externo | Tipo | Propósito | Protocolo |
+| External system | Type | Purpose | Protocol |
 |---|---|---|---|
-| (sistema) | API / DB / Mensajería | (para qué) | REST / gRPC / etc. |
+| (system) | API / DB / Messaging | (what for) | REST / gRPC / etc. |
 
-## 6. Restricciones
+## 6. Constraints
 
-- **Tecnológicas**: (stack obligatorio, regulaciones, etc.)
-- **Temporales**: (deadline, milestones)
-- **Presupuestarias**: (límites de cloud spend, licencias)
-- **Organizacionales**: (equipo disponible, procesos obligatorios)
+- **Technical**: (mandatory stack, regulations, etc.)
+- **Timeline**: (deadline, milestones)
+- **Budget**: (cloud spend limits, licenses)
+- **Organizational**: (available team, mandatory processes)
 
-## 7. Fuera de alcance
+## 7. Out of scope
 
-Explícitamente NO se incluye en esta versión:
-- (funcionalidad excluida 1)
-- (funcionalidad excluida 2)
+Explicitly NOT included in this version:
+- (excluded functionality 1)
+- (excluded functionality 2)
 
-## 8. Glosario
+## 8. Glossary
 
-| Término | Definición |
+| Term | Definition |
 |---|---|
-| (término de dominio) | (su significado en este contexto) |
+| (domain term) | (its meaning in this context) |
 
 ---
 
-> **Estado de la spec**: BORRADOR | EN REVISIÓN | APROBADA
-> **Última actualización**: {{DATE}}
-> **Aprobada por**: (pendiente)
+> **Spec status**: DRAFT | UNDER REVIEW | APPROVED
+> **Last updated**: {{DATE}}
+> **Approved by**: (pending)

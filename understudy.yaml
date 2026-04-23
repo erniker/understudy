@@ -2,33 +2,33 @@
 # 🎭 Understudy Configuration
 # ═══════════════════════════════════════════════════════
 #
-# Este archivo controla cómo se despliega y comporta el Understudy.
+# This file controls how Understudy is deployed and behaves.
 #
-# Jerarquía de configuración (de menor a mayor prioridad):
-#   1. Defaults del wizard (hardcoded)
-#   2. understudy.yaml junto a wizard.sh (defaults globales)
-#   3. understudy.yaml en el proyecto (override por proyecto)
+# Configuration hierarchy (lowest to highest priority):
+#   1. Wizard defaults (hardcoded)
+#   2. understudy.yaml next to wizard.sh (global defaults)
+#   3. understudy.yaml in the project (per-project override)
 #
-# Para sobreescribir: copia este archivo al root de tu proyecto
-# y modifica los valores que necesites. El wizard lo detecta
-# automáticamente.
+# To override: copy this file to your project root
+# and modify the values you need. The wizard detects it
+# automatically.
 #
-# Tanto Copilot CLI como VS Code usan estos archivos.
-# La diferencia es cómo se activan:
-#   - CLI:    /agent → seleccionar rol, /model → seleccionar modelo
-#   - VS Code: applyTo → auto-aplica por tipo de archivo, model picker en UI
+# Both Copilot CLI and VS Code use these files.
+# The difference is how they are activated:
+#   - CLI:    /agent → select role, /model → select model
+#   - VS Code: applyTo → auto-applies by file type, model picker in UI
 
-# ─── Modelos recomendados por rol ────────────────────
-# Estos valores se incrustan en las instrucciones de cada agente.
-# El agente NO cambia de modelo automáticamente — es una
-# recomendación para que el PM seleccione el modelo adecuado.
+# ─── Recommended models per role ────────────────────
+# These values are embedded in each agent's instructions.
+# The agent does NOT switch models automatically — it is a
+# recommendation for the PM to select the appropriate model.
 #
-# Modelos disponibles:
-#   claude-opus-4.6      → razonamiento profundo, diseño complejo
-#   claude-sonnet-4.5    → mejor balance calidad/velocidad
-#   claude-sonnet-4      → estándar, buena calidad
-#   claude-haiku-4.5     → rápido y económico
-#   gpt-5.4              → alternativa para ciertas tareas
+# Available models:
+#   claude-opus-4.6      → deep reasoning, complex design
+#   claude-sonnet-4.5    → best quality/speed balance
+#   claude-sonnet-4      → standard, good quality
+#   claude-haiku-4.5     → fast and economical
+#   gpt-5.4              → alternative for certain tasks
 
 models:
   architect: "claude-opus-4.6"
@@ -38,11 +38,11 @@ models:
   security: "claude-sonnet-4.5"
   qa-engineer: "claude-sonnet-4.5"
 
-# ─── Roles y scoping ────────────────────────────────
-# enabled: si el wizard despliega este rol
-# apply_to: patrón glob para VS Code (auto-aplica instrucciones
-#           cuando editas archivos que matchean este patrón)
-#           Dejar vacío = solo se activa manualmente
+# ─── Roles and scoping ────────────────────────────────
+# enabled: whether the wizard deploys this role
+# apply_to: glob pattern for VS Code (auto-applies instructions
+#           when editing files matching this pattern)
+#           Leave empty = manual activation only
 
 roles:
   architect:
@@ -64,37 +64,37 @@ roles:
     enabled: true
     apply_to: "tests/**,**/*.test.*,**/*.spec.*,**/*Tests*/**"
 
-# ─── Comportamiento de sesión ────────────────────────
+# ─── Session behavior ────────────────────────────────
 session:
-  # Al inicio de sesión, ¿recordar al agente que lea los archivos de contexto?
+  # At session start, remind the agent to read context files?
   auto_read_context: true
-  # Al final de sesión, ¿recordar actualizar session-log.md?
+  # At session end, remind to update session-log.md?
   auto_update_log: true
 
-# ─── Plataformas ──────────────────────────────────────
-# Qué plataformas despliega el wizard:
+# ─── Platforms ──────────────────────────────────────
+# Which platforms the wizard deploys to:
 #   copilot → GitHub Copilot CLI / VS Code
 #   claude  → Claude Code
 #   cursor  → Cursor (AI code editor)
 #
-# Puedes activar varias plataformas para despliegue multi-plataforma.
+# You can enable multiple platforms for multi-platform deployment.
 platforms:
   copilot: true
   claude: true
   cursor: true
 
 # ─── Guardrails ──────────────────────────────────────
-# Modo de despliegue de guardrails:
-#   embedded  → solo incrustados en copilot-instructions.md (siempre activos)
-#   split     → compactos en copilot-instructions.md + detallados en guardrails.instructions.md
+# Guardrail deployment mode:
+#   embedded  → only embedded in copilot-instructions.md (always active)
+#   split     → compact in copilot-instructions.md + detailed in guardrails.instructions.md
 #
-# En modo "split" (recomendado), los guardrails críticos están siempre activos
-# y el archivo completo con ejemplos y detalles se carga adicionalmente.
-# En modo "embedded", solo los guardrails críticos se incrustan en copilot-instructions.md.
+# In "split" mode (recommended), critical guardrails are always active
+# and the full file with examples and details is loaded additionally.
+# In "embedded" mode, only critical guardrails are embedded in copilot-instructions.md.
 guardrails:
   mode: "split"
 
 # ─── Spec-Driven Development ────────────────────────
 spec:
-  # ¿Bloquear codificación hasta que spec.md esté aprobada?
+  # Block coding until spec.md is approved?
   require_before_coding: true

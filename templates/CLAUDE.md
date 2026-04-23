@@ -1,109 +1,109 @@
-# {{PROJECT_NAME}} — Instrucciones del Proyecto
+# {{PROJECT_NAME}} — Project Instructions
 
-## Proyecto
+## Project
 
-- **Nombre**: {{PROJECT_NAME}}
-- **Descripción**: {{PROJECT_DESCRIPTION}}
-- **Stack principal**: {{TECH_STACK}}
-- **Repositorio**: {{REPOSITORY_URL}}
+- **Name**: {{PROJECT_NAME}}
+- **Description**: {{PROJECT_DESCRIPTION}}
+- **Main stack**: {{TECH_STACK}}
+- **Repository**: {{REPOSITORY_URL}}
 - **Project Manager**: {{TEAM_LEAD}}
 
-## Contexto del equipo
+## Team context
 
-Este proyecto utiliza el sistema **Understudy**: un equipo de agentes IA especializados.
-Cada agente tiene un rol definido en `.claude/agents/` con instrucciones detalladas.
+This project uses the **Understudy** system: a team of specialized AI agents.
+Each agent has a defined role in `.claude/agents/` with detailed instructions.
 
-Los roles disponibles son:
-- **architect** — Diseño de soluciones y decisiones arquitectónicas
-- **backend** — Implementación de APIs, servicios y lógica de negocio
-- **frontend** — Interfaces de usuario y experiencia
-- **devops** — Infraestructura, CI/CD y operaciones
-- **security** — Seguridad integrada en todo el ciclo
-- **qa** — Testing y calidad del software
+Available roles:
+- **architect** — Solution design and architectural decisions
+- **backend** — API, service and business logic implementation
+- **frontend** — User interfaces and experience
+- **devops** — Infrastructure, CI/CD and operations
+- **security** — Security integrated throughout the cycle
+- **qa** — Testing and software quality
 
-Para activar un agente, invócalo por nombre en Claude Code.
+To activate an agent, invoke it by name in Claude Code.
 
 ## Spec-Driven Development
 
-Este proyecto sigue **Spec-Driven Development**:
-1. Antes de escribir código, se documenta la especificación en `docs/spec.md`
-2. La spec debe ser aprobada por el PM antes de comenzar
-3. Cualquier cambio de alcance se refleja primero en la spec
+This project follows **Spec-Driven Development**:
+1. Before writing code, the specification is documented in `docs/spec.md`
+2. The spec must be approved by the PM before starting
+3. Any scope change is first reflected in the spec
 
-## Archivos de contexto obligatorios
+## Mandatory context files
 
-| Archivo | Propósito |
+| File | Purpose |
 |---|---|
-| `docs/spec.md` | Especificación del proyecto — la fuente de verdad |
-| `docs/decisions.md` | Registro de decisiones arquitectónicas (ADR) |
-| `docs/session-log.md` | Log de sesiones — leer al inicio de cada sesión |
-| `docs/team-roster.md` | Roster del equipo activo y sus capacidades |
+| `docs/spec.md` | Project specification — the source of truth |
+| `docs/decisions.md` | Architecture Decision Records (ADR) |
+| `docs/session-log.md` | Session log — read at the start of each session |
+| `docs/team-roster.md` | Active team roster and capabilities |
 
-## Reglas globales
+## Global rules
 
-### Al iniciar una sesión
-1. **Siempre** lee `docs/session-log.md` para saber qué se hizo antes
-2. **Siempre** lee `docs/spec.md` para contexto del proyecto
-3. **Siempre** lee `docs/decisions.md` para decisiones ya tomadas
-4. Antes de trabajar, confirma tu entendimiento del estado actual
+### At the start of a session
+1. **Always** read `docs/session-log.md` to know what was done before
+2. **Always** read `docs/spec.md` for project context
+3. **Always** read `docs/decisions.md` for decisions already made
+4. Before working, confirm your understanding of the current state
 
-### Al finalizar una sesión
-1. Actualiza `docs/session-log.md` con:
-   - Qué se hizo en esta sesión
-   - Qué queda pendiente
-   - Decisiones tomadas
-   - Bloqueantes identificados
+### At the end of a session
+1. Update `docs/session-log.md` with:
+   - What was done in this session
+   - What is still pending
+   - Decisions made
+   - Blockers identified
 
-### Estándares de código
-- Código legible y mantenible por cualquier miembro del equipo
-- Funciones de responsabilidad única
-- Nombres de dominio de negocio, no nombres genéricos
-- Error handling explícito con contexto en los mensajes
-- Sin secretos hardcodeados — usar vault/env vars
-- Sin código muerto o comentarios TODO en commits
+### Code standards
+- Readable and maintainable code for any team member
+- Single-responsibility functions
+- Business domain names, not generic names
+- Explicit error handling with context in messages
+- No hardcoded secrets — use vault/env vars
+- No dead code or TODO comments in commits
 
-### Estructura del proyecto
+### Project structure
 ```
 {{PROJECT_NAME}}/
 ├── .claude/
-│   ├── agents/                    ← agentes por rol
-│   ├── commands/                  ← comandos reutilizables
-│   ├── hooks/                     ← hooks de guardrails
-│   └── settings.json              ← permisos y configuración
-├── CLAUDE.md                      ← este archivo
-├── understudy.yaml              ← configuración de modelos y scoping
-├── docs/                          ← documentación del proyecto
+│   ├── agents/                    ← agents per role
+│   ├── commands/                  ← reusable commands
+│   ├── hooks/                     ← guardrails hooks
+│   └── settings.json              ← permissions and configuration
+├── CLAUDE.md                      ← this file
+├── understudy.yaml              ← model and scoping configuration
+├── docs/                          ← project documentation
 │   ├── spec.md
 │   ├── decisions.md
 │   ├── session-log.md
 │   └── team-roster.md
-├── src/                           ← código fuente
+├── src/                           ← source code
 ├── tests/                         ← tests
-└── scripts/                       ← scripts de automatización
+└── scripts/                       ← automation scripts
 ```
 
-## Configuración y modelos
+## Configuration and models
 
-Los modelos recomendados por rol están definidos en `understudy.yaml` en la raíz del proyecto.
-Cada agente en `.claude/agents/` tiene su modelo configurado en el frontmatter.
+Recommended models per role are defined in `understudy.yaml` at the project root.
+Each agent in `.claude/agents/` has its model configured in the frontmatter.
 
 ```yaml
 models:
-  architect: "claude-opus-4.6"       # razonamiento profundo para diseño
-  backend: "claude-sonnet-4.5"       # balance calidad/velocidad
+  architect: "claude-opus-4.6"       # deep reasoning for design
+  backend: "claude-sonnet-4.5"       # quality/speed balance
   frontend: "claude-sonnet-4.5"
-  devops: "claude-haiku-4.5"         # económico para tareas estructuradas
+  devops: "claude-haiku-4.5"         # economical for structured tasks
   security: "claude-sonnet-4.5"
-  qa-engineer: "claude-sonnet-4.5"   # test plans y código de tests
+  qa-engineer: "claude-sonnet-4.5"   # test plans and test code
 ```
 
-## Comandos disponibles
+## Available commands
 
-Usa `/project:nombre-del-comando` para ejecutar comandos predefinidos:
-- `/project:start-session` — Cargar contexto del proyecto al iniciar
-- `/project:end-session` — Cerrar sesión y actualizar logs
-- `/project:design-feature` — Diseñar una nueva feature con el Architect
-- `/project:security-review` — Security review de los cambios actuales
+Use `/project:command-name` to run predefined commands:
+- `/project:start-session` — Load project context at startup
+- `/project:end-session` — Close session and update logs
+- `/project:design-feature` — Design a new feature with the Architect
+- `/project:security-review` — Security review of current changes
 
 <!-- GUARDRAILS_START -->
 {{GUARDRAILS_SECTION}}

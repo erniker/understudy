@@ -1,49 +1,49 @@
 # 📓 Session Log — {{PROJECT_NAME}}
 #
 # ┌───────────────────────────────────────────────────────────┐
-# │  TUTORIAL: Persistencia entre sesiones                    │
+# │  TUTORIAL: Persistence between sessions                   │
 # │                                                           │
-# │  Este archivo es CRÍTICO para ahorrar tokens y tiempo.    │
+# │  This file is CRITICAL to save tokens and time.           │
 # │                                                           │
-# │  Cada vez que trabajas con Copilot CLI, el agente         │
-# │  pierde su memoria al cerrar la sesión. PERO si al       │
-# │  finalizar cada sesión actualizas este archivo, la        │
-# │  siguiente sesión puede leerlo y retomar sin repetir.     │
+# │  Every time you work with Copilot CLI, the agent          │
+# │  loses its memory when the session closes. BUT if at      │
+# │  the end of each session you update this file, the        │
+# │  next session can read it and resume without repeating.   │
 # │                                                           │
-# │  Regla de oro:                                            │
-# │  - Al INICIO de sesión → LEE este archivo                 │
-# │  - Al FINAL de sesión → ACTUALIZA este archivo            │
+# │  Golden rule:                                             │
+# │  - At session START → READ this file                      │
+# │  - At session END → UPDATE this file                      │
 # │                                                           │
-# │  Esto es lo que permite trabajar en un proyecto durante    │
-# │  días o semanas sin perder contexto y sin gastar tokens   │
-# │  re-explicando lo que ya se hizo.                         │
+# │  This is what allows working on a project over days       │
+# │  or weeks without losing context and without spending     │
+# │  tokens re-explaining what was already done.              │
 # └───────────────────────────────────────────────────────────┘
 
 ---
 
-## Sesión: YYYY-MM-DD — (breve título descriptivo)
+## Session: YYYY-MM-DD — (short descriptive title)
 
-### Participantes
+### Participants
 - PM: {{TEAM_LEAD}}
-- Agentes activos: (Architect, Backend, Frontend, DevOps, Security, QA)
+- Active agents: (Architect, Backend, Frontend, DevOps, Security, QA)
 
-### Qué se hizo
-- (resumen de lo logrado)
+### What was done
+- (summary of what was accomplished)
 
-### Decisiones tomadas
-- (decisiones clave, referenciando ADR si aplica)
+### Decisions made
+- (key decisions, referencing ADR if applicable)
 
-### Pendientes para la siguiente sesión
-- [ ] (tarea pendiente 1)
-- [ ] (tarea pendiente 2)
+### Pending for next session
+- [ ] (pending task 1)
+- [ ] (pending task 2)
 
-### Bloqueantes
-- (bloqueantes identificados, si los hay)
+### Blockers
+- (identified blockers, if any)
 
-### Notas
-- (cualquier contexto adicional que ayude en la siguiente sesión)
+### Notes
+- (any additional context that helps in the next session)
 
 ---
 
-<!-- Nuevas sesiones se añaden ARRIBA de este comentario -->
-<!-- El log más reciente siempre queda primero -->
+<!-- New sessions are added ABOVE this comment -->
+<!-- The most recent log is always first -->
