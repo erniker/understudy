@@ -1,41 +1,41 @@
-## Descripción
+## Description
 
-<!-- Explica qué hace esta PR y por qué. Enlaza la issue relacionada. -->
+<!-- Explain what this PR does and why. Link the related issue. -->
 
 Closes #
 
 ---
 
-## Tipo de cambio
+## Type of change
 
-<!-- Marca con una x lo que aplica. -->
+<!-- Mark with an x what applies. -->
 
-- [ ] 🐛 `fix` — corrección de bug
-- [ ] ✨ `feat` — nueva funcionalidad
-- [ ] 📝 `docs` — solo documentación
-- [ ] ♻️ `refactor` — refactoring sin cambio de comportamiento
-- [ ] 🧪 `test` — añadir o corregir tests
-- [ ] ⚙️ `ci` — cambios en CI/CD
-- [ ] 🔧 `chore` — mantenimiento
-- [ ] 💥 Breaking change (rompe compatibilidad con versiones anteriores)
+- [ ] 🐛 `fix` — bug fix
+- [ ] ✨ `feat` — new functionality
+- [ ] 📝 `docs` — documentation only
+- [ ] ♻️ `refactor` — refactoring without behavior change
+- [ ] 🧪 `test` — add or fix tests
+- [ ] ⚙️ `ci` — CI/CD changes
+- [ ] 🔧 `chore` — maintenance
+- [ ] 💥 Breaking change (breaks compatibility with previous versions)
 
 ---
 
-## ¿Qué cambia?
+## What changes?
 
-<!-- Lista concisa de los cambios principales. -->
+<!-- Concise list of main changes. -->
 
 -
 -
 
 ---
 
-## Cómo probar
+## How to test
 
-<!-- Pasos para verificar que el cambio funciona correctamente. -->
+<!-- Steps to verify the change works correctly. -->
 
 ```bash
-# Ejemplo:
+# Example:
 ./wizard.sh
 ```
 
@@ -43,9 +43,9 @@ Closes #
 
 ## Checklist
 
-- [ ] Commits siguen [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/)
-- [ ] `CHANGELOG.md` actualizado en la sección `[No publicado]`
-- [ ] `bash -n wizard.sh` pasa sin errores
-- [ ] ShellCheck pasa localmente (o los warnings nuevos están justificados)
-- [ ] La documentación afectada está actualizada
-- [ ] Si es un rol nuevo: sigue la estructura de `roles/data-engineer.instructions.md`
+- [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+- [ ] `CHANGELOG.md` updated in the `[Unreleased]` section
+- [ ] `bash -n wizard.sh` passes without errors
+- [ ] ShellCheck passes locally (or new warnings are justified)
+- [ ] Affected documentation is updated
+- [ ] If it's a new role: follows the structure of `roles/data-engineer.instructions.md`

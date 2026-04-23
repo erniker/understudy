@@ -1,40 +1,40 @@
 # Changelog
 
-Todos los cambios notables de este proyecto se documentan aquí.
+All notable changes to this project are documented here.
 
-El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
-y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [No publicado]
+## [Unreleased]
 
 ### Added
-- `CONTRIBUTING.md`: guía completa de contribución con convenciones de commits
-  (Conventional Commits), versionado semántico, proceso de tags y mantenimiento del CHANGELOG.
-- `.github/PULL_REQUEST_TEMPLATE.md`: template de PR con checklist estándar.
-- `.github/ISSUE_TEMPLATE/bug_report.yml`: formulario estructurado para reportar bugs.
-- `.github/ISSUE_TEMPLATE/feature_request.yml`: formulario estructurado para proponer features.
-- `CODE_OF_CONDUCT.md`: Contributor Covenant v2.1 en español.
-- `SECURITY.md`: política de divulgación responsable de vulnerabilidades.
+- `CONTRIBUTING.md`: full contribution guide with commit conventions
+  (Conventional Commits), semantic versioning, tags process and CHANGELOG maintenance.
+- `.github/PULL_REQUEST_TEMPLATE.md`: PR template with standard checklist.
+- `.github/ISSUE_TEMPLATE/bug_report.yml`: structured form for reporting bugs.
+- `.github/ISSUE_TEMPLATE/feature_request.yml`: structured form for proposing features.
+- `CODE_OF_CONDUCT.md`: Contributor Covenant v2.1 in English.
+- `SECURITY.md`: responsible vulnerability disclosure policy.
 - `docs/assets/social-preview.html` + `docs/assets/social-preview.png`:
-  banner 1280×640 para el *social preview* del repositorio en GitHub,
-  con logo ASCII (ANSI Shadow) en gradiente cyan→violeta y pills por rol.
+  1280×640 banner for the repository *social preview* on GitHub,
+  with ASCII logo (ANSI Shadow) in cyan→violet gradient and role pills.
 
 ## [0.1.0] - 2026-04-22
 
 ### Added
-- Primer release público del sistema Understudy.
-- `wizard.sh`: wizard interactivo con detección automática de stack y soporte
-  monorepo (hasta 3 niveles de profundidad).
-- `understudy.yaml`: configuración global con jerarquía de overrides
-  (sistema → proyecto).
-- 6 roles core desplegables: Architect, Backend, Frontend, DevOps, Security, QA.
-- Catálogo de roles opcionales: data-engineer, mobile-engineer, ml-engineer,
+- First public release of the Understudy system.
+- `wizard.sh`: interactive wizard with automatic stack detection and monorepo support
+  (up to 3 levels deep).
+- `understudy.yaml`: global configuration with override hierarchy
+  (system → project).
+- 6 deployable core roles: Architect, Backend, Frontend, DevOps, Security, QA.
+- Optional roles catalog: data-engineer, mobile-engineer, ml-engineer,
   tech-writer, sre.
-- Compatibilidad con 3 plataformas: GitHub Copilot CLI / VS Code,
+- Compatibility with 3 platforms: GitHub Copilot CLI / VS Code,
   Claude Code, Cursor.
-- Guardrails en modos `split` (recomendado) o `embedded`.
-- 8 categorías de guardrails: seguridad, scope, proceso, destructivas,
-  datos/PII, calidad, entornos, documentación.
-- Banner ASCII art (font ANSI Shadow) con gradiente cyan→violeta.
-- CI con ShellCheck, validación de sintaxis bash y markdown lint.
-- Licencia MIT.
+- Guardrails in `split` (recommended) or `embedded` modes.
+- 8 guardrail categories: security, scope, process, destructive operations,
+  data/PII, quality, environments, documentation.
+- ASCII art banner (ANSI Shadow font) with cyan→violet gradient.
+- CI with ShellCheck, bash syntax validation and markdown lint.
+- MIT License.

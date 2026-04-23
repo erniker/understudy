@@ -3,13 +3,13 @@
 # 🛡️ Understudy Guardrails Check — Claude Code PreToolUse Hook
 # ═══════════════════════════════════════════════════════════════
 #
-# Este hook se ejecuta ANTES de que Claude Code ejecute comandos
-# en el shell. Bloquea operaciones destructivas que requieren
-# confirmación explícita del PM.
+# This hook runs BEFORE Claude Code executes shell commands.
+# It blocks destructive operations that require
+# explicit PM confirmation.
 #
-# Salida:
-#   exit 0 → permitir la operación
-#   exit 2 → bloquear la operación (muestra mensaje en stderr)
+# Output:
+#   exit 0 → allow the operation
+#   exit 2 → block the operation (shows message in stderr)
 #
 # ═══════════════════════════════════════════════════════════════
 
@@ -17,7 +17,7 @@ set -euo pipefail
 
 TOOL_INPUT="${1:-}"
 
-# Patrones de operaciones destructivas que requieren confirmación
+# Destructive operation patterns that require confirmation
 DESTRUCTIVE_PATTERNS=(
     "rm -rf"
     "rm -r /"
@@ -37,14 +37,14 @@ DESTRUCTIVE_PATTERNS=(
 
 for pattern in "${DESTRUCTIVE_PATTERNS[@]}"; do
     if echo "$TOOL_INPUT" | grep -qi "$pattern"; then
-        echo "🛡️ GUARDRAIL: Operación destructiva detectada: '$pattern'" >&2
-        echo "   Esta operación requiere confirmación explícita del PM." >&2
-        echo "   Describe qué vas a hacer, por qué, y el impacto antes de proceder." >&2
+        echo "🛡️ GUARDRAIL: Destructive operation detected: '$pattern'" >&2
+        echo "   This operation requires explicit PM confirmation." >&2
+        echo "   Describe what you are going to do, why, and the impact before proceeding." >&2
         exit 2
     fi
 done
 
-# Detectar acceso a archivos de secretos
+# Detect access to secret files
 SECRET_PATTERNS=(
     "\.env"
     "\.key$"
@@ -57,9 +57,9 @@ SECRET_PATTERNS=(
 
 for pattern in "${SECRET_PATTERNS[@]}"; do
     if echo "$TOOL_INPUT" | grep -qi "$pattern"; then
-        echo "🛡️ GUARDRAIL: Posible acceso a archivos sensibles detectado: '$pattern'" >&2
-        echo "   Verifica que no estás exponiendo secretos o credenciales." >&2
-        # Advertencia, no bloqueo — exit 0 para permitir pero alertar
+        echo "🛡️ GUARDRAIL: Possible access to sensitive files detected: '$pattern'" >&2
+        echo "   Verify that you are not exposing secrets or credentials." >&2
+        # Warning, not blocking — exit 0 to allow but alert
         exit 0
     fi
 done

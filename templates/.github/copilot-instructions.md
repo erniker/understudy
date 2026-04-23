@@ -1,147 +1,147 @@
 # Copilot Project Instructions — {{PROJECT_NAME}}
 #
 # ┌─────────────────────────────────────────────────────────────┐
-# │  TUTORIAL: ¿Qué es .github/copilot-instructions.md?        │
+# │  TUTORIAL: What is .github/copilot-instructions.md?        │
 # │                                                             │
-# │  Este archivo es CARGADO AUTOMÁTICAMENTE por Copilot CLI    │
-# │  cada vez que abres una sesión en este repositorio.         │
-# │  No necesitas hacer /agent ni /instructions para que        │
-# │  se aplique — siempre está activo.                          │
+# │  This file is LOADED AUTOMATICALLY by Copilot CLI          │
+# │  every time you open a session in this repository.         │
+# │  You don't need to run /agent or /instructions for it      │
+# │  to apply — it is always active.                           │
 # │                                                             │
-# │  Úsalo para:                                                │
-# │  - Dar contexto general del proyecto a TODOS los agentes    │
-# │  - Definir reglas globales que aplican sin importar el rol  │
-# │  - Establecer convenciones del proyecto                     │
-# │  - Indicar dónde encontrar documentación clave              │
+# │  Use it to:                                                 │
+# │  - Give general project context to ALL agents              │
+# │  - Define global rules that apply regardless of role       │
+# │  - Establish project conventions                           │
+# │  - Indicate where to find key documentation                │
 # │                                                             │
-# │  Diferencia con AGENTS.md:                                  │
-# │  - copilot-instructions.md = contexto global, siempre on   │
-# │  - AGENTS.md = roles seleccionables vía /agent              │
+# │  Difference from AGENTS.md:                                │
+# │  - copilot-instructions.md = global context, always on     │
+# │  - AGENTS.md = selectable roles via /agent                 │
 # │                                                             │
-# │  Diferencia con .github/instructions/*.instructions.md:     │
-# │  - copilot-instructions.md = aplica a TODOS                 │
-# │  - *.instructions.md = instrucciones modulares, toggleables │
-# │    vía /instructions                                        │
+# │  Difference from .github/instructions/*.instructions.md:   │
+# │  - copilot-instructions.md = applies to ALL                │
+# │  - *.instructions.md = modular, toggleable instructions    │
+# │    via /instructions                                       │
 # └─────────────────────────────────────────────────────────────┘
 
-## Proyecto
+## Project
 
-- **Nombre**: {{PROJECT_NAME}}
-- **Descripción**: {{PROJECT_DESCRIPTION}}
-- **Stack principal**: {{TECH_STACK}}
-- **Repositorio**: {{REPOSITORY_URL}}
+- **Name**: {{PROJECT_NAME}}
+- **Description**: {{PROJECT_DESCRIPTION}}
+- **Main stack**: {{TECH_STACK}}
+- **Repository**: {{REPOSITORY_URL}}
 - **Project Manager**: {{TEAM_LEAD}}
 
-## Contexto del equipo
+## Team context
 
-Este proyecto utiliza el sistema **Understudy**: un equipo de agentes IA especializados.
-Cada agente tiene un rol definido en `AGENTS.md` y instrucciones detalladas en
-`.github/instructions/<rol>.instructions.md`.
+This project uses the **Understudy** system: a team of specialized AI agents.
+Each agent has a defined role in `AGENTS.md` and detailed instructions in
+`.github/instructions/<role>.instructions.md`.
 
-Los roles disponibles son:
-- **Architect** — Diseño de soluciones y decisiones arquitectónicas
-- **Backend** — Implementación de APIs, servicios y lógica de negocio
-- **Frontend** — Interfaces de usuario y experiencia
-- **DevOps** — Infraestructura, CI/CD y operaciones
-- **Security** — Seguridad integrada en todo el ciclo
-- **QA** — Testing y calidad del software (.NET, Node.js, Python)
+Available roles:
+- **Architect** — Solution design and architectural decisions
+- **Backend** — API, service and business logic implementation
+- **Frontend** — User interfaces and experience
+- **DevOps** — Infrastructure, CI/CD and operations
+- **Security** — Security integrated throughout the cycle
+- **QA** — Testing and software quality (.NET, Node.js, Python)
 
 ## Spec-Driven Development
 
-Este proyecto sigue **Spec-Driven Development**:
-1. Antes de escribir código, se documenta la especificación en `docs/spec.md`
-2. La spec debe ser aprobada por el PM antes de comenzar
-3. Cualquier cambio de alcance se refleja primero en la spec
+This project follows **Spec-Driven Development**:
+1. Before writing code, the specification is documented in `docs/spec.md`
+2. The spec must be approved by the PM before starting
+3. Any scope change is first reflected in the spec
 
-## Archivos de contexto obligatorios
+## Mandatory context files
 
-| Archivo | Propósito |
+| File | Purpose |
 |---|---|
-| `docs/spec.md` | Especificación del proyecto — la fuente de verdad |
-| `docs/decisions.md` | Registro de decisiones arquitectónicas (ADR) |
-| `docs/session-log.md` | Log de sesiones — leer al inicio de cada sesión |
-| `docs/team-roster.md` | Roster del equipo activo y sus capacidades |
+| `docs/spec.md` | Project specification — the source of truth |
+| `docs/decisions.md` | Architecture Decision Records (ADR) |
+| `docs/session-log.md` | Session log — read at the start of each session |
+| `docs/team-roster.md` | Active team roster and capabilities |
 
-## Reglas globales
+## Global rules
 
-### Al iniciar una sesión
-1. **Siempre** lee `docs/session-log.md` para saber qué se hizo antes
-2. **Siempre** lee `docs/spec.md` para contexto del proyecto
-3. **Siempre** lee `docs/decisions.md` para decisiones ya tomadas
-4. Antes de trabajar, confirma tu entendimiento del estado actual
+### At the start of a session
+1. **Always** read `docs/session-log.md` to know what was done before
+2. **Always** read `docs/spec.md` for project context
+3. **Always** read `docs/decisions.md` for decisions already made
+4. Before working, confirm your understanding of the current state
 
-### Al finalizar una sesión
-1. Actualiza `docs/session-log.md` con:
-   - Qué se hizo en esta sesión
-   - Qué queda pendiente
-   - Decisiones tomadas
-   - Bloqueantes identificados
-2. Esto asegura que la siguiente sesión (otro día, otro momento) tenga contexto completo
+### At the end of a session
+1. Update `docs/session-log.md` with:
+   - What was done in this session
+   - What is still pending
+   - Decisions made
+   - Blockers identified
+2. This ensures the next session (another day, another time) has full context
 
-### Estándares de código
-- Código legible y mantenible por cualquier miembro del equipo
-- Funciones de responsabilidad única
-- Nombres de dominio de negocio, no nombres genéricos
-- Error handling explícito con contexto en los mensajes
-- Sin secretos hardcodeados — usar vault/env vars
-- Sin código muerto o comentarios TODO en commits
+### Code standards
+- Readable and maintainable code for any team member
+- Single-responsibility functions
+- Business domain names, not generic names
+- Explicit error handling with context in messages
+- No hardcoded secrets — use vault/env vars
+- No dead code or TODO comments in commits
 
-### Estructura del proyecto
+### Project structure
 ```
 {{PROJECT_NAME}}/
 ├── .github/
-│   ├── copilot-instructions.md     ← este archivo
-│   ├── instructions/               ← instrucciones por rol
-│   └── prompts/                    ← prompts reutilizables (VS Code)
+│   ├── copilot-instructions.md     ← this file
+│   ├── instructions/               ← instructions per role
+│   └── prompts/                    ← reusable prompts (VS Code)
 │       ├── start-session.prompt.md
 │       ├── end-session.prompt.md
 │       ├── design-feature.prompt.md
 │       └── security-review.prompt.md
-├── AGENTS.md                       ← definición del equipo
-├── understudy.yaml               ← configuración de modelos y scoping
-├── docs/                           ← documentación del proyecto
+├── AGENTS.md                       ← team definition
+├── understudy.yaml               ← model and scoping configuration
+├── docs/                           ← project documentation
 │   ├── spec.md
 │   ├── decisions.md
 │   ├── session-log.md
 │   └── team-roster.md
-├── src/                            ← código fuente
+├── src/                            ← source code
 ├── tests/                          ← tests
-└── scripts/                        ← scripts de automatización
+└── scripts/                        ← automation scripts
 ```
 
-## Configuración y modelos
+## Configuration and models
 
-Los modelos recomendados por rol están definidos en `understudy.yaml` en la raíz del proyecto.
-Para cambiar el modelo de un rol, edita ese archivo:
+Recommended models per role are defined in `understudy.yaml` at the project root.
+To change the model for a role, edit that file:
 
 ```yaml
 models:
-  architect: "claude-opus-4.6"       # razonamiento profundo para diseño
-  backend: "claude-sonnet-4.5"       # balance calidad/velocidad
+  architect: "claude-opus-4.6"       # deep reasoning for design
+  backend: "claude-sonnet-4.5"       # quality/speed balance
   frontend: "claude-sonnet-4.5"
-  devops: "claude-haiku-4.5"         # económico para tareas estructuradas
+  devops: "claude-haiku-4.5"         # economical for structured tasks
   security: "claude-sonnet-4.5"
-  qa-engineer: "claude-sonnet-4.5"   # test plans y código de tests
+  qa-engineer: "claude-sonnet-4.5"   # test plans and test code
 ```
 
-En **Copilot CLI**: usa `/model` para seleccionar el modelo recomendado para el rol activo.
-En **VS Code**: usa el model picker en el panel de Copilot Chat.
+In **Copilot CLI**: use `/model` to select the recommended model for the active role.
+In **VS Code**: use the model picker in the Copilot Chat panel.
 
 <!-- GUARDRAILS_START -->
 {{GUARDRAILS_SECTION}}
 <!-- GUARDRAILS_END -->
 
-## Compatibilidad CLI y VS Code
+## CLI and VS Code compatibility
 
-Este proyecto funciona tanto con Copilot CLI como con VS Code sin cambios.
+This project works with both Copilot CLI and VS Code without changes.
 
-**En VS Code:**
-- Las instrucciones de `.github/instructions/*.instructions.md` se aplican
-  automáticamente según el tipo de archivo que estés editando (frontmatter `applyTo`)
-- Los prompts de `.github/prompts/` están disponibles como flujos reutilizables
-- `copilot-instructions.md` (este archivo) se carga automáticamente
+**In VS Code:**
+- Instructions from `.github/instructions/*.instructions.md` are applied
+  automatically based on the type of file you are editing (frontmatter `applyTo`)
+- Prompts from `.github/prompts/` are available as reusable flows
+- `copilot-instructions.md` (this file) is loaded automatically
 
-**En Copilot CLI:**
-- Usa `/agent` para seleccionar un miembro del equipo
-- Usa `/instructions` para activar/desactivar instrucciones por rol
-- Usa `/model` para cambiar el modelo según la tarea
+**In Copilot CLI:**
+- Use `/agent` to select a team member
+- Use `/instructions` to enable/disable instructions per role
+- Use `/model` to change the model based on the task

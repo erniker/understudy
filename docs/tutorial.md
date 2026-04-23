@@ -1,245 +1,245 @@
 # 📚 Tutorial: Understudy — One AI, Every Role
 
-> Guía completa para desplegar y usar agentes IA especializados.
-> Un solo asistente que se pone la gorra del rol que necesitas.
-> Compatible con GitHub Copilot CLI, VS Code, Claude Code y Cursor.
+> Complete guide to deploying and using specialized AI agents.
+> A single assistant that puts on the hat of whatever role you need.
+> Compatible with GitHub Copilot CLI, VS Code, Claude Code and Cursor.
 
 ---
 
-## Capítulo 1: Los conceptos fundamentales
+## Chapter 1: Fundamental concepts
 
-### 1.1 ¿Qué es un agente en Copilot CLI?
+### 1.1 What is an agent in Copilot CLI?
 
-Un agente es una **personalidad especializada** que Copilot adopta.
-En lugar de hablar con un "asistente genérico", hablas con un
-Arquitecto de Soluciones, un Desarrollador Backend, o un Experto en Seguridad.
+An agent is a **specialized personality** that Copilot adopts.
+Instead of talking to a "generic assistant", you talk to a
+Solutions Architect, a Backend Developer, or a Security Expert.
 
-Cada agente tiene:
-- **Conocimiento de dominio**: Sabe de su área específica
-- **Reglas de comportamiento**: Sigue estándares definidos
-- **Forma de comunicar**: Produce output estructurado para su rol
-- **Interacción con el equipo**: Sabe cuándo consultar a otro agente
+Each agent has:
+- **Domain knowledge**: Knows about their specific area
+- **Behavior rules**: Follows defined standards
+- **Communication style**: Produces structured output for their role
+- **Team interaction**: Knows when to consult another agent
 
-### 1.2 ¿Dónde se definen?
+### 1.2 Where are they defined?
 
-#### En GitHub Copilot CLI / VS Code
+#### In GitHub Copilot CLI / VS Code
 
-| Archivo | Alcance | Carga | Propósito |
+| File | Scope | Loading | Purpose |
 |---|---|---|---|
-| `AGENTS.md` | Raíz del repo / cwd | Automática, seleccionable con `/agent` | Definir agentes del equipo |
-| `.github/copilot-instructions.md` | Proyecto | Automática, siempre activo | Contexto global del proyecto + guardrails críticos |
-| `.github/instructions/*.instructions.md` | Proyecto | Automática, toggleable con `/instructions` | Instrucciones detalladas por rol |
-| `.github/instructions/guardrails.instructions.md` | Proyecto | Automática (applyTo: `**`) | Guardrails completos para todos los agentes |
-| `~/.copilot/copilot-instructions.md` | Usuario | Automática, siempre activo | Preferencias personales globales |
+| `AGENTS.md` | Repo root / cwd | Automatic, selectable with `/agent` | Define team agents |
+| `.github/copilot-instructions.md` | Project | Automatic, always active | Global project context + critical guardrails |
+| `.github/instructions/*.instructions.md` | Project | Automatic, toggleable with `/instructions` | Detailed per-role instructions |
+| `.github/instructions/guardrails.instructions.md` | Project | Automatic (applyTo: `**`) | Full guardrails for all agents |
+| `~/.copilot/copilot-instructions.md` | User | Automatic, always active | Global personal preferences |
 
-#### En Claude Code
+#### In Claude Code
 
-| Archivo | Alcance | Carga | Propósito |
+| File | Scope | Loading | Purpose |
 |---|---|---|---|
-| `CLAUDE.md` | Raíz del proyecto | Automática, siempre activo | Contexto global + guardrails críticos |
-| `.claude/agents/*.md` | Proyecto | Invocables por nombre | Agentes por rol (con modelo y tools en frontmatter) |
-| `.claude/commands/*.md` | Proyecto | Invocables con `/project:nombre` | Comandos reutilizables (start-session, etc.) |
-| `.claude/settings.json` | Proyecto | Automática | Permisos (deny) y hooks |
-| `.claude/hooks/*.sh` | Proyecto | Automática (via settings.json) | Scripts para guardrails |
+| `CLAUDE.md` | Project root | Automatic, always active | Global context + critical guardrails |
+| `.claude/agents/*.md` | Project | Invocable by name | Agents per role (with model and tools in frontmatter) |
+| `.claude/commands/*.md` | Project | Invocable with `/project:name` | Reusable commands (start-session, etc.) |
+| `.claude/settings.json` | Project | Automatic | Permissions (deny) and hooks |
+| `.claude/hooks/*.sh` | Project | Automatic (via settings.json) | Scripts for guardrails |
 
-#### En Cursor
+#### In Cursor
 
-| Archivo | Alcance | Carga | Propósito |
+| File | Scope | Loading | Purpose |
 |---|---|---|---|
-| `.cursor/rules/understudy-global.mdc` | Proyecto | Automática (`alwaysApply: true`) | Reglas globales del proyecto |
-| `.cursor/rules/guardrails.mdc` | Proyecto | Automática (`alwaysApply: true`) | Guardrails de seguridad |
-| `.cursor/agents/*.md` | Proyecto | Invocables desde Agent panel | Agentes por rol (con modelo en frontmatter) |
+| `.cursor/rules/understudy-global.mdc` | Project | Automatic (`alwaysApply: true`) | Global project rules |
+| `.cursor/rules/guardrails.mdc` | Project | Automatic (`alwaysApply: true`) | Security guardrails |
+| `.cursor/agents/*.md` | Project | Invocable from Agent panel | Agents per role (with model in frontmatter) |
 
-### 1.3 Multi-agentes y sub-agentes
+### 1.3 Multi-agents and sub-agents
 
-**Multi-agentes** = Tener varios agentes definidos y cambiar entre ellos con `/agent`.
-**Sub-agentes** = Copilot puede lanzar agentes internos (via el task tool) que trabajan
-en paralelo en subtareas independientes.
+**Multi-agents** = Having several agents defined and switching between them with `/agent`.
+**Sub-agents** = Copilot can launch internal agents (via the task tool) that work
+in parallel on independent subtasks.
 
-Ejemplo de flujo multi-agente:
+Example multi-agent flow:
 ```
-Tú: /agent Architect → "Diseña la API de clientes"
-Architect: [produce diseño con ADR + OpenAPI spec]
+You: /agent Architect → "Design the customer API"
+Architect: [produces design with ADR + OpenAPI spec]
 
-Tú: /agent Backend → "Implementa la API según el diseño del Architect"
-Backend: [lee docs/decisions.md, implementa siguiendo el contrato]
+You: /agent Backend → "Implement the API according to the Architect's design"
+Backend: [reads docs/decisions.md, implements following the contract]
 
-Tú: /agent Security → "Revisa la implementación"
-Security: [analiza código, reporta findings]
+You: /agent Security → "Review the implementation"
+Security: [analyzes code, reports findings]
 ```
 
-Ejemplo de sub-agentes paralelos:
+Example of parallel sub-agents:
 ```
-Tú: "Implementa el frontend y backend de la feature de login simultáneamente"
-Copilot: [lanza sub-agente Backend y sub-agente Frontend en paralelo]
-         [cada uno trabaja independientemente siguiendo los contratos del Architect]
+You: "Implement the login feature frontend and backend simultaneously"
+Copilot: [launches sub-agent Backend and sub-agent Frontend in parallel]
+         [each works independently following the Architect's contracts]
 ```
 
 ---
 
-## Capítulo 2: Spec-Driven Development
+## Chapter 2: Spec-Driven Development
 
-### 2.1 ¿Por qué spec-first?
+### 2.1 Why spec-first?
 
-Sin una especificación clara:
-- Cada agente interpreta los requisitos a su manera
-- Se pierde tiempo re-haciendo trabajo
-- Las decisiones no tienen fundamento documentado
+Without a clear specification:
+- Each agent interprets requirements in their own way
+- Time is wasted re-doing work
+- Decisions have no documented foundation
 
-Con spec-first:
-- Todos los agentes leen la misma fuente de verdad (`docs/spec.md`)
-- El Architect diseña contra requisitos concretos
-- Backend y Frontend implementan contra contratos definidos
-- Security sabe qué activos proteger
+With spec-first:
+- All agents read the same source of truth (`docs/spec.md`)
+- The Architect designs against concrete requirements
+- Backend and Frontend implement against defined contracts
+- Security knows which assets to protect
 
-### 2.2 Flujo spec-driven
+### 2.2 Spec-driven flow
 
 ```
-1. PM escribe docs/spec.md (requisitos de negocio)
+1. PM writes docs/spec.md (business requirements)
        ↓
-2. /agent Architect refina la spec (preguntas técnicas)
+2. /agent Architect refines the spec (technical questions)
        ↓
-3. PM aprueba la spec refinada
+3. PM approves the refined spec
        ↓
-4. Architect produce diseño + contratos de API
+4. Architect produces design + API contracts
        ↓
-5. Security valida threat model
+5. Security validates threat model
        ↓
-6. Backend + Frontend implementan en paralelo
+6. Backend + Frontend implement in parallel
        ↓
-7. QA diseña test plan y escribe tests
+7. QA designs test plan and writes tests
        ↓
-8. DevOps prepara infra + CI/CD
+8. DevOps prepares infra + CI/CD
        ↓
-9. Security hace review final
+9. Security does final review
 ```
 
-### 2.3 La spec como contrato
+### 2.3 The spec as a contract
 
-La spec NO es documentación estática. Es un **contrato vivo**:
-- Si el PM cambia requisitos → actualiza la spec primero
-- Si el Architect descubre restricciones → actualiza la spec
-- Todos los agentes la referencian constantemente
+The spec is NOT static documentation. It is a **living contract**:
+- If the PM changes requirements → update the spec first
+- If the Architect discovers constraints → update the spec
+- All agents constantly reference it
 
 ---
 
-## Capítulo 3: Persistencia entre sesiones
+## Chapter 3: Persistence between sessions
 
-### 3.1 El problema
+### 3.1 The problem
 
-Copilot CLI **no tiene memoria entre sesiones**. Cada vez que abres una nueva sesión,
-el agente empieza de cero. Esto significa:
-- Gastar tokens re-explicando contexto
-- Riesgo de decisiones inconsistentes
-- Pérdida de progreso
+Copilot CLI **has no memory between sessions**. Every time you open a new session,
+the agent starts from scratch. This means:
+- Spending tokens re-explaining context
+- Risk of inconsistent decisions
+- Loss of progress
 
-### 3.2 La solución: archivos de contexto
+### 3.2 The solution: context files
 
-El Understudy usa tres archivos como "memoria persistente":
+Understudy uses three files as "persistent memory":
 
-**`docs/spec.md`** — Qué hay que hacer
-- Fuente de verdad de requisitos
-- Se lee al inicio de cada sesión
-- Se actualiza cuando cambia el alcance
+**`docs/spec.md`** — What needs to be done
+- Source of truth for requirements
+- Read at the start of each session
+- Updated when scope changes
 
-**`docs/decisions.md`** — Qué se decidió y por qué
-- Registro de decisiones arquitectónicas (ADR)
-- Evita re-discutir decisiones ya tomadas
-- Cada ADR explica contexto, alternativas y consecuencias
+**`docs/decisions.md`** — What was decided and why
+- Architectural decision records (ADR)
+- Avoids re-discussing decisions already made
+- Each ADR explains context, alternatives and consequences
 
-**`docs/session-log.md`** — Qué se hizo y qué falta
-- Log cronológico de sesiones
-- Se lee al inicio: "¿qué se hizo ayer?"
-- Se actualiza al final: "¿qué hicimos hoy?"
-- Incluye pendientes y bloqueantes
+**`docs/session-log.md`** — What was done and what remains
+- Chronological session log
+- Read at start: "what was done yesterday?"
+- Updated at end: "what did we do today?"
+- Includes pending items and blockers
 
-### 3.3 Protocolo de sesión
+### 3.3 Session protocol
 
-**Al INICIAR una sesión:**
+**When STARTING a session:**
 ```
-Tú: "Lee docs/session-log.md, docs/spec.md y docs/decisions.md
-     para ponerte al día del proyecto"
-```
-
-**Al FINALIZAR una sesión:**
-```
-Tú: "Actualiza docs/session-log.md con lo que hicimos hoy,
-     qué queda pendiente y decisiones tomadas"
+You: "Read docs/session-log.md, docs/spec.md and docs/decisions.md
+     to get up to speed on the project"
 ```
 
-Esto cuesta unos pocos tokens y ahorra MUCHOS en la siguiente sesión.
+**When ENDING a session:**
+```
+You: "Update docs/session-log.md with what we did today,
+     what is still pending and decisions made"
+```
+
+This costs a few tokens and saves MANY in the next session.
 
 ---
 
-## Capítulo 4: El Wizard
+## Chapter 4: The Wizard
 
-### 4.1 ¿Qué hace?
+### 4.1 What does it do?
 
-El wizard (`wizard.sh`) automatiza el despliegue del Understudy:
+The wizard (`wizard.sh`) automates Understudy deployment:
 
-1. Te pregunta datos del proyecto (nombre, stack, PM, etc.)
-2. Te pregunta el modo de guardrails (split o embedded)
-3. Te pregunta qué plataformas desplegar (Copilot, Claude Code, Cursor)
-4. Crea toda la estructura de directorios
-5. Genera los archivos de cada plataforma con los datos del proyecto
-6. Opcionalmente inicializa git
-7. Te da instrucciones de cómo empezar según la plataforma
+1. Asks you for project details (name, stack, PM, etc.)
+2. Asks you for guardrails mode (split or embedded)
+3. Asks you which platforms to deploy (Copilot, Claude Code, Cursor)
+4. Creates the entire directory structure
+5. Generates the files for each platform with the project data
+6. Optionally initializes git
+7. Gives you instructions on how to start according to the platform
 
-### 4.2 Uso
+### 4.2 Usage
 
 ```bash
-# Despliegue completo
+# Full deployment
 ./wizard.sh
 
-# Añadir miembro (ej: Data Engineer)
+# Add member (e.g.: Data Engineer)
 ./wizard.sh --add-member
 
-# Crear rol personalizado
+# Create custom role
 ./wizard.sh --create-role
 ```
 
-### 4.3 Integración en proyectos existentes
+### 4.3 Integration in existing projects
 
-El wizard no solo crea proyectos nuevos — también **se integra en proyectos existentes**
-sin tocar ningún archivo que ya exista:
+The wizard not only creates new projects — it also **integrates into existing projects**
+without touching any file that already exists:
 
 ```bash
-# Ejemplo: tu proyecto React ya existe en ./mi-app
+# Example: your React project already exists in ./my-app
 ./wizard.sh
-# → Nombre: mi-app
-# → Directorio base: .
-# → El wizard detecta que mi-app/ ya existe
-# → Muestra el stack detectado y pregunta si integrar
+# → Name: my-app
+# → Base directory: .
+# → The wizard detects that my-app/ already exists
+# → Shows detected stack and asks if it should integrate
 ```
 
-El wizard opera en **3 modos**:
+The wizard operates in **3 modes**:
 
-| Modo | Cuándo | Qué hace |
+| Mode | When | What it does |
 |---|---|---|
-| 🆕 **Nuevo** | La carpeta no existe | Crea todo desde cero |
-| 🔄 **Integración** | La carpeta tiene un proyecto | Añade Understudy sin tocar archivos existentes |
-| ⚠️ **Re-despliegue** | Ya tiene Understudy (AGENTS.md / CLAUDE.md / .cursor/agents) | Solo añade archivos faltantes |
+| 🆕 **New** | Folder does not exist | Creates everything from scratch |
+| 🔄 **Integration** | Folder has a project | Adds Understudy without touching existing files |
+| ⚠️ **Re-deployment** | Already has Understudy (AGENTS.md / CLAUDE.md / .cursor/agents) | Only adds missing files |
 
-### 4.4 Detección de stack y monorepos
+### 4.4 Stack detection and monorepos
 
-Al encontrar un proyecto existente, el wizard **escanea hasta 3 niveles de profundidad**
-para detectar tecnologías. Reconoce:
+When it finds an existing project, the wizard **scans up to 3 levels deep**
+to detect technologies. It recognizes:
 
-- **.NET**: `*.csproj`, `*.sln` (con nombre del proyecto)
-- **Node.js**: `package.json` en subdirectorios
-- **React / Vue / Angular**: detecta el framework dentro de `package.json`
+- **.NET**: `*.csproj`, `*.sln` (with project name)
+- **Node.js**: `package.json` in subdirectories
+- **React / Vue / Angular**: detects the framework inside `package.json`
 - **Python**: `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile`
 - **Terraform**: `*.tf`
-- **Docker**: `Dockerfile` (cuenta cuántos hay), `docker-compose.yml`
+- **Docker**: `Dockerfile` (counts how many), `docker-compose.yml`
 
-Cuando detecta **más de 2 proyectos independientes**, lo etiqueta como **Monorepo**:
+When it detects **more than 2 independent projects**, it labels it as a **Monorepo**:
 
 ```
-🔍 Proyecto existente detectado
+🔍 Existing project detected
 
-  Stack detectado:   Monorepo: .NET(2) + Node.js + React(2) + Python + Terraform + Docker
+  Detected stack:   Monorepo: .NET(2) + Node.js + React(2) + Python + Terraform + Docker
 
-  Componentes encontrados:
+  Components found:
     • .NET: services/api-customers (ApiCustomers)
     • .NET: services/api-policies (ApiPolicies)
     • React: frontend/web-app
@@ -250,74 +250,74 @@ Cuando detecta **más de 2 proyectos independientes**, lo etiqueta como **Monore
     • Docker Compose: ./
 ```
 
-El stack detectado se usa como **valor por defecto** que puedes aceptar o modificar.
+The detected stack is used as a **default value** that you can accept or modify.
 
-### 4.5 Extensibilidad
+### 4.5 Extensibility
 
-El directorio `roles/` contiene plantillas de roles adicionales.
-Puedes crear cualquier rol que necesites:
+The `roles/` directory contains additional role templates.
+You can create any role you need:
 
 - Data Engineer → `roles/data-engineer.instructions.md`
 - Technical Writer → `roles/tech-writer.instructions.md`
 - ML Engineer → `roles/ml-engineer.instructions.md`
 - Performance Engineer → `roles/perf-engineer.instructions.md`
 
-El wizard tiene una opción interactiva para crear roles desde cero.
+The wizard has an interactive option to create roles from scratch.
 
 ---
 
-## Capítulo 5: Configuración y Override
+## Chapter 5: Configuration and Override
 
-### 5.1 El archivo understudy.yaml
+### 5.1 The understudy.yaml file
 
-El Understudy usa un archivo de configuración YAML para controlar:
-- **Modelos por rol**: Qué modelo se recomienda para cada agente
-- **Scoping (applyTo)**: En VS Code, qué archivos activan qué instrucciones
-- **Comportamiento de sesión**: Auto-leer contexto, auto-actualizar log
+Understudy uses a YAML configuration file to control:
+- **Models per role**: Which model is recommended for each agent
+- **Scoping (applyTo)**: In VS Code, which files activate which instructions
+- **Session behavior**: Auto-read context, auto-update log
 
-### 5.2 Jerarquía de prioridad
+### 5.2 Priority hierarchy
 
 ```
-Defaults del wizard (hardcoded)
-    ↓ sobrescrito por
-understudy.yaml global (junto a wizard.sh)
-    ↓ sobrescrito por
-understudy.yaml del proyecto (en la raíz del repo)
+Wizard defaults (hardcoded)
+    ↓ overridden by
+Global understudy.yaml (next to wizard.sh)
+    ↓ overridden by
+Project understudy.yaml (at repo root)
 ```
 
-Esto permite:
-- Tener defaults corporativos en el sistema global
-- Overrides por proyecto (ej: "este proyecto usa Opus para Security")
+This allows:
+- Having corporate defaults in the global system
+- Per-project overrides (e.g.: "this project uses Opus for Security")
 
-### 5.3 Ejemplo de override
+### 5.3 Override example
 
 ```yaml
-# mi-proyecto-fintech/understudy.yaml
+# my-fintech-project/understudy.yaml
 models:
-  architect: "claude-opus-4.6"    # mantener default
-  security: "claude-opus-4.6"     # override: más razonamiento para fintech
-  backend: "claude-sonnet-4"      # override: usar Sonnet 4 en vez de 4.5
+  architect: "claude-opus-4.6"    # keep default
+  security: "claude-opus-4.6"     # override: more reasoning for fintech
+  backend: "claude-sonnet-4"      # override: use Sonnet 4 instead of 4.5
 ```
 
-### 5.4 Configuración de guardrails
+### 5.4 Guardrails configuration
 
-Los guardrails se configuran en `understudy.yaml`:
+Guardrails are configured in `understudy.yaml`:
 
 ```yaml
 guardrails:
-  mode: "split"   # "split" o "embedded"
+  mode: "split"   # "split" or "embedded"
 ```
 
-| Modo | Qué hace |
+| Mode | What it does |
 |---|---|
-| `split` (recomendado) | Guardrails críticos siempre en `copilot-instructions.md` + archivo completo `guardrails.instructions.md` con detalles y ejemplos |
-| `embedded` | Solo guardrails críticos incrustados en `copilot-instructions.md` (más ligero, sin archivo separado) |
+| `split` (recommended) | Critical guardrails always in `copilot-instructions.md` + full `guardrails.instructions.md` file with details and examples |
+| `embedded` | Only critical guardrails embedded in `copilot-instructions.md` (lighter, without separate file) |
 
-El modo se selecciona durante el despliegue con el wizard y se puede cambiar editando el config.
+The mode is selected during deployment with the wizard and can be changed by editing the config.
 
-### 5.5 Configuración de plataformas
+### 5.5 Platform configuration
 
-El wizard soporta despliegue para una o varias plataformas:
+The wizard supports deployment to one or multiple platforms:
 
 ```yaml
 platforms:
@@ -325,361 +325,361 @@ platforms:
   claude: true     # Claude Code
 ```
 
-Si solo usas una plataforma, pon `false` en la otra. El wizard también
-permite seleccionar la plataforma durante el despliegue interactivo.
+If you only use one platform, set `false` for the other. The wizard also
+allows selecting the platform during interactive deployment.
 
 ---
 
-## Capítulo 6: Guardrails — Protección del equipo
+## Chapter 6: Guardrails — Team protection
 
-### 6.1 ¿Qué son los guardrails?
+### 6.1 What are guardrails?
 
-Los guardrails son **límites de seguridad y comportamiento no negociables** que todos
-los agentes del Understudy deben respetar. No son sugerencias — son restricciones duras.
+Guardrails are **non-negotiable security and behavior limits** that all
+Understudy agents must respect. They are not suggestions — they are hard constraints.
 
-Protegen contra:
-- Fugas de secretos o datos sensibles en código o logs
-- Operaciones destructivas sin confirmación del PM
-- Cambios en producción sin control de cambio
-- Código sin spec, sin tests, o sin review
-- Violaciones de scope entre agentes
+They protect against:
+- Leaks of secrets or sensitive data in code or logs
+- Destructive operations without PM confirmation
+- Production changes without change control
+- Code without spec, without tests, or without review
+- Scope violations between agents
 
-### 6.2 Las 8 categorías
+### 6.2 The 8 categories
 
-| # | Categoría | Qué protege | Ejemplo |
+| # | Category | What it protects | Example |
 |---|---|---|---|
-| 1 | 🛡️ **Seguridad** | No secretos, input validation | "NUNCA hardcodear API keys" |
-| 2 | 🎯 **Scope** | Ownership de archivos por agente | "Backend no modifica componentes React sin justificación" |
-| 3 | 📋 **Proceso** | Spec-first, decisiones documentadas | "No codificar sin spec aprobada (excepto bugfixes)" |
-| 4 | 💥 **Destructivas** | Confirmación antes de borrar | "Antes de `terraform destroy`: explica qué, por qué, impacto" |
-| 5 | 🔒 **Datos/PII** | No datos reales en código/tests | "Usar datos sintéticos, nunca PII real" |
-| 6 | 🏗️ **Calidad** | Self-review, tests, naming | "Self-review antes de presentar, error handling explícito" |
-| 7 | ⚠️ **Entornos** | Orden de promoción, IaC | "dev → test → acc → eng → prd, nunca saltar" |
-| 8 | 📝 **Documentación** | ADRs, session-log, spec | "Actualizar session-log al final de cada sesión" |
+| 1 | 🛡️ **Security** | No secrets, input validation | "NEVER hardcode API keys" |
+| 2 | 🎯 **Scope** | File ownership per agent | "Backend does not modify React components without justification" |
+| 3 | 📋 **Process** | Spec-first, documented decisions | "Don't code without approved spec (except bugfixes)" |
+| 4 | 💥 **Destructive** | Confirmation before deleting | "Before `terraform destroy`: explain what, why, impact" |
+| 5 | 🔒 **Data/PII** | No real data in code/tests | "Use synthetic data, never real PII" |
+| 6 | 🏗️ **Quality** | Self-review, tests, naming | "Self-review before presenting, explicit error handling" |
+| 7 | ⚠️ **Environments** | Promotion order, IaC | "dev → test → acc → eng → prd, never skip" |
+| 8 | 📝 **Documentation** | ADRs, session-log, spec | "Update session-log at the end of each session" |
 
-### 6.3 Cómo se aplican
+### 6.3 How they are applied
 
-Los guardrails se aplican en **dos capas**:
+Guardrails are applied in **two layers**:
 
-1. **Guardrails críticos** — Incrustados en `copilot-instructions.md` (siempre activos).
-   Versión compacta con las reglas más importantes: seguridad, destructivas, datos, entornos.
+1. **Critical guardrails** — Embedded in `copilot-instructions.md` (always active).
+   Compact version with the most important rules: security, destructive, data, environments.
 
-2. **Guardrails completos** — Archivo `.github/instructions/guardrails.instructions.md`
-   con las 8 categorías detalladas, ejemplos, tablas de ownership y sección de enforcement.
-   En VS Code se auto-aplica a todos los archivos (`applyTo: "**"`).
+2. **Full guardrails** — File `.github/instructions/guardrails.instructions.md`
+   with all 8 detailed categories, examples, ownership tables and enforcement section.
+   In VS Code it auto-applies to all files (`applyTo: "**"`).
 
-### 6.4 Excepciones válidas
+### 6.4 Valid exceptions
 
-Los guardrails son estrictos pero no dogmáticos. Hay excepciones legítimas:
+Guardrails are strict but not dogmatic. There are legitimate exceptions:
 
-| Regla | Excepción válida |
+| Rule | Valid exception |
 |---|---|
-| Spec-first | Bugfixes, emergencias, CVE de dependencias, cambios de config |
-| Scope/ownership | Cambio cross-cutting con justificación (ej: security fix) |
-| Tests obligatorios | Documentación, config, metadata — validación apropiada en vez de unit tests |
+| Spec-first | Bugfixes, emergencies, dependency CVEs, config changes |
+| Scope/ownership | Cross-cutting change with justification (e.g.: security fix) |
+| Mandatory tests | Documentation, config, metadata — appropriate validation instead of unit tests |
 
 ### 6.5 Enforcement
 
-Si una instrucción del usuario o del proyecto contradice los guardrails:
-1. El agente prioriza los guardrails
-2. Explica al PM qué regla se violaría
-3. Propone una alternativa segura
-4. Documenta el incidente en session-log
+If a user or project instruction contradicts the guardrails:
+1. The agent prioritizes the guardrails
+2. Explains to the PM which rule would be violated
+3. Proposes a safe alternative
+4. Documents the incident in session-log
 
-La única forma de desactivar un guardrail es que el PM lo haga explícitamente
-en `understudy.yaml`.
+The only way to deactivate a guardrail is for the PM to do so explicitly
+in `understudy.yaml`.
 
 ---
 
-## Capítulo 7: Uso en Claude Code
+## Chapter 7: Usage in Claude Code
 
-### 7.1 Archivos generados
+### 7.1 Generated files
 
-Cuando despliegas para Claude Code, el wizard genera:
+When you deploy for Claude Code, the wizard generates:
 
-| Archivo | Función |
+| File | Function |
 |---|---|
-| `CLAUDE.md` | Instrucciones globales (siempre cargado, equivale a `copilot-instructions.md`) |
-| `.claude/agents/*.md` | Un agente por rol con frontmatter (name, model, tools) |
-| `.claude/commands/*.md` | Comandos invocables con `/project:nombre` |
-| `.claude/settings.json` | Permisos deny (protege .env, claves) + wiring de hooks |
-| `.claude/hooks/guardrails-check.sh` | Hook PreToolUse que bloquea operaciones destructivas |
+| `CLAUDE.md` | Global instructions (always loaded, equivalent to `copilot-instructions.md`) |
+| `.claude/agents/*.md` | One agent per role with frontmatter (name, model, tools) |
+| `.claude/commands/*.md` | Commands invocable with `/project:name` |
+| `.claude/settings.json` | Deny permissions (protects .env, keys) + hooks wiring |
+| `.claude/hooks/guardrails-check.sh` | PreToolUse hook that blocks destructive operations |
 
-### 7.2 Diferencias con Copilot
+### 7.2 Differences from Copilot
 
-| Concepto | Copilot | Claude Code |
+| Concept | Copilot | Claude Code |
 |---|---|---|
-| Agentes separados | AGENTS.md + .instructions.md | `.claude/agents/` (todo-en-uno) |
-| Instrucciones globales | `copilot-instructions.md` | `CLAUDE.md` |
-| Prompts reutilizables | `.github/prompts/` | `.claude/commands/` |
-| Guardrails enforcement | Solo por instrucciones | Instrucciones + hooks + settings.json deny |
-| Modelo por agente | Recomendación en texto | Frontmatter `model:` en cada agente |
+| Separate agents | AGENTS.md + .instructions.md | `.claude/agents/` (all-in-one) |
+| Global instructions | `copilot-instructions.md` | `CLAUDE.md` |
+| Reusable prompts | `.github/prompts/` | `.claude/commands/` |
+| Guardrails enforcement | Instructions only | Instructions + hooks + settings.json deny |
+| Model per agent | Text recommendation | Frontmatter `model:` in each agent |
 
-### 7.3 Comandos disponibles
+### 7.3 Available commands
 
-| Comando | Para qué |
+| Command | Purpose |
 |---|---|
-| `/project:start-session` | Cargar contexto al iniciar sesión |
-| `/project:end-session` | Actualizar session-log al cerrar |
-| `/project:design-feature` | Diseñar una feature con el Architect |
-| `/project:security-review` | Security review de cambios actuales |
+| `/project:start-session` | Load context when starting a session |
+| `/project:end-session` | Update session-log when closing |
+| `/project:design-feature` | Design a feature with the Architect |
+| `/project:security-review` | Security review of current changes |
 
-### 7.4 Guardrails en Claude Code
+### 7.4 Guardrails in Claude Code
 
-Los guardrails funcionan en **3 capas** en Claude Code:
+Guardrails work in **3 layers** in Claude Code:
 
-1. **CLAUDE.md**: Guardrails críticos incrustados (siempre cargados)
-2. **settings.json deny**: Protege archivos sensibles (.env, claves, secretos)
-3. **hooks/guardrails-check.sh**: Hook PreToolUse que bloquea comandos destructivos
+1. **CLAUDE.md**: Critical guardrails embedded (always loaded)
+2. **settings.json deny**: Protects sensitive files (.env, keys, secrets)
+3. **hooks/guardrails-check.sh**: PreToolUse hook that blocks destructive commands
    (rm -rf, terraform destroy, kubectl delete, DROP TABLE, etc.)
 
-### 7.5 Uso dual Copilot + Claude
+### 7.5 Dual Copilot + Claude usage
 
-Si despliegas ambas plataformas, cada una tiene sus propios archivos pero
-comparten la documentación (`docs/`), el config (`understudy.yaml`) y los
-estándares del equipo. Puedes usar ambas simultáneamente en el mismo proyecto.
+If you deploy both platforms, each has its own files but
+they share the documentation (`docs/`), the config (`understudy.yaml`) and the
+team standards. You can use both simultaneously in the same project.
 
 ---
 
-## Capítulo 8: Uso en VS Code
+## Chapter 8: Usage in VS Code
 
-### 8.1 ¿Qué funciona igual?
+### 8.1 What works the same?
 
-| Archivo | CLI | VS Code |
+| File | CLI | VS Code |
 |---|---|---|
-| `.github/copilot-instructions.md` | ✅ Auto-cargado | ✅ Auto-cargado |
-| `.github/instructions/*.instructions.md` | ✅ Toggleable | ✅ Auto-aplica por applyTo |
-| `.github/instructions/guardrails.instructions.md` | ✅ Toggleable | ✅ Auto-aplica a todos (`**`) |
-| `AGENTS.md` | ✅ `/agent` | ✅ Leído como contexto |
-| `docs/*.md` | ✅ Leídos por agentes | ✅ Leídos por agentes |
+| `.github/copilot-instructions.md` | ✅ Auto-loaded | ✅ Auto-loaded |
+| `.github/instructions/*.instructions.md` | ✅ Toggleable | ✅ Auto-applies by applyTo |
+| `.github/instructions/guardrails.instructions.md` | ✅ Toggleable | ✅ Auto-applies to all (`**`) |
+| `AGENTS.md` | ✅ `/agent` | ✅ Read as context |
+| `docs/*.md` | ✅ Read by agents | ✅ Read by agents |
 
-### 8.2 ¿Qué es diferente?
+### 8.2 What is different?
 
-**Frontmatter `applyTo`**: En VS Code, cada `.instructions.md` tiene un frontmatter YAML:
+**Frontmatter `applyTo`**: In VS Code, each `.instructions.md` has a YAML frontmatter:
 ```yaml
 ---
 applyTo: "src/components/**,**/*.tsx"
 ---
 ```
-Cuando editas un archivo `.tsx`, VS Code aplica automáticamente las instrucciones
-del Frontend. No necesitas hacer `/instructions` manualmente.
+When you edit a `.tsx` file, VS Code automatically applies the Frontend instructions.
+You don't need to do `/instructions` manually.
 
-**Prompt files**: VS Code soporta `.github/prompts/*.prompt.md` — prompts reutilizables
-que puedes invocar desde Copilot Chat. El wizard despliega 4 prompts:
+**Prompt files**: VS Code supports `.github/prompts/*.prompt.md` — reusable prompts
+that you can invoke from Copilot Chat. The wizard deploys 4 prompts:
 
-| Prompt | Para qué |
+| Prompt | Purpose |
 |---|---|
-| `start-session.prompt.md` | Cargar contexto al iniciar |
-| `end-session.prompt.md` | Actualizar session-log al cerrar |
-| `design-feature.prompt.md` | Diseñar una feature con el Architect |
-| `security-review.prompt.md` | Security review de cambios |
+| `start-session.prompt.md` | Load context when starting |
+| `end-session.prompt.md` | Update session-log when closing |
+| `design-feature.prompt.md` | Design a feature with the Architect |
+| `security-review.prompt.md` | Security review of changes |
 
-### 8.3 Selección de modelo en VS Code
+### 8.3 Model selection in VS Code
 
-En VS Code, cambias de modelo desde el model picker en la UI de Copilot Chat
-(dropdown en la esquina del panel de chat). El `understudy.yaml` y las
-instrucciones incluyen la recomendación de modelo — pero la selección es manual.
+In VS Code, you change models from the model picker in the Copilot Chat UI
+(dropdown in the corner of the chat panel). The `understudy.yaml` and the
+instructions include the model recommendation — but selection is manual.
 
 ---
 
-## Capítulo 9: Uso en Cursor
+## Chapter 9: Usage in Cursor
 
-### 9.1 Configuración
+### 9.1 Configuration
 
-Cursor usa dos sistemas complementarios:
+Cursor uses two complementary systems:
 
-| Componente | Ubicación | Carga | Propósito |
+| Component | Location | Loading | Purpose |
 |---|---|---|---|
-| **Agents** | `.cursor/agents/*.md` | Agent panel | Agentes especializados por rol |
-| **Rules** | `.cursor/rules/*.mdc` | Automática | Reglas globales y guardrails |
+| **Agents** | `.cursor/agents/*.md` | Agent panel | Specialized agents per role |
+| **Rules** | `.cursor/rules/*.mdc` | Automatic | Global rules and guardrails |
 
-### 9.2 ¿Cómo funcionan las rules?
+### 9.2 How do rules work?
 
-Las rules usan formato MDC (Markdown + frontmatter YAML):
+Rules use MDC format (Markdown + YAML frontmatter):
 
 ```yaml
 ---
-description: "Descripción de la rule"
+description: "Rule description"
 alwaysApply: true
 ---
-# Contenido de la rule en Markdown
+# Rule content in Markdown
 ```
 
-Tipos de rules:
-- **Always** (`alwaysApply: true`): Se cargan en cada sesión, como las instrucciones globales
-- **Auto Attached** (con `globs`): Se cargan cuando editas archivos que coinciden con el patrón
-- **Agent Requested** (solo `description`): El agente decide si cargarlas según contexto
-- **Manual**: Solo se cargan si las invocas explícitamente
+Types of rules:
+- **Always** (`alwaysApply: true`): Loaded in every session, like global instructions
+- **Auto Attached** (with `globs`): Loaded when you edit files matching the pattern
+- **Agent Requested** (only `description`): The agent decides whether to load them based on context
+- **Manual**: Only loaded if you invoke them explicitly
 
-El Understudy despliega dos rules "Always":
-- `understudy-global.mdc` — Instrucciones globales del proyecto
-- `guardrails.mdc` — Guardrails de seguridad
+Understudy deploys two "Always" rules:
+- `understudy-global.mdc` — Global project instructions
+- `guardrails.mdc` — Security guardrails
 
-### 9.3 ¿Cómo funcionan los agents?
+### 9.3 How do agents work?
 
-Los agents tienen frontmatter con `name`, `description` y `model`:
+Agents have frontmatter with `name`, `description` and `model`:
 
 ```yaml
 ---
 name: architect
-description: "Arquitecto de Soluciones del Understudy"
+description: "Understudy Solutions Architect"
 model: auto
 ---
-# Instrucciones del agente
+# Agent instructions
 ```
 
-Se invocan desde el **Agent panel** de Cursor. Cada agente tiene su propio modelo
-recomendado configurado en el frontmatter.
+They are invoked from the **Agent panel** in Cursor. Each agent has its own
+recommended model configured in the frontmatter.
 
-### 9.4 Diferencias con otras plataformas
+### 9.4 Differences from other platforms
 
-| Aspecto | Copilot | Claude Code | Cursor |
+| Aspect | Copilot | Claude Code | Cursor |
 |---|---|---|---|
-| Invocación de agentes | `/agent` | Por nombre | Agent panel |
-| Instrucciones globales | `copilot-instructions.md` | `CLAUDE.md` | `.cursor/rules/*.mdc` |
+| Agent invocation | `/agent` | By name | Agent panel |
+| Global instructions | `copilot-instructions.md` | `CLAUDE.md` | `.cursor/rules/*.mdc` |
 | Guardrails | `.instructions.md` + embedded | `CLAUDE.md` + hooks | `guardrails.mdc` |
-| Comandos/Prompts | `.github/prompts/` | `.claude/commands/` | N/A |
-| Protección de archivos | N/A | `settings.json` deny | N/A |
+| Commands/Prompts | `.github/prompts/` | `.claude/commands/` | N/A |
+| File protection | N/A | `settings.json` deny | N/A |
 
 ---
 
-## Capítulo 10: Optimización de costes (tokens)
+## Chapter 10: Cost optimization (tokens)
 
-### 5.1 Selección de modelo por tarea
+### 5.1 Model selection by task
 
-| Tarea | Modelo recomendado | Por qué |
+| Task | Recommended model | Why |
 |---|---|---|
-| Diseño arquitectónico | Claude Opus | Razonamiento profundo, decisiones complejas |
-| Implementación backend | Claude Sonnet | Buen balance calidad/velocidad/coste |
-| Implementación frontend | Claude Sonnet | Idem |
-| Testing / QA | Claude Sonnet | Test plans y código de tests |
-| Scripts DevOps | Claude Haiku | Tareas estructuradas, más económico |
-| Security review | Claude Sonnet/Opus | Depende de la complejidad |
-| Preguntas rápidas | Claude Haiku | Mínimo coste |
+| Architectural design | Claude Opus | Deep reasoning, complex decisions |
+| Backend implementation | Claude Sonnet | Good quality/speed/cost balance |
+| Frontend implementation | Claude Sonnet | Same |
+| Testing / QA | Claude Sonnet | Test plans and test code |
+| DevOps scripts | Claude Haiku | Structured tasks, more economical |
+| Security review | Claude Sonnet/Opus | Depends on complexity |
+| Quick questions | Claude Haiku | Minimum cost |
 
 Cambia de modelo en cualquier momento con `/model`.
 
-### 5.2 Reducir tokens con contexto persistente
+### 5.2 Reducing tokens with persistent context
 
-- Usa `docs/session-log.md` en lugar de re-explicar
-- Usa `/compact` si la conversación se alarga mucho
-- Pide al agente que lea archivos específicos, no "todo el proyecto"
+- Use `docs/session-log.md` instead of re-explaining
+- Use `/compact` if the conversation gets too long
+- Ask the agent to read specific files, not "the whole project"
 
-### 5.3 Sub-agentes vs sesiones secuenciales
+### 5.3 Sub-agents vs sequential sessions
 
-- **Sub-agentes**: Copilot lanza internamente agentes que trabajan en paralelo.
-  Útil cuando Backend y Frontend pueden avanzar independientemente.
-- **Sesiones secuenciales**: Cambias de agente con `/agent` y trabajas uno a uno.
-  Útil cuando necesitas supervisión estrecha de cada paso.
+- **Sub-agents**: Copilot internally launches agents that work in parallel.
+  Useful when Backend and Frontend can progress independently.
+- **Sequential sessions**: You switch agent with `/agent` and work one at a time.
+  Useful when you need close supervision of each step.
 
 ---
 
-## Capítulo 11: Cheat Sheet
+## Chapter 11: Cheat Sheet
 
-### Comandos Copilot CLI esenciales
+### Essential Copilot CLI commands
 
-| Comando | Qué hace |
+| Command | What it does |
 |---|---|
-| `/agent` | Seleccionar un agente del equipo |
-| `/instructions` | Activar/desactivar instrucciones modulares |
-| `/model` | Cambiar modelo (Opus, Sonnet, Haiku) |
-| `/compact` | Comprimir historial para ahorrar tokens |
-| `/diff` | Revisar cambios hechos |
-| `/context` | Ver uso de tokens de la sesión |
+| `/agent` | Select a team agent |
+| `/instructions` | Enable/disable modular instructions |
+| `/model` | Change model (Opus, Sonnet, Haiku) |
+| `/compact` | Compress history to save tokens |
+| `/diff` | Review changes made |
+| `/context` | View token usage for the session |
 
-### Comandos Claude Code
+### Claude Code commands
 
-| Comando | Qué hace |
+| Command | What it does |
 |---|---|
-| `/project:start-session` | Cargar contexto del proyecto |
-| `/project:end-session` | Cerrar sesión y actualizar logs |
-| `/project:design-feature` | Diseñar una feature con el Architect |
-| `/project:security-review` | Security review de cambios |
+| `/project:start-session` | Load project context |
+| `/project:end-session` | Close session and update logs |
+| `/project:design-feature` | Design a feature with the Architect |
+| `/project:security-review` | Security review of changes |
 
 ### Cursor
 
-En Cursor no hay comandos de texto como en Copilot CLI o Claude Code.
-La interacción se hace a través de la UI:
+In Cursor there are no text commands like in Copilot CLI or Claude Code.
+Interaction is done through the UI:
 
-| Acción | Cómo |
+| Action | How |
 |---|---|
-| Invocar un agente | Agent panel → seleccionar agente (architect, backend, etc.) |
-| Rules globales | Se cargan automáticamente — no requiere acción |
-| Guardrails | Se cargan automáticamente desde `.cursor/rules/guardrails.mdc` |
+| Invoke an agent | Agent panel → select agent (architect, backend, etc.) |
+| Global rules | Loaded automatically — no action required |
+| Guardrails | Loaded automatically from `.cursor/rules/guardrails.mdc` |
 
-### Comandos del Wizard
+### Wizard commands
 
-| Comando | Qué hace |
+| Command | What it does |
 |---|---|
-| `./wizard.sh` | Despliegue interactivo (nuevo o integración) |
-| `./wizard.sh --add-member` | Añadir un miembro extra (Data Engineer, etc.) |
-| `./wizard.sh --create-role` | Crear un rol personalizado desde cero |
-| `./wizard.sh --help` | Mostrar ayuda |
+| `./wizard.sh` | Interactive deployment (new or integration) |
+| `./wizard.sh --add-member` | Add an extra member (Data Engineer, etc.) |
+| `./wizard.sh --create-role` | Create a custom role from scratch |
+| `./wizard.sh --help` | Show help |
 
-> El wizard detecta automáticamente si el directorio ya contiene un proyecto
-> (Node.js, .NET, Python, monorepo, etc.) y ofrece **modo integración**.
+> The wizard automatically detects if the directory already contains a project
+> (Node.js, .NET, Python, monorepo, etc.) and offers **integration mode**.
 
-### Frases útiles para el PM
+### Useful phrases for the PM
 
 ```
-"Lee docs/session-log.md y ponte al día"
-"Diseña la solución para [requisito] siguiendo la spec"
-"Implementa [feature] según el contrato del Architect"
-"Revisa el código de Backend desde perspectiva de seguridad"
-"Actualiza session-log.md con lo que hicimos hoy"
-"¿Qué riesgos ves en esta arquitectura?"
-"Razona paso a paso antes de diseñar la solución"
+"Read docs/session-log.md and get up to speed"
+"Design the solution for [requirement] following the spec"
+"Implement [feature] according to the Architect's contract"
+"Review the Backend code from a security perspective"
+"Update session-log.md with what we did today"
+"What risks do you see in this architecture?"
+"Reason step by step before designing the solution"
 ```
 
-### Flujo típico de una sesión
+### Typical session flow
 
-**Con Copilot CLI:**
+**With Copilot CLI:**
 ```bash
-# 1. Abrir Copilot CLI en el proyecto
-cd mi-proyecto && copilot
+# 1. Open Copilot CLI in the project
+cd my-project && copilot
 
-# 2. Ponerse al día
-"Lee session-log.md, spec.md y decisions.md para contexto"
+# 2. Get up to speed
+"Read session-log.md, spec.md and decisions.md for context"
 
-# 3. Trabajar con el agente apropiado
-/agent Architect   # para diseñar
-/agent Backend     # para implementar APIs
-/agent Frontend    # para implementar UI
-/agent QA          # para tests y calidad
-/agent DevOps      # para infra y CI/CD
-/agent Security    # para review de seguridad
+# 3. Work with the appropriate agent
+/agent Architect   # to design
+/agent Backend     # to implement APIs
+/agent Frontend    # to implement UI
+/agent QA          # for tests and quality
+/agent DevOps      # for infra and CI/CD
+/agent Security    # for security review
 
-# 4. Al terminar
-"Actualiza session-log.md con resumen de esta sesión"
+# 4. When done
+"Update session-log.md with a summary of this session"
 ```
 
-**Con Claude Code:**
+**With Claude Code:**
 ```bash
-# 1. Abrir Claude Code en el proyecto
-cd mi-proyecto && claude
+# 1. Open Claude Code in the project
+cd my-project && claude
 
-# 2. Ponerse al día
+# 2. Get up to speed
 /project:start-session
 
-# 3. Trabajar — invocar agentes por nombre o usar comandos
-/project:design-feature    # para diseñar
-/project:security-review   # para review de seguridad
+# 3. Work — invoke agents by name or use commands
+/project:design-feature    # to design
+/project:security-review   # for security review
 
-# 4. Al terminar
+# 4. When done
 /project:end-session
 ```
 
-**Con Cursor:**
+**With Cursor:**
 ```bash
-# 1. Abrir Cursor en el proyecto
-cd mi-proyecto && cursor .
+# 1. Open Cursor in the project
+cd my-project && cursor .
 
-# 2. Las rules se cargan automáticamente — revisa session-log.md
-"Lee docs/session-log.md y ponte al día"
+# 2. Rules are loaded automatically — review session-log.md
+"Read docs/session-log.md and get up to speed"
 
-# 3. Invocar agentes desde el Agent panel
+# 3. Invoke agents from the Agent panel
 # → architect, backend, frontend, devops, security, qa-engineer
 
-# 4. Al terminar
-"Actualiza docs/session-log.md con lo que hicimos hoy"
+# 4. When done
+"Update docs/session-log.md with what we did today"
 ```

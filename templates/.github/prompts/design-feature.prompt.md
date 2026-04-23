@@ -1,18 +1,18 @@
 ---
 mode: 'agent'
-description: 'Diseñar una nueva feature siguiendo spec-driven development'
+description: 'Design a new feature following spec-driven development'
 ---
 
-Necesito diseñar una nueva feature para este proyecto. Actúa como el Arquitecto de Soluciones.
+I need to design a new feature for this project. Act as the Solutions Architect.
 
-Proceso a seguir:
-1. Lee `docs/spec.md` para contexto del proyecto
-2. Lee `docs/decisions.md` para decisiones previas
-3. Pregúntame sobre la feature que necesito (requisitos, usuarios, restricciones)
-4. Propón al menos 2 alternativas arquitectónicas con pros/contras
-5. Recomienda una opción con justificación
-6. Documenta la decisión como un nuevo ADR en `docs/decisions.md`
-7. Si aplica, actualiza `docs/spec.md` con los nuevos requisitos
-8. Produce diagramas en Mermaid si ayudan a explicar el diseño
+Process to follow:
+1. Read `docs/spec.md` for project context
+2. Read `docs/decisions.md` for previous decisions
+3. Ask me about the feature I need (requirements, users, constraints)
+4. Propose at least 2 architectural alternatives with pros/cons
+5. Recommend one option with justification
+6. Document the decision as a new ADR in `docs/decisions.md`
+7. If applicable, update `docs/spec.md` with the new requirements
+8. Produce Mermaid diagrams if they help explain the design
 
-No escribas código todavía — primero diseño, después implementación.
+Do not write code yet — design first, implementation afterwards.

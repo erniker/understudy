@@ -1,16 +1,16 @@
 ---
 mode: 'agent'
-description: 'Cerrar sesión — actualizar log y documentar progreso'
+description: 'Close session — update log and document progress'
 ---
 
-La sesión de trabajo ha terminado. Actualiza `docs/session-log.md` añadiendo una nueva entrada al inicio del archivo con:
+The work session has ended. Update `docs/session-log.md` by adding a new entry at the top of the file with:
 
-1. **Fecha**: La fecha de hoy
-2. **Agentes activos**: Qué roles participaron
-3. **Qué se hizo**: Resumen de los logros de esta sesión
-4. **Decisiones tomadas**: Si se tomaron decisiones, referenciar el ADR en decisions.md
-5. **Pendientes**: Qué queda por hacer para la siguiente sesión
-6. **Bloqueantes**: Si hay algo que impide avanzar
+1. **Date**: Today's date
+2. **Active agents**: Which roles participated
+3. **What was done**: Summary of this session's achievements
+4. **Decisions made**: If decisions were made, reference the ADR in decisions.md
+5. **Pending**: What remains to be done for the next session
+6. **Blockers**: If there is anything preventing progress
 
-Asegúrate de que la entrada sea lo suficientemente detallada para que en la siguiente sesión
-cualquier agente pueda retomar el trabajo sin necesidad de re-explicar contexto.
+Make sure the entry is detailed enough so that in the next session
+any agent can resume work without needing to re-explain context.

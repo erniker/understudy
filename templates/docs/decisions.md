@@ -1,48 +1,48 @@
-# 📝 Registro de Decisiones Arquitectónicas — {{PROJECT_NAME}}
+# 📝 Architecture Decision Records — {{PROJECT_NAME}}
 #
 # ┌───────────────────────────────────────────────────────────┐
 # │  TUTORIAL: Architecture Decision Records (ADR)            │
 # │                                                           │
-# │  Cada decisión técnica relevante se documenta aquí.       │
-# │  Esto permite que:                                        │
-# │  - Cualquier agente entienda POR QUÉ se tomó cada        │
-# │    decisión, no solo QUÉ se decidió                       │
-# │  - En sesiones futuras no se repitan discusiones          │
-# │  - Se pueda evaluar si una decisión sigue vigente         │
+# │  Each relevant technical decision is documented here.     │
+# │  This allows:                                             │
+# │  - Any agent to understand WHY each decision was made,    │
+# │    not just WHAT was decided                              │
+# │  - Future sessions do not repeat discussions              │
+# │  - It can be evaluated whether a decision still applies   │
 # │                                                           │
-# │  El Architect es el principal autor, pero cualquier       │
-# │  agente puede proponer una ADR.                           │
+# │  The Architect is the main author, but any agent          │
+# │  can propose an ADR.                                      │
 # └───────────────────────────────────────────────────────────┘
 
 ---
 
-## ADR-001: (Título — ejemplo: Selección de framework backend)
+## ADR-001: (Title — example: Backend framework selection)
 
-- **Estado**: Propuesta | Aceptada | Rechazada | Sustituida por ADR-XXX
-- **Fecha**: YYYY-MM-DD
-- **Autor**: Architect
+- **Status**: Proposed | Accepted | Rejected | Superseded by ADR-XXX
+- **Date**: YYYY-MM-DD
+- **Author**: Architect
 
-### Contexto
-¿Qué problema o necesidad motivó esta decisión?
+### Context
+What problem or need motivated this decision?
 
-### Alternativas consideradas
+### Alternatives considered
 
-#### Opción A: (nombre)
+#### Option A: (name)
 - **Pros**: ...
-- **Contras**: ...
+- **Cons**: ...
 
-#### Opción B: (nombre)
+#### Option B: (name)
 - **Pros**: ...
-- **Contras**: ...
+- **Cons**: ...
 
-### Decisión
-¿Qué se decidió y por qué?
+### Decision
+What was decided and why?
 
-### Consecuencias
-- ¿Qué cambia como resultado de esta decisión?
-- ¿Qué trade-offs aceptamos?
-- ¿Qué riesgos introduce?
+### Consequences
+- What changes as a result of this decision?
+- What trade-offs are we accepting?
+- What risks does it introduce?
 
 ---
 
-<!-- Añadir nuevas ADRs arriba de este comentario, incrementando el número -->
+<!-- Add new ADRs above this comment, incrementing the number -->

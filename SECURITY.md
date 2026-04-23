@@ -1,65 +1,65 @@
-# Política de seguridad
+# Security Policy
 
-## Versiones con soporte
+## Supported Versions
 
-| Versión | Soporte activo |
+| Version | Active Support |
 |---|---|
-| `0.1.x` | ✅ Sí |
+| `0.1.x` | ✅ Yes |
 
-Mientras el proyecto esté en `0.x.y`, solo la versión más reciente recibe parches de seguridad.
-A partir de `1.0.0` mantendremos una tabla de versiones soportadas más detallada.
+While the project is at `0.x.y`, only the most recent version receives security patches.
+From `1.0.0` onwards we will maintain a more detailed table of supported versions.
 
-## Reportar una vulnerabilidad
+## Reporting a Vulnerability
 
-**No abras una issue pública para reportar vulnerabilidades de seguridad.**
+**Do not open a public issue to report security vulnerabilities.**
 
-Si encuentras un problema de seguridad (por ejemplo: un hook que permite inyección de
-comandos, una validación de rutas insuficiente en el wizard, o una plantilla que expone
-secretos accidentalmente), repórtalo de forma privada:
+If you find a security problem (for example: a hook that allows command injection,
+insufficient path validation in the wizard, or a template that accidentally exposes
+secrets), report it privately:
 
-### Opción 1: GitHub Private Security Advisory (recomendado)
+### Option 1: GitHub Private Security Advisory (recommended)
 
-Usa la función
+Use the
 [**Report a vulnerability**](https://github.com/erniker/understudy/security/advisories/new)
-de GitHub. Permite discutir el problema de forma confidencial antes de la divulgación pública.
+feature on GitHub. It allows discussing the issue confidentially before public disclosure.
 
-### Opción 2: Correo electrónico
+### Option 2: Email
 
 📧 **josepablomedinagrande@hotmail.com**
 
-Incluye en tu reporte:
+Include in your report:
 
-- Descripción del problema y el impacto potencial
-- Pasos para reproducirlo
-- Versión afectada (`git describe --tags`)
-- Cualquier mitigación temporal que hayas identificado
+- Description of the problem and potential impact
+- Steps to reproduce it
+- Affected version (`git describe --tags`)
+- Any temporary mitigation you have identified
 
-## Proceso de respuesta
+## Response Process
 
-| Plazo | Acción |
+| Timeframe | Action |
 |---|---|
-| 48 h | Acuse de recibo del reporte |
-| 7 días | Evaluación inicial y confirmación o descarte |
-| 30 días | Parche publicado (si se confirma la vulnerabilidad) |
+| 48 h | Acknowledgment of the report |
+| 7 days | Initial assessment and confirmation or dismissal |
+| 30 days | Patch published (if the vulnerability is confirmed) |
 
-Una vez publicado el parche, coordinaremos contigo el momento y el contenido de la
-divulgación pública si así lo deseas.
+Once the patch is published, we will coordinate with you on the timing and content of
+public disclosure if you wish.
 
 ## Scope
 
-Este proyecto es un **generador de archivos de configuración** para herramientas de IA.
-No procesa datos de usuario en producción, no tiene backend ni servicios expuestos.
+This project is a **configuration file generator** for AI tools.
+It does not process user data in production, it has no backend or exposed services.
 
-Las vulnerabilidades más relevantes en este contexto son:
+The most relevant vulnerabilities in this context are:
 
-- Inyección de comandos en `wizard.sh` a través de inputs del usuario o del proyecto
-- Templates que incluyan patrones inseguros que se propaguen a proyectos de los usuarios
-- Hooks de Claude Code que permitan ejecución arbitraria no intencionada
-- Exposición accidental de secretos en archivos generados
+- Command injection in `wizard.sh` through user or project inputs
+- Templates that include insecure patterns that propagate to users' projects
+- Claude Code hooks that allow unintended arbitrary execution
+- Accidental exposure of secrets in generated files
 
-## Divulgación responsable
+## Responsible Disclosure
 
-Seguimos una política de **divulgación coordinada**. Pedimos un mínimo de **30 días** antes
-de cualquier publicación pública para tener tiempo de preparar y distribuir el parche.
+We follow a **coordinated disclosure** policy. We ask for a minimum of **30 days** before
+any public release to have time to prepare and distribute the patch.
 
-Agradecemos a quienes contribuyen a la seguridad del proyecto de forma responsable.
+We appreciate those who contribute to the security of the project responsibly.

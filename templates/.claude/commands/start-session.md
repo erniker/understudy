@@ -1,16 +1,16 @@
 ---
 name: start-session
-description: "Iniciar sesión de trabajo — carga contexto del proyecto"
+description: "Start work session — load project context"
 ---
 
-Lee los siguientes archivos de contexto para entender el estado actual del proyecto:
+Read the following context files to understand the current state of the project:
 
-1. `docs/session-log.md` — qué se hizo en sesiones anteriores
-2. `docs/spec.md` — especificación y requisitos del proyecto
-3. `docs/decisions.md` — decisiones arquitectónicas tomadas
-4. `docs/team-roster.md` — equipo activo
+1. `docs/session-log.md` — what was done in previous sessions
+2. `docs/spec.md` — project specification and requirements
+3. `docs/decisions.md` — architectural decisions made
+4. `docs/team-roster.md` — active team
 
-Después de leerlos, dame un resumen de:
-- Última sesión: qué se hizo y qué quedó pendiente
-- Estado general del proyecto
-- Próximos pasos recomendados
+After reading them, give me a summary of:
+- Last session: what was done and what is still pending
+- Overall project status
+- Recommended next steps

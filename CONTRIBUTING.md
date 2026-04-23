@@ -1,130 +1,130 @@
-# Guía de contribución — Understudy
+# Contribution Guide — Understudy
 
-Gracias por querer contribuir a Understudy. Este documento explica cómo trabajamos:
-convenciones de código, commits, versionado, changelogs y proceso de pull requests.
-
----
-
-## Índice
-
-1. [Cómo empezar](#1-cómo-empezar)
-2. [Reportar bugs y proponer features](#2-reportar-bugs-y-proponer-features)
-3. [Flujo de trabajo con Git](#3-flujo-de-trabajo-con-git)
-4. [Convenciones de commits](#4-convenciones-de-commits)
-5. [Versionado y tags](#5-versionado-y-tags)
-6. [Mantenimiento del CHANGELOG](#6-mantenimiento-del-changelog)
-7. [Proceso de pull request](#7-proceso-de-pull-request)
-8. [CI local antes de abrir una PR](#8-ci-local-antes-de-abrir-una-pr)
-9. [Añadir o modificar roles](#9-añadir-o-modificar-roles)
-10. [Código de conducta](#10-código-de-conducta)
+Thank you for wanting to contribute to Understudy. This document explains how we work:
+code conventions, commits, versioning, changelogs and the pull request process.
 
 ---
 
-## 1. Cómo empezar
+## Table of Contents
+
+1. [Getting started](#1-getting-started)
+2. [Reporting bugs and proposing features](#2-reporting-bugs-and-proposing-features)
+3. [Git workflow](#3-git-workflow)
+4. [Commit conventions](#4-commit-conventions)
+5. [Versioning and tags](#5-versioning-and-tags)
+6. [CHANGELOG maintenance](#6-changelog-maintenance)
+7. [Pull request process](#7-pull-request-process)
+8. [Local CI before opening a PR](#8-local-ci-before-opening-a-pr)
+9. [Adding or modifying roles](#9-adding-or-modifying-roles)
+10. [Code of conduct](#10-code-of-conduct)
+
+---
+
+## 1. Getting started
 
 ```bash
-# 1. Haz fork del repositorio en GitHub
+# 1. Fork the repository on GitHub
 
-# 2. Clona tu fork
-git clone https://github.com/<tu-usuario>/understudy.git
+# 2. Clone your fork
+git clone https://github.com/<your-username>/understudy.git
 cd understudy
 
-# 3. Añade el repo original como upstream
+# 3. Add the original repo as upstream
 git remote add upstream https://github.com/erniker/understudy.git
 
-# 4. Mantén tu fork sincronizado antes de cada contribución
+# 4. Keep your fork in sync before each contribution
 git fetch upstream
 git rebase upstream/main
 ```
 
-No hay dependencias de build. El único requisito para ejecutar el wizard es bash ≥ 4.
-En macOS instala bash actualizado con `brew install bash`.
+There are no build dependencies. The only requirement to run the wizard is bash ≥ 4.
+On macOS install an updated bash with `brew install bash`.
 
 ---
 
-## 2. Reportar bugs y proponer features
+## 2. Reporting bugs and proposing features
 
-Usa las **issue templates** de GitHub:
+Use the GitHub **issue templates**:
 
-- 🐛 **Bug report** — para comportamientos incorrectos o errores
-- ✨ **Feature request** — para proponer nuevas funcionalidades
+- 🐛 **Bug report** — for incorrect behavior or errors
+- ✨ **Feature request** — for proposing new functionality
 
-Antes de abrir una issue, busca si ya existe una similar en
+Before opening an issue, search if a similar one already exists in
 [Issues](https://github.com/erniker/understudy/issues).
 
 ---
 
-## 3. Flujo de trabajo con Git
+## 3. Git workflow
 
-### Ramas
+### Branches
 
-| Patrón | Para qué |
+| Pattern | Purpose |
 |---|---|
-| `feat/<descripcion>` | Nueva funcionalidad |
-| `fix/<descripcion>` | Corrección de bug |
-| `docs/<descripcion>` | Solo documentación |
-| `refactor/<descripcion>` | Refactoring sin cambio de comportamiento |
-| `chore/<descripcion>` | Tareas de mantenimiento (deps, CI, etc.) |
-| `release/v<X.Y.Z>` | Rama de preparación de release |
+| `feat/<description>` | New functionality |
+| `fix/<description>` | Bug fix |
+| `docs/<description>` | Documentation only |
+| `refactor/<description>` | Refactoring without behavior change |
+| `chore/<description>` | Maintenance tasks (deps, CI, etc.) |
+| `release/v<X.Y.Z>` | Release preparation branch |
 
 ```bash
-# Crear rama de trabajo
+# Create working branch
 git checkout -b feat/add-platform-engineer-role
 
-# ... trabajas ...
+# ... work ...
 
-# Sincroniza antes de abrir PR
+# Sync before opening PR
 git fetch upstream
 git rebase upstream/main
 ```
 
-### Política de merge
+### Merge policy
 
-- Las PRs se integran con **squash merge** en `main`.
-- Cada commit en `main` representa un cambio lógico completo.
-- No se hace merge directo a `main` sin PR (excepto maintainers en fixes críticos).
+- PRs are integrated with **squash merge** into `main`.
+- Each commit in `main` represents a complete logical change.
+- No direct merge to `main` without a PR (except maintainers on critical fixes).
 
 ---
 
-## 4. Convenciones de commits
+## 4. Commit conventions
 
-Usamos **Conventional Commits** ([spec](https://www.conventionalcommits.org/es/v1.0.0/)).
+We use **Conventional Commits** ([spec](https://www.conventionalcommits.org/en/v1.0.0/)).
 
-### Formato
+### Format
 
 ```
-<tipo>[alcance opcional]: <descripción corta en imperativo>
+<type>[optional scope]: <short description in imperative>
 
-[cuerpo opcional — explica el QUÉ y el POR QUÉ, no el cómo]
+[optional body — explains WHAT and WHY, not how]
 
-[footer opcional — refs a issues, breaking changes]
+[optional footer — refs to issues, breaking changes]
 ```
 
-### Tipos válidos
+### Valid types
 
-| Tipo | Cuándo usarlo |
+| Type | When to use |
 |---|---|
-| `feat` | Nueva funcionalidad visible para el usuario |
-| `fix` | Corrección de bug |
-| `docs` | Cambios solo en documentación |
-| `refactor` | Refactoring sin cambio de comportamiento externo |
-| `test` | Añadir o corregir tests |
-| `ci` | Cambios en CI/CD o scripts de automatización |
-| `chore` | Cambios de mantenimiento (sin impacto en código de producción) |
-| `perf` | Mejoras de rendimiento |
+| `feat` | New user-facing functionality |
+| `fix` | Bug fix |
+| `docs` | Documentation-only changes |
+| `refactor` | Refactoring without external behavior change |
+| `test` | Adding or fixing tests |
+| `ci` | Changes to CI/CD or automation scripts |
+| `chore` | Maintenance changes (no production code impact) |
+| `perf` | Performance improvements |
 
 ### Breaking changes
 
-Si el cambio rompe compatibilidad hacia atrás, añade `!` tras el tipo o un footer `BREAKING CHANGE:`:
+If the change breaks backward compatibility, add `!` after the type or a `BREAKING CHANGE:` footer:
 
 ```
-feat!: cambiar estructura de roles/ — directorio ahora requiere frontmatter
+feat!: change roles/ structure — directory now requires frontmatter
 
-BREAKING CHANGE: Los archivos en roles/ sin frontmatter YAML ya no son válidos.
-Ejecuta `./wizard.sh --migrate` para actualizar roles existentes.
+BREAKING CHANGE: Files in roles/ without YAML frontmatter are no longer valid.
+Run `./wizard.sh --migrate` to update existing roles.
 ```
 
-### Ejemplos
+### Examples
 
 ```
 feat(wizard): add --upgrade flag to update existing deployments
@@ -136,200 +136,200 @@ chore: bump markdownlint-cli2-action to v17
 
 ---
 
-## 5. Versionado y tags
+## 5. Versioning and tags
 
-Seguimos **Semantic Versioning** ([semver.org](https://semver.org/lang/es/)):
+We follow **Semantic Versioning** ([semver.org](https://semver.org/spec/v2.0.0.html)):
 `MAJOR.MINOR.PATCH`
 
-| Componente | Cuándo se incrementa |
+| Component | When it increments |
 |---|---|
-| `MAJOR` | Cambio incompatible con versiones anteriores (breaking change) |
-| `MINOR` | Nueva funcionalidad compatible con versiones anteriores |
-| `PATCH` | Corrección de bug compatible con versiones anteriores |
+| `MAJOR` | Incompatible change with previous versions (breaking change) |
+| `MINOR` | New functionality compatible with previous versions |
+| `PATCH` | Bug fix compatible with previous versions |
 
-Mientras el proyecto está en versión `0.x.y`, el MINOR puede contener breaking changes
-(es la convención pre-1.0 de SemVer).
+While the project is at version `0.x.y`, MINOR may contain breaking changes
+(this is the pre-1.0 SemVer convention).
 
-### Cómo crear un tag de release
+### How to create a release tag
 
-Solo los maintainers crean tags. El proceso es:
+Only maintainers create tags. The process is:
 
 ```bash
-# 1. Asegúrate de estar en main y sincronizado
+# 1. Make sure you're on main and in sync
 git checkout main
 git pull upstream main
 
-# 2. Actualiza la versión en CHANGELOG.md (ver sección 6)
+# 2. Update the version in CHANGELOG.md (see section 6)
 
-# 3. Haz commit del CHANGELOG
+# 3. Commit the CHANGELOG
 git add CHANGELOG.md
 git commit -m "chore: release v0.2.0"
 
-# 4. Crea un tag anotado (no lightweight)
+# 4. Create an annotated tag (not lightweight)
 git tag -a v0.2.0 -m "Release v0.2.0
 
-Resumen de los cambios principales:
-- feat: nueva funcionalidad X
-- fix: corrección de Y"
+Summary of main changes:
+- feat: new functionality X
+- fix: fix for Y"
 
-# 5. Push del commit y el tag
+# 5. Push the commit and the tag
 git push upstream main
 git push upstream v0.2.0
 ```
 
-### Reglas de los tags
+### Tag rules
 
-- **Siempre anotados** (`-a`), nunca lightweight — incluyen fecha, autor y mensaje.
-- Formato: `v` + número semver → `v0.1.0`, `v1.0.0`, `v1.2.3`.
-- El mensaje del tag resume los cambios principales (no es un CHANGELOG completo).
-- Un tag apunta siempre al commit de `chore: release vX.Y.Z`.
-- **No se borra ni se mueve un tag publicado** — si hay error, se crea un nuevo patch.
+- **Always annotated** (`-a`), never lightweight — they include date, author and message.
+- Format: `v` + semver number → `v0.1.0`, `v1.0.0`, `v1.2.3`.
+- The tag message summarizes the main changes (it's not a complete CHANGELOG).
+- A tag always points to the `chore: release vX.Y.Z` commit.
+- **Never delete or move a published tag** — if there's an error, create a new patch.
 
 ---
 
-## 6. Mantenimiento del CHANGELOG
+## 6. CHANGELOG maintenance
 
-El `CHANGELOG.md` sigue el formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
+`CHANGELOG.md` follows the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
-### Estructura
+### Structure
 
 ```markdown
-## [No publicado]
+## [Unreleased]
 
 ### Added
-- Descripción de nueva funcionalidad.
+- Description of new functionality.
 
 ### Changed
-- Descripción de cambio en funcionalidad existente.
+- Description of change to existing functionality.
 
 ### Deprecated
-- Funcionalidad que se eliminará en el próximo major.
+- Functionality that will be removed in the next major.
 
 ### Removed
-- Funcionalidad eliminada.
+- Removed functionality.
 
 ### Fixed
-- Bug corregido.
+- Fixed bug.
 
 ### Security
-- Vulnerabilidad corregida.
+- Fixed vulnerability.
 ```
 
-### Reglas
+### Rules
 
-1. **Mantén siempre una sección `[No publicado]`** al principio para acumular los cambios
-   del trabajo en curso. Nunca la dejes vacía — si no hay cambios, no existe la sección.
+1. **Always keep an `[Unreleased]` section** at the top to accumulate changes
+   from work in progress. Never leave it empty — if there are no changes, the section doesn't exist.
 
-2. **Al hacer release**, renombra `[No publicado]` a `[X.Y.Z] - YYYY-MM-DD` y añade
-   una nueva sección `[No publicado]` vacía encima.
+2. **When releasing**, rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD` and add
+   a new empty `[Unreleased]` section above.
 
-3. **Una entrada = un cambio lógico**. No agregues múltiples cambios en una línea.
+3. **One entry = one logical change**. Don't aggregate multiple changes in one line.
 
-4. **Escribe para el usuario**, no para el desarrollador. Explica el impacto,
-   no los detalles de implementación.
+4. **Write for the user**, not the developer. Explain the impact,
+   not the implementation details.
 
-5. **No pongas hashes de commit** — el CHANGELOG es para humanos, no para máquinas.
+5. **Don't include commit hashes** — the CHANGELOG is for humans, not machines.
 
-### Quién actualiza el CHANGELOG
+### Who updates the CHANGELOG
 
-- El autor de la PR actualiza `[No publicado]` con su cambio antes de solicitar review.
-- El maintainer actualiza la sección al hacer el release.
+- The PR author updates `[Unreleased]` with their change before requesting review.
+- The maintainer updates the section when doing the release.
 
-### Ejemplo de ciclo completo
+### Full cycle example
 
 ```markdown
-# Estado durante desarrollo (antes de release)
-## [No publicado]
+# State during development (before release)
+## [Unreleased]
 
 ### Added
-- Flag `--upgrade` para actualizar despliegues existentes.
+- `--upgrade` flag to update existing deployments.
 
 ### Fixed
-- Detección incorrecta de monorepo cuando package.json está en subdirectorio.
+- Incorrect monorepo detection when package.json is in a subdirectory.
 
-# Estado después de release v0.2.0
-## [No publicado]
+# State after release v0.2.0
+## [Unreleased]
 
 ## [0.2.0] - 2026-05-15
 
 ### Added
-- Flag `--upgrade` para actualizar despliegues existentes.
+- `--upgrade` flag to update existing deployments.
 
 ### Fixed
-- Detección incorrecta de monorepo cuando package.json está en subdirectorio.
+- Incorrect monorepo detection when package.json is in a subdirectory.
 ```
 
 ---
 
-## 7. Proceso de pull request
+## 7. Pull request process
 
-### Antes de abrir la PR
+### Before opening the PR
 
-- [ ] El branch está sincronizado con `upstream/main` (rebase, no merge).
-- [ ] `CHANGELOG.md` tiene una entrada en `[No publicado]`.
-- [ ] El CI local pasa (ver sección 8).
-- [ ] Los commits siguen Conventional Commits.
+- [ ] The branch is in sync with `upstream/main` (rebase, not merge).
+- [ ] `CHANGELOG.md` has an entry under `[Unreleased]`.
+- [ ] Local CI passes (see section 8).
+- [ ] Commits follow Conventional Commits.
 
-### Al abrir la PR
+### When opening the PR
 
-- Rellena el template completo — no borres secciones.
-- Referencia la issue relacionada con `Closes #NNN` o `Fixes #NNN`.
-- Si la PR es un **draft**, márcala explícitamente como Draft.
+- Fill out the complete template — don't delete sections.
+- Reference the related issue with `Closes #NNN` or `Fixes #NNN`.
+- If the PR is a **draft**, explicitly mark it as Draft.
 
 ### Review
 
-- Al menos **1 aprobación** de un maintainer para hacer merge.
-- Los comentarios de review se resuelven con un nuevo commit o respuesta, no silenciosamente.
-- El autor hace squash/rebase para limpiar commits de "fix review" antes del merge final.
+- At least **1 approval** from a maintainer to merge.
+- Review comments are resolved with a new commit or response, not silently.
+- The author squashes/rebases to clean up "fix review" commits before the final merge.
 
 ### Merge
 
-- Los maintainers hacen el merge con **Squash and merge**.
-- El mensaje del commit final en main sigue Conventional Commits.
+- Maintainers merge with **Squash and merge**.
+- The final commit message in main follows Conventional Commits.
 
 ---
 
-## 8. CI local antes de abrir una PR
+## 8. Local CI before opening a PR
 
-El CI ejecuta tres checks. Puedes correrlos localmente para no esperar el workflow:
+The CI runs three checks. You can run them locally to avoid waiting for the workflow:
 
 ```bash
-# ShellCheck (instala con: brew install shellcheck / apt install shellcheck)
+# ShellCheck (install with: brew install shellcheck / apt install shellcheck)
 shellcheck -e SC2155 -e SC1091 -e SC2034 -e SC2154 wizard.sh
 find templates -name "*.sh" -exec shellcheck -e SC2155 -e SC1091 {} \;
 
-# Validación de sintaxis bash
+# Bash syntax validation
 bash -n wizard.sh
 find templates -name "*.sh" -exec bash -n {} \;
 
-# Markdown lint (instala con: npm install -g markdownlint-cli2)
+# Markdown lint (install with: npm install -g markdownlint-cli2)
 markdownlint-cli2 "README.md" "docs/**/*.md"
 ```
 
 ---
 
-## 9. Añadir o modificar roles
+## 9. Adding or modifying roles
 
-Los roles opcionales viven en `roles/`. Sigue la estructura de los roles existentes:
+Optional roles live in `roles/`. Follow the structure of existing roles:
 
 ```
 roles/
-  mi-rol.instructions.md   ← instrucciones del rol para Copilot/VS Code
+  my-role.instructions.md   ← role instructions for Copilot/VS Code
 ```
 
-Cada archivo tiene frontmatter YAML con `applyTo` y el cuerpo en Markdown.
-Mira `roles/data-engineer.instructions.md` como referencia.
+Each file has YAML frontmatter with `applyTo` and the body in Markdown.
+See `roles/data-engineer.instructions.md` as a reference.
 
-Si el nuevo rol tiene sentido para la comunidad en general, abre una PR.
-Si es muy específico de tu dominio, mantenlo en tu fork o en `roles/` local.
-
----
-
-## 10. Código de conducta
-
-Este proyecto se rige por el [Código de Conducta](CODE_OF_CONDUCT.md).
-Al participar, aceptas sus términos.
+If the new role makes sense for the general community, open a PR.
+If it's very domain-specific, keep it in your fork or in a local `roles/`.
 
 ---
 
-¿Dudas? Abre una [Discussion](https://github.com/erniker/understudy/discussions) en GitHub.
+## 10. Code of conduct
+
+This project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+By participating, you agree to its terms.
+
+---
+
+Questions? Open a [Discussion](https://github.com/erniker/understudy/discussions) on GitHub.

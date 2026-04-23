@@ -1,59 +1,59 @@
 # 🎭 Team Roster — {{PROJECT_NAME}}
 
-> Registro del equipo activo en este proyecto.
-> El wizard genera este archivo automáticamente al desplegar el Understudy.
-> Actualízalo si añades o cambias miembros del equipo.
+> Record of the active team on this project.
+> The wizard generates this file automatically when deploying Understudy.
+> Update it if you add or change team members.
 
-## Equipo base
+## Core team
 
-| Nombre en código | Rol | Archivo de instrucciones | Estado |
+| Code name | Role | Instructions file | Status |
 |---|---|---|---|
-| **Architect** | Arquitecto de Soluciones | `.github/instructions/architect.instructions.md` | ✅ Activo |
-| **Backend** | Desarrollador Backend | `.github/instructions/backend.instructions.md` | ✅ Activo |
-| **Frontend** | Desarrollador Frontend | `.github/instructions/frontend.instructions.md` | ✅ Activo |
-| **DevOps** | Ingeniero DevOps | `.github/instructions/devops.instructions.md` | ✅ Activo |
-| **Security** | Experto en Seguridad | `.github/instructions/security.instructions.md` | ✅ Activo |
-| **QA** | QA Engineer | `.github/instructions/qa-engineer.instructions.md` | ✅ Activo |
+| **Architect** | Solutions Architect | `.github/instructions/architect.instructions.md` | ✅ Active |
+| **Backend** | Backend Developer | `.github/instructions/backend.instructions.md` | ✅ Active |
+| **Frontend** | Frontend Developer | `.github/instructions/frontend.instructions.md` | ✅ Active |
+| **DevOps** | DevOps Engineer | `.github/instructions/devops.instructions.md` | ✅ Active |
+| **Security** | Security Expert | `.github/instructions/security.instructions.md` | ✅ Active |
+| **QA** | QA Engineer | `.github/instructions/qa-engineer.instructions.md` | ✅ Active |
 
-## Equipo extendido (añadidos via wizard)
+## Extended team (added via wizard)
 
-<!-- El wizard añade filas aquí al invocar "Add team member" -->
+<!-- The wizard adds rows here when invoking "Add team member" -->
 
-| Nombre en código | Rol | Archivo de instrucciones | Estado |
+| Code name | Role | Instructions file | Status |
 |---|---|---|---|
-| <!-- nuevos miembros aquí --> | | | |
+| <!-- new members here --> | | | |
 
-## Cómo activar un agente
+## How to activate an agent
 
-### En Copilot CLI
-1. Abre Copilot CLI en el directorio del proyecto
-2. Usa `/agent` para seleccionar un miembro del equipo
-3. O activa sus instrucciones con `/instructions`
-4. Usa `/model` para seleccionar el modelo recomendado (ver `understudy.yaml`)
+### In Copilot CLI
+1. Open Copilot CLI in the project directory
+2. Use `/agent` to select a team member
+3. Or activate its instructions with `/instructions`
+4. Use `/model` to select the recommended model (see `understudy.yaml`)
 
-### En VS Code
-1. Las instrucciones se aplican automáticamente según el archivo que editas
-   (configurado via frontmatter `applyTo` en cada `.instructions.md`)
-2. Los prompts reutilizables están en `.github/prompts/` — invócalos desde Copilot Chat
-3. Usa el model picker para seleccionar el modelo recomendado para la tarea
+### In VS Code
+1. Instructions are applied automatically based on the file you are editing
+   (configured via `applyTo` frontmatter in each `.instructions.md`)
+2. Reusable prompts are in `.github/prompts/` — invoke them from Copilot Chat
+3. Use the model picker to select the recommended model for the task
 
-## Configuración de modelos
+## Model configuration
 
-Los modelos recomendados por agente están en `understudy.yaml` en la raíz del proyecto.
-Edita ese archivo para cambiar modelos sin tocar las instrucciones.
+Recommended models per agent are in `understudy.yaml` at the project root.
+Edit that file to change models without touching the instructions.
 
 ```yaml
 models:
-  architect: "claude-opus-4.6"    # razonamiento profundo
-  backend: "claude-sonnet-4.5"    # balance calidad/velocidad
-  devops: "claude-haiku-4.5"      # económico para infra
-  qa-engineer: "claude-sonnet-4.5" # test plans y tests
+  architect: "claude-opus-4.6"    # deep reasoning
+  backend: "claude-sonnet-4.5"    # quality/speed balance
+  devops: "claude-haiku-4.5"      # economical for infra
+  qa-engineer: "claude-sonnet-4.5" # test plans and tests
 ```
 
-## Cómo añadir un miembro
+## How to add a member
 
-Ejecuta el wizard con la opción de añadir miembro:
+Run the wizard with the add member option:
 ```bash
 ./wizard.sh --add-member
 ```
-O copia un template de `roles/` a `.github/instructions/` y regístralo aquí.
+Or copy a template from `roles/` to `.github/instructions/` and register it here.
