@@ -1,0 +1,106 @@
+# 1. Introduction and Core Concepts
+
+Understudy is a project scaffolding system that turns a single AI assistant
+(Copilot, Claude, Cursor) into a full software team with well-defined roles,
+standards and guardrails.
+
+Instead of talking to a generic assistant, you talk to specialized **agents**:
+Architect, Backend, Frontend, DevOps, Security, QA — plus optional members like
+Mobile, Data, ML, SRE and Tech Writer.
+
+## The mental model
+
+```
+You (Product Manager)
+        │
+        ▼
+  One AI assistant ── wears the hat of ──►  Architect / Backend / Frontend / …
+        │                                         │
+        └── reads and writes ──► docs/ (spec, decisions, session-log)
+                                 AGENTS.md / CLAUDE.md / .cursor/…
+                                 guardrails (always on)
+```
+
+## Key concepts in one paragraph each
+
+**Agent.** A specialized persona the assistant adopts. Each agent has domain
+knowledge, behavior rules, a communication style and a known scope. You pick
+an agent (or the assistant picks one) depending on the task.
+
+**Spec-Driven Development.** Before writing code, you agree on a spec
+(`docs/spec.md`). The Architect uses it to design; Backend and Frontend use
+it to implement; QA uses it to test. The spec is a living contract, not
+paperwork.
+
+**Persistent memory.** AI sessions don't remember previous conversations.
+Understudy uses three files as external memory:
+
+- `docs/spec.md` — what needs to be done
+- `docs/decisions.md` — what was decided and why (ADRs)
+- `docs/session-log.md` — what was done and what is pending
+
+**Guardrails.** Non-negotiable safety and behavior rules (no secrets, no
+destructive ops without confirmation, no production changes without change
+control, spec-first, etc.). They are deployed automatically and, on Claude
+Code, enforced by a hook that blocks dangerous commands.
+
+**Wizard.** `wizard.sh` is the installer. It asks a handful of questions and
+generates all the platform-specific files (Copilot, Claude, Cursor) with your
+project data already filled in. It also integrates into existing projects
+without touching your code, and detects monorepos automatically.
+
+**Roles catalog.** The 6 core roles always ship (Architect, Backend,
+Frontend, DevOps, Security, QA). Optional roles live in `roles/` and you can
+add more with `./wizard.sh --add-member` or create your own with
+`--create-role`.
+
+## The 6 core roles
+
+| Role | Focus |
+|---|---|
+| 🏛️ Architect | System design, APIs, databases, trade-offs, ADRs |
+| ⚙️ Backend | Services, business logic, data contracts |
+| 🎨 Frontend | UI, accessibility, UX, state management |
+| 🚀 DevOps | CI/CD, containers, IaC, cloud, deploys |
+| 🔒 Security | Threat modeling, input validation, secrets, OWASP |
+| 🧪 QA | Test plans, unit/integration/E2E, quality gates |
+
+## Optional roles (`roles/`)
+
+| Role | When to use |
+|---|---|
+| 📊 data-engineer | ETL/ELT, warehouses, streaming, data governance |
+| 📱 mobile-engineer | iOS, Android, React Native, Flutter |
+| 🤖 ml-engineer | ML/LLMs, RAG, MLOps, responsible AI |
+| 📝 tech-writer | Docs, API reference, tutorials, Diataxis |
+| 🧭 sre | SLOs, observability, incidents, chaos engineering |
+
+## Files Understudy produces
+
+```
+your-project/
+├── AGENTS.md                     # Team definition (Copilot CLI + VS Code)
+├── CLAUDE.md                     # Claude global instructions
+├── understudy.yaml               # Project-level config and overrides
+├── docs/
+│   ├── spec.md                   # Requirements (living contract)
+│   ├── decisions.md              # ADR log
+│   ├── session-log.md            # Cross-session memory
+│   └── team-roster.md            # Active team for this project
+├── .github/
+│   ├── copilot-instructions.md   # Always-on instructions for Copilot
+│   ├── instructions/             # Role files (+ guardrails)
+│   └── prompts/                  # Reusable prompts (start/end session, etc.)
+├── .claude/
+│   ├── agents/                   # One file per role with model in frontmatter
+│   ├── commands/                 # /project:<name> slash commands
+│   ├── hooks/guardrails-check.sh # Blocks destructive operations
+│   └── settings.json             # Permissions + hook wiring
+└── .cursor/
+    ├── agents/                   # Role agents (Agent panel)
+    └── rules/                    # Global rules + guardrails (always-on)
+```
+
+---
+
+Next: [Quick Start](02-quick-start.md)

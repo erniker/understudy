@@ -160,9 +160,38 @@ IA team/
 │   ├── ml-engineer.instructions.md
 │   ├── tech-writer.instructions.md
 │   └── sre.instructions.md
-└── docs/                        # 📚 Tutorial and documentation
-    └── tutorial.md
+└── docs/                        # 📚 Documentation (see "Documentation" section)
+    ├── README.md                    # Index
+    ├── 01-introduction.md
+    ├── 02-quick-start.md
+    ├── 03-platform-comparison.md
+    ├── platforms/
+    │   ├── copilot-cli.md
+    │   ├── vscode-copilot.md
+    │   ├── claude-code.md
+    │   └── cursor.md
+    ├── 08-cross-platform-workflows.md
+    ├── 09-configuration.md
+    └── 10-troubleshooting.md
 ```
+
+## Documentation
+
+Full docs live under [`docs/`](docs/README.md) and are organized so they can be
+published as a static site without restructuring.
+
+| Section | Contents |
+|---|---|
+| [Introduction and Core Concepts](docs/01-introduction.md) | Mental model, agents, spec-driven development, persistent memory, guardrails, roles catalog, generated files |
+| [Quick Start](docs/02-quick-start.md) | Install, first session, extending the team |
+| [Platform Capability Matrix](docs/03-platform-comparison.md) | What each tool supports out of the box |
+| [GitHub Copilot CLI](docs/platforms/copilot-cli.md) | Setup, commands, full feature flow, sub-agents, tips |
+| [VS Code Copilot](docs/platforms/vscode-copilot.md) | `applyTo` globs, prompt files, start → work → end flow |
+| [Claude Code](docs/platforms/claude-code.md) | Agents, slash commands, deny list, PreToolUse hook, adding commands |
+| [Cursor](docs/platforms/cursor.md) | Rules (MDC), agent panel, creating your own rules |
+| [Cross-Platform Workflows](docs/08-cross-platform-workflows.md) | Mixed setups and the shared session protocol |
+| [Configuration Reference](docs/09-configuration.md) | Full `understudy.yaml` reference |
+| [Troubleshooting and FAQ](docs/10-troubleshooting.md) | Common issues, model choice, reporting bugs |
 
 ## Wizard Commands
 
