@@ -10,6 +10,8 @@ $RECYCLE.BIN/
 *.swp
 *~
 *.orig
+# Visual Studio solution files (not part of this bash project)
+*.sln
 
 # ── Secrets — never commit these ──────────────────────────────
 .env
