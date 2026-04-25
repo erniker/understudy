@@ -724,24 +724,27 @@ inject_guardrails_block() {
     local mode="$2"
 
     if [[ "$mode" == "embedded" ]] || [[ "$mode" == "split" ]]; then
-        local guardrails_content
-        guardrails_content=$(generate_guardrails_critical "$mode")
+        # Write content to a temp file — avoids passing multi-line strings via
+        # awk -v, which macOS awk (One True AWK) does not support.
+        local content_tmp
+        content_tmp="$(mktemp)"
+        generate_guardrails_critical "$mode" > "$content_tmp"
 
-        # Use awk to replace the block between markers
-        awk -v content="$guardrails_content" '
+        # FNR==NR: first file (content_tmp) is loaded into lines[].
+        # Second pass: replace the block between markers with those lines.
+        awk '
+            FNR == NR { lines[NR] = $0; max = NR; next }
             /<!-- GUARDRAILS_START -->/ {
                 print
-                print content
-                skip=1
+                for (i = 1; i <= max; i++) print lines[i]
+                skip = 1
                 next
             }
-            /<!-- GUARDRAILS_END -->/ {
-                print
-                skip=0
-                next
-            }
+            /<!-- GUARDRAILS_END -->/ { skip = 0; print; next }
             !skip { print }
-        ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+        ' "$content_tmp" "$target_file" > "${target_file}.tmp" \
+            && mv "${target_file}.tmp" "$target_file"
+        rm -f "$content_tmp"
         success "Critical guardrails embedded in copilot-instructions.md"
     else
         # Remove the marker block if no guardrails are wanted
