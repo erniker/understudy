@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    name: bats (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y bats
+
+      - name: Install bats-core (macOS)
+        if: runner.os == 'macOS'
+        run: brew install bats-core
+
+      - name: Make scripts executable
+        run: |
+          chmod +x wizard.sh
+          chmod +x templates/.claude/hooks/guardrails-check.sh
+
+      - name: Run unit tests
+        run: bats tests/unit/
+
+      - name: Run hook tests
+        run: bats tests/hooks/
+
+      - name: Run integration tests
+        run: bats tests/integration/
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint wizard.sh
+        run: shellcheck -e SC2034,SC2154 wizard.sh
+
+      - name: Lint guardrails hook
+        run: shellcheck templates/.claude/hooks/guardrails-check.sh

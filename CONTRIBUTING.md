@@ -14,9 +14,10 @@ code conventions, commits, versioning, changelogs and the pull request process.
 5. [Versioning and tags](#5-versioning-and-tags)
 6. [CHANGELOG maintenance](#6-changelog-maintenance)
 7. [Pull request process](#7-pull-request-process)
-8. [Local CI before opening a PR](#8-local-ci-before-opening-a-pr)
-9. [Adding or modifying roles](#9-adding-or-modifying-roles)
-10. [Code of conduct](#10-code-of-conduct)
+8. [Tests](#8-tests)
+9. [Local CI before opening a PR](#9-local-ci-before-opening-a-pr)
+10. [Adding or modifying roles](#10-adding-or-modifying-roles)
+11. [Code of conduct](#11-code-of-conduct)
 
 ---
 
@@ -150,16 +151,25 @@ We follow **Semantic Versioning** ([semver.org](https://semver.org/spec/v2.0.0.h
 While the project is at version `0.x.y`, MINOR may contain breaking changes
 (this is the pre-1.0 SemVer convention).
 
-### How to create a release tag
+### How to publish a release
 
-Only maintainers create tags. The process is:
+Pushing a tag triggers `.github/workflows/release.yml` automatically.
+The workflow builds the release tarball and publishes a GitHub Release.
+Users can then install it with the one-liner:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+**Steps for maintainers:**
 
 ```bash
 # 1. Make sure you're on main and in sync
 git checkout main
 git pull upstream main
 
-# 2. Update the version in CHANGELOG.md (see section 6)
+# 2. Update CHANGELOG.md: rename [Unreleased] → [X.Y.Z] - YYYY-MM-DD
+#    and add a new empty [Unreleased] section above (see section 6)
 
 # 3. Commit the CHANGELOG
 git add CHANGELOG.md
@@ -172,10 +182,26 @@ Summary of main changes:
 - feat: new functionality X
 - fix: fix for Y"
 
-# 5. Push the commit and the tag
+# 5. Push the commit and the tag — CI takes it from here
 git push upstream main
 git push upstream v0.2.0
 ```
+
+After the push, CI will:
+
+1. Extract the `[X.Y.Z]` section from `CHANGELOG.md` as release notes.
+2. Build `understudy-vX.Y.Z.tar.gz` (wizard, templates, roles, docs — no test files).
+3. Publish the GitHub Release with the tarball attached.
+
+### What goes in the release tarball
+
+| Included | Excluded |
+| --- | --- |
+| `wizard.sh`, `install.sh` | `.github/` (CI workflows) |
+| `templates/` | `tests/` (test suite) |
+| `roles/` | `run_tests.sh` |
+| `understudy.yaml` | `*.tar.gz` |
+| `docs/`, `README.md`, `CHANGELOG.md`, `LICENSE` | |
 
 ### Tag rules
 
@@ -267,7 +293,9 @@ git push upstream v0.2.0
 
 - [ ] The branch is in sync with `upstream/main` (rebase, not merge).
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]`.
-- [ ] Local CI passes (see section 8).
+- [ ] All tests pass locally: `./run_tests.sh` (see section 8).
+- [ ] New functionality has tests covering the happy path and at least one negative case.
+- [ ] Local CI passes (see section 9).
 - [ ] Commits follow Conventional Commits.
 
 ### When opening the PR
@@ -289,7 +317,171 @@ git push upstream v0.2.0
 
 ---
 
-## 8. Local CI before opening a PR
+## 8. Tests
+
+The test suite uses **[bats-core](https://github.com/bats-core/bats-core)** — the standard testing framework for bash.
+All 122 tests must pass before a PR is merged. CI runs them automatically on Ubuntu and macOS.
+
+### Install bats
+
+```bash
+# macOS
+brew install bats-core
+
+# Ubuntu / Debian / WSL
+sudo apt install bats
+
+# Any platform via npm
+npm install -g bats
+```
+
+### Run the tests
+
+```bash
+# All suites
+./run_tests.sh
+
+# One suite at a time
+./run_tests.sh unit         # unit tests (config, detection, deploy, guardrails)
+./run_tests.sh hooks        # guardrails hook tests
+./run_tests.sh integration  # end-to-end deployment tests
+
+# A single file directly
+bats tests/unit/config_read.bats
+```
+
+### Test layout
+
+```
+tests/
+├── lib/
+│   └── helpers.bash                      # Shared setup: sources wizard.sh safely,
+│                                         # creates/tears down temp dirs
+├── fixtures/
+│   ├── configs/                          # YAML files for config_read tests
+│   │   ├── full.yaml                     # All keys present
+│   │   ├── partial.yaml                  # Only some keys
+│   │   └── empty.yaml                    # Empty file (default fallback)
+│   ├── fake-node-project/                # React + Node.js project structure
+│   ├── fake-dotnet-project/              # .csproj project structure
+│   ├── fake-python-project/              # requirements.txt project
+│   └── fake-monorepo/                    # React + Node + Terraform + Docker
+├── unit/
+│   ├── config_read.bats                  # YAML parser: values, defaults, missing files
+│   ├── detect_existing_project.bats      # Stack detection: Node/React/Vue/Angular,
+│   │                                     # .NET, Python, Terraform, Docker, Monorepo
+│   ├── deploy_file.bats                  # Placeholder substitution + file preservation
+│   └── inject_guardrails.bats            # Guardrail injection: split vs embedded modes
+├── hooks/
+│   └── guardrails_check.bats             # Hook blocks destructive commands (exit 2),
+│                                         # warns on secrets (exit 0), allows safe ops
+└── integration/
+    └── deploy_all_platforms.bats         # Full wizard run: files created, placeholders
+                                          # replaced, integration mode preserves files
+```
+
+### Anatomy of a test
+
+```bash
+#!/usr/bin/env bats
+load "../lib/helpers"       # gives you: source_wizard_functions, setup_tmp, teardown_tmp
+
+setup() {
+  setup_tmp                 # creates $TEST_TMP — isolated per test, auto-cleaned
+  source_wizard_functions   # loads wizard.sh functions without running main()
+}
+
+teardown() { teardown_tmp; }
+
+@test "config_read returns the architect model" {
+  run config_read "models" "architect" "fallback" "$FIXTURES/configs/full.yaml"
+  [ "$status" -eq 0 ]
+  [ "$output" = "claude-opus-4.6" ]
+}
+```
+
+Key conventions:
+
+- `run <command>` captures exit code (`$status`) and stdout (`$output`) without aborting the test.
+- Use `[ "$status" -eq 0 ]` for exit code assertions and `[ "$output" = "..." ]` for output.
+- Use `[[ "$output" == *"substring"* ]]` for partial matches.
+- Each `@test` is fully independent — no shared state between tests.
+
+### Where to put new tests
+
+| What you changed | Where to add tests |
+| --- | --- |
+| `config_read` or YAML parsing | `tests/unit/config_read.bats` |
+| Stack detection (`detect_existing_project`) | `tests/unit/detect_existing_project.bats` |
+| Placeholder substitution (`deploy_file`) | `tests/unit/deploy_file.bats` |
+| Guardrail injection (`inject_guardrails_block`, `generate_guardrails_critical`) | `tests/unit/inject_guardrails.bats` |
+| New destructive pattern in `guardrails-check.sh` | `tests/hooks/guardrails_check.bats` |
+| New platform, new files deployed, new wizard flag | `tests/integration/deploy_all_platforms.bats` |
+| New fixture needed for detection | `tests/fixtures/` |
+
+### Writing tests for a new feature — checklist
+
+When you add or modify functionality in `wizard.sh` or `guardrails-check.sh`, follow this checklist:
+
+- [ ] **Unit test** for each new function or modified logic branch.
+- [ ] **One test per assertion** — don't combine unrelated checks in a single `@test`.
+- [ ] **Use `$TEST_TMP`** for any files created during the test, never hardcoded paths.
+- [ ] **Add fixtures** to `tests/fixtures/` if your test needs a specific file structure.
+- [ ] **Integration test** if you add a new file to the wizard's output (verify it's created and contains expected content).
+- [ ] **Negative tests** — test that things that should NOT happen actually don't (e.g., file not overwritten, command not blocked).
+- [ ] Run `./run_tests.sh` locally before pushing.
+
+### Example: adding a new destructive pattern to the hook
+
+Say you want the hook to also block `az group delete`:
+
+1. Add the pattern to `guardrails-check.sh`:
+
+   ```bash
+   DESTRUCTIVE_PATTERNS=(
+       ...
+       "az group delete"   # ← new pattern
+   )
+   ```
+
+2. Add two tests to `tests/hooks/guardrails_check.bats`:
+
+   ```bash
+   @test "blocks: az group delete" {
+     run bash "$HOOK" "az group delete --name my-rg --yes"
+     [ "$status" -eq 2 ]
+   }
+
+   @test "allows: az group show (read-only)" {
+     run bash "$HOOK" "az group show --name my-rg"
+     [ "$status" -eq 0 ]
+   }
+   ```
+
+3. Run the hook suite to confirm:
+
+   ```bash
+   ./run_tests.sh hooks
+   ```
+
+### Example: adding a new platform
+
+Say you add support for a `--jetbrains` platform. You'll need:
+
+1. New template files under `templates/.jetbrains/`.
+2. A new `deploy_jetbrains()` function in `wizard.sh`.
+3. Tests in `tests/integration/deploy_all_platforms.bats`:
+
+   ```bash
+   @test "full deploy creates JetBrains config file" {
+     run_wizard_noninteractive "myproject" "$TEST_TMP" "Y" "Y" "Y" "Y"
+     [ -f "$TEST_TMP/myproject/.jetbrains/understudy.xml" ]
+   }
+   ```
+
+---
+
+## 9. Local CI before opening a PR
 
 The CI runs three checks. You can run them locally to avoid waiting for the workflow:
 
@@ -308,7 +500,7 @@ markdownlint-cli2 "README.md" "docs/**/*.md"
 
 ---
 
-## 9. Adding or modifying roles
+## 10. Adding or modifying roles
 
 Optional roles live in `roles/`. Follow the structure of existing roles:
 
@@ -325,7 +517,7 @@ If it's very domain-specific, keep it in your fork or in a local `roles/`.
 
 ---
 
-## 10. Code of conduct
+## 11. Code of conduct
 
 This project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 By participating, you agree to its terms.

@@ -4,27 +4,55 @@
 > One assistant, multiple roles: Architect, Backend, Frontend, DevOps, Security, QA.
 > Compatible with **GitHub Copilot CLI**, **VS Code**, **Claude Code** and **Cursor**.
 
+## Installation
+
+**One-liner** (Linux, macOS, Windows Git Bash / WSL):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+This downloads the latest release, installs it to `~/.understudy/` and adds the
+`understudy` command to your PATH.
+
+**Specific version:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.0.0
+```
+
+**Manual (clone):**
+
+```bash
+git clone https://github.com/erniker/understudy.git
+cd understudy
+chmod +x wizard.sh
+```
+
+> See [install options](#install-options) for `--dir`, `--no-path` and `--uninstall`.
+
 ## Quick Start
 
 ```bash
-# 1. Navigate to the system directory
-cd "IA team"
-
-# 2. Grant execution permissions to the wizard
-chmod +x wizard.sh
-
-# 3. Deploy Understudy in your project
-./wizard.sh
+# Deploy Understudy in any project
+cd /path/to/your/project
+understudy
 # → Choose platforms: Copilot, Claude Code, Cursor
 
-# 4. Open your AI tool in the project
-cd /path/to/your/project
-copilot           # GitHub Copilot CLI
-# or
+# Then open your AI tool
 claude            # Claude Code
-# or
+copilot           # GitHub Copilot CLI
 cursor .          # Cursor
 ```
+
+### Install options
+
+| Flag | Description |
+|---|---|
+| `--version <tag>` | Install a specific version (e.g. `v1.2.0`) |
+| `--dir <path>` | Custom install directory (default: `~/.understudy`) |
+| `--no-path` | Skip PATH setup |
+| `--uninstall` | Remove Understudy from the system |
 
 ## What is this?
 
