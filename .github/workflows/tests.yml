@@ -52,7 +52,9 @@ jobs:
         run: sudo apt-get install -y shellcheck
 
       - name: Lint wizard.sh
-        run: shellcheck -e SC2034,SC2154 wizard.sh
+        run: shellcheck -e SC2034,SC2154,SC2153 wizard.sh
+        # SC2153: false positive — PROJECT_NAME/ROLE_NAME are assigned via eval
+        #         inside ask(), which shellcheck cannot trace statically
 
       - name: Lint guardrails hook
         run: shellcheck templates/.claude/hooks/guardrails-check.sh

@@ -26,9 +26,7 @@
 # Available models:
 #   claude-opus-4.6      → deep reasoning, complex design
 #   claude-sonnet-4.5    → best quality/speed balance
-#   claude-sonnet-4      → standard, good quality
 #   claude-haiku-4.5     → fast and economical
-#   gpt-5.4              → alternative for certain tasks
 
 models:
   architect: "claude-opus-4.6"

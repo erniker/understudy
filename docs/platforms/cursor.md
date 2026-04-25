@@ -123,3 +123,5 @@ It will auto-attach when you edit matching files.
 ---
 
 Other platforms: [Copilot CLI](copilot-cli.md) · [VS Code Copilot](vscode-copilot.md) · [Claude Code](claude-code.md)
+
+Next: [Cross-Platform Workflows](../08-cross-platform-workflows.md)

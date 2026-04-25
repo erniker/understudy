@@ -144,3 +144,5 @@ It's immediately invocable as `/project:weekly-report`.
 ---
 
 Other platforms: [Copilot CLI](copilot-cli.md) · [VS Code Copilot](vscode-copilot.md) · [Cursor](cursor.md)
+
+Next: [Cross-Platform Workflows](../08-cross-platform-workflows.md)
