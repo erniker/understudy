@@ -25,11 +25,11 @@ platforms:
 
 models:
   architect: "claude-opus-4.6"
-  backend:   "claude-sonnet-4.6"
-  frontend:  "claude-sonnet-4.6"
-  devops:    "claude-haiku-4"
-  security:  "claude-opus-4.6"
-  qa:        "claude-sonnet-4.6"
+  backend:   "claude-sonnet-4.5"
+  frontend:  "claude-sonnet-4.5"
+  devops:    "claude-haiku-4.5"
+  security:  "claude-sonnet-4.5"
+  qa:        "claude-sonnet-4.5"
 
 guardrails:
   mode: "split"            # "split" keeps full file; "embedded" inlines critical rules

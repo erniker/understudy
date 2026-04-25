@@ -2,21 +2,35 @@
 
 Works the same way on Linux, macOS and Windows (Git Bash or WSL).
 
+## Install
+
+**One-liner (recommended):**
+
 ```bash
-# 1. Clone Understudy
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+Then open a new terminal so the `understudy` command is available.
+
+**Manual (git clone):**
+
+```bash
 git clone https://github.com/erniker/understudy.git
 cd understudy
-
-# 2. Make the wizard executable
 chmod +x wizard.sh
+# use ./wizard.sh instead of understudy in the commands below
+```
 
-# 3. Run the wizard from the folder where you want your project
-./wizard.sh
+## Deploy in a project
+
+```bash
+# Run from anywhere — the wizard asks where to deploy
+understudy
 #  → Asks project name, stack, PM, platforms (Copilot / Claude / Cursor),
 #    guardrails mode (split/embedded) and optional team members.
 #  → Detects existing projects and offers integration mode.
 
-# 4. Open the tool you use in that project
+# Then open your AI tool in the generated project
 copilot           # GitHub Copilot CLI
 # or open VS Code with Copilot enabled
 claude            # Claude Code
@@ -55,12 +69,22 @@ cursor .          # Cursor
 ## Extending the team
 
 ```bash
-./wizard.sh --add-member       # pick from roles/ (data, ML, mobile, SRE, tech-writer)
-./wizard.sh --create-role      # interactive wizard to design a new role
+understudy --add-member       # pick from roles/ (data, ML, mobile, SRE, tech-writer)
+understudy --create-role      # interactive wizard to design a new role
 ```
 
 Roles created with `--create-role` are stored in `roles/` and will be
 available in every future deployment.
+
+## Update Understudy
+
+```bash
+# Re-run the installer to get the latest version
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+
+# Or pin to a specific version
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.2.0
+```
 
 ---
 

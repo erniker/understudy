@@ -138,10 +138,11 @@ guardrails:
 ## System Structure
 
 ```
-IA team/
+understudy/
 ├── wizard.sh                    # 🧙 The wizard — deploys Understudy
-├── README.md                    # 📖 This file
-├── understudy.yaml            # ⚙️ Global configuration
+├── install.sh                   # 📦 One-liner curl installer
+├── run_tests.sh                 # 🧪 Local test runner
+├── understudy.yaml              # ⚙️ Global configuration
 ├── templates/                   # 📋 Base templates
 │   ├── AGENTS.md                # Copilot: team definition
 │   ├── CLAUDE.md                # Claude: global instructions
@@ -188,7 +189,13 @@ IA team/
 │   ├── ml-engineer.instructions.md
 │   ├── tech-writer.instructions.md
 │   └── sre.instructions.md
-└── docs/                        # 📚 Documentation (see "Documentation" section)
+├── tests/                       # 🧪 bats test suite
+│   ├── unit/                    # config_read, detect, deploy_file, guardrails
+│   ├── hooks/                   # guardrails-check.sh tests
+│   ├── integration/             # end-to-end wizard deployment
+│   ├── fixtures/                # fake project structures
+│   └── lib/helpers.bash         # shared test helpers
+└── docs/                        # 📚 Documentation
     ├── README.md                    # Index
     ├── 01-introduction.md
     ├── 02-quick-start.md
@@ -225,10 +232,12 @@ published as a static site without restructuring.
 
 | Command | Description |
 |---|---|
-| `./wizard.sh` | Full interactive deployment |
-| `./wizard.sh --add-member` | Add a team member (data engineer, QA, etc.) |
-| `./wizard.sh --create-role` | Create a custom role from scratch |
-| `./wizard.sh --help` | Show help |
+| `understudy` | Full interactive deployment |
+| `understudy --add-member` | Add a team member (data engineer, QA, etc.) |
+| `understudy --create-role` | Create a custom role from scratch |
+| `understudy --help` | Show help |
+
+> If you installed manually via `git clone`, replace `understudy` with `./wizard.sh`.
 
 ## Integration into Existing Projects and Monorepos
 
@@ -324,8 +333,8 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 
 **How to add them:**
 
-1. **From the existing catalog**: `./wizard.sh --add-member` → choose from menu
-2. **Create a new one**: `./wizard.sh --create-role` → saved in `roles/` for reuse
+1. **From the existing catalog**: `understudy --add-member` → choose from menu
+2. **Create a new one**: `understudy --create-role` → saved in `roles/` for reuse
 3. **Manual**: create a file `name.instructions.md` in `roles/` following the existing format
 
 > Roles you create with `--create-role` are stored in `roles/` and will be available for **all your future Understudy deployments**, not just the current project.
