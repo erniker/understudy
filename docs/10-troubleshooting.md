@@ -55,6 +55,15 @@ No. The wizard refuses to overwrite files it didn't create. It only adds
 Understudy-owned files (see "Files Understudy produces" in the
 [introduction](01-introduction.md)).
 
+**What counts as an Understudy-owned file:** anything inside `.github/instructions/`,
+`.github/prompts/`, `.claude/agents/`, `.claude/commands/`, `.claude/hooks/`,
+`.cursor/agents/`, `.cursor/rules/`, plus `AGENTS.md`, `CLAUDE.md` and
+`docs/spec.md`, `docs/decisions.md`, `docs/session-log.md`, `docs/team-roster.md`.
+
+**What is never touched:** your source code, `package.json`, existing CI workflows,
+database migrations, or any file not in the list above. If a target file already
+exists the wizard prints a warning and skips it — your customizations are safe.
+
 ## Session log gets huge — how do I manage it?
 
 Keep it chronological and concise (one session = a short block with Done /

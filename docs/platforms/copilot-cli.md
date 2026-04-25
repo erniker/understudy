@@ -117,3 +117,5 @@ time.
 ---
 
 Other platforms: [VS Code Copilot](vscode-copilot.md) · [Claude Code](claude-code.md) · [Cursor](cursor.md)
+
+Next: [Cross-Platform Workflows](../08-cross-platform-workflows.md)

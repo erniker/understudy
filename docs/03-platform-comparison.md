@@ -39,3 +39,7 @@ Per-platform guides:
 - [VS Code Copilot](platforms/vscode-copilot.md)
 - [Claude Code](platforms/claude-code.md)
 - [Cursor](platforms/cursor.md)
+
+---
+
+Next: [Cross-Platform Workflows](08-cross-platform-workflows.md)

@@ -110,3 +110,5 @@ guardrails).
 ---
 
 Other platforms: [Copilot CLI](copilot-cli.md) · [Claude Code](claude-code.md) · [Cursor](cursor.md)
+
+Next: [Cross-Platform Workflows](../08-cross-platform-workflows.md)
