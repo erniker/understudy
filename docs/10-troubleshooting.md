@@ -23,11 +23,31 @@ You can answer `false` (or deselect) the platforms you don't use.
 ## How do I add a new role?
 
 ```bash
-./wizard.sh --add-member       # pick from roles/
-./wizard.sh --create-role      # create your own; saved to roles/
+understudy --add-member       # pick from roles/
+understudy --create-role      # create your own; saved to roles/
 ```
 
 Roles you create are available in every future deployment.
+
+## How do I update Understudy?
+
+Re-run the installer — it replaces `~/.understudy/` with the latest release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+To pin a specific version:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.2.0
+```
+
+To uninstall:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --uninstall
+```
 
 ## Existing project — will the wizard overwrite my code?
 
