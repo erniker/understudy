@@ -528,6 +528,14 @@ gather_project_info() {
 
     ask "Project name (no spaces, e.g. customer-portal)" PROJECT_NAME
     ask "Base directory (${PROJECT_NAME}/ will be created inside)" BASE_DIR "."
+
+    # Normalize Windows paths typed in Git Bash (e.g. C:\Users\foo → /c/Users/foo)
+    if [[ "${BASE_DIR:1:1}" == ":" ]]; then
+        local drive="${BASE_DIR:0:1}"
+        BASE_DIR="/${drive,,}${BASE_DIR:2}"
+    fi
+    BASE_DIR=$(tr '\134' '/' <<< "$BASE_DIR")  # replace backslashes with forward slashes (\134 = octal backslash)
+
     TARGET_DIR="${BASE_DIR}/${PROJECT_NAME}"
 
     INTEGRATION_MODE=false
