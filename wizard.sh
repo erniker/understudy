@@ -528,14 +528,7 @@ gather_project_info() {
 
     ask "Project name (no spaces, e.g. customer-portal)" PROJECT_NAME
     ask "Base directory (${PROJECT_NAME}/ will be created inside)" BASE_DIR "."
-
-    # Normalize Windows paths typed in Git Bash (e.g. C:\Users\foo → /c/Users/foo)
-    if [[ "${BASE_DIR:1:1}" == ":" ]]; then
-        local drive="${BASE_DIR:0:1}"
-        BASE_DIR="/${drive,,}${BASE_DIR:2}"
-    fi
-    BASE_DIR=$(tr '\134' '/' <<< "$BASE_DIR")  # replace backslashes with forward slashes (\134 = octal backslash)
-
+    BASE_DIR=$(normalize_path "$BASE_DIR")
     TARGET_DIR="${BASE_DIR}/${PROJECT_NAME}"
 
     INTEGRATION_MODE=false
@@ -723,6 +716,23 @@ ${ref_line}
 - No dead code, unused imports or TODOs in commits
 - Explicit error handling with context — never silent failures
 GUARDRAILS_EOF
+}
+
+# ─── Path normalization ──────────────────────────────────────
+# Converts Windows-style paths to Unix/Git-Bash paths.
+# Safe no-op on Linux and macOS (paths without ':' or '\' pass through unchanged).
+#   C:\Users\foo\bar  →  /c/Users/foo/bar
+#   C:/Users/foo      →  /c/Users/foo
+#   /home/user/foo    →  /home/user/foo  (unchanged)
+#   .                 →  .               (unchanged)
+normalize_path() {
+    local path="$1"
+    if [[ "${path:1:1}" == ":" ]]; then
+        local drive="${path:0:1}"
+        path="/${drive,,}${path:2}"
+    fi
+    path=$(tr '\134' '/' <<< "$path")
+    echo "$path"
 }
 
 # ─── Inject guardrails into copilot-instructions.md ─────────
