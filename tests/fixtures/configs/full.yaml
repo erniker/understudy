@@ -1,0 +1,13 @@
+models:
+  architect: "claude-opus-4.6"
+  backend: "claude-sonnet-4.5"
+  frontend: "claude-sonnet-4.5"
+  devops: "claude-haiku-4.5"
+  security: "claude-sonnet-4.5"
+  qa-engineer: "claude-sonnet-4.5"
+platforms:
+  copilot: true
+  claude: false
+  cursor: true
+guardrails:
+  mode: "embedded"

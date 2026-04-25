@@ -1,0 +1,4 @@
+models:
+  architect: "custom-model"
+platforms:
+  claude: false
