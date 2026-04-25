@@ -189,14 +189,14 @@ ask() {
 
     if [[ -n "$default" ]]; then
         echo -ne "  ${YELLOW}?${NC}  ${prompt} ${CYAN}[${default}]${NC}: "
-        read -r input
+        read -r -e input
         eval "$var_name=\"${input:-$default}\""
     else
         echo -ne "  ${YELLOW}?${NC}  ${prompt}: "
-        read -r input
+        read -r -e input
         while [[ -z "$input" ]]; do
             echo -ne "  ${RED}!${NC}  This field is required: "
-            read -r input
+            read -r -e input
         done
         eval "$var_name=\"$input\""
     fi
