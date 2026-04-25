@@ -766,47 +766,31 @@ deploy_file() {
     fi
 
     cp "$src" "$dst"
-    # Replace placeholders
-    sed -i "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" "$dst"
-    sed -i "s|{{PROJECT_DESCRIPTION}}|${PROJECT_DESCRIPTION}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{PROJECT_DESCRIPTION}}|${PROJECT_DESCRIPTION}|g" "$dst"
-    sed -i "s|{{TECH_STACK}}|${TECH_STACK}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{TECH_STACK}}|${TECH_STACK}|g" "$dst"
-    sed -i "s|{{TEAM_LEAD}}|${TEAM_LEAD}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{TEAM_LEAD}}|${TEAM_LEAD}|g" "$dst"
-    sed -i "s|{{REPOSITORY_URL}}|${REPOSITORY_URL}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{REPOSITORY_URL}}|${REPOSITORY_URL}|g" "$dst"
-    sed -i "s|{{DATE}}|${PROJECT_DATE}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{DATE}}|${PROJECT_DATE}|g" "$dst"
 
-    # Replace model placeholders (from config)
-    sed -i "s|{{MODEL_ARCHITECT}}|${MODEL_ARCHITECT}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{MODEL_ARCHITECT}}|${MODEL_ARCHITECT}|g" "$dst"
-    sed -i "s|{{MODEL_BACKEND}}|${MODEL_BACKEND}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{MODEL_BACKEND}}|${MODEL_BACKEND}|g" "$dst"
-    sed -i "s|{{MODEL_FRONTEND}}|${MODEL_FRONTEND}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{MODEL_FRONTEND}}|${MODEL_FRONTEND}|g" "$dst"
-    sed -i "s|{{MODEL_DEVOPS}}|${MODEL_DEVOPS}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{MODEL_DEVOPS}}|${MODEL_DEVOPS}|g" "$dst"
-    sed -i "s|{{MODEL_SECURITY}}|${MODEL_SECURITY}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{MODEL_SECURITY}}|${MODEL_SECURITY}|g" "$dst"
-    sed -i "s|{{MODEL_QA}}|${MODEL_QA}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{MODEL_QA}}|${MODEL_QA}|g" "$dst"
-
-    # Replace applyTo placeholders (from config)
-    sed -i "s|{{APPLY_TO_ARCHITECT}}|${APPLY_TO_ARCHITECT}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{APPLY_TO_ARCHITECT}}|${APPLY_TO_ARCHITECT}|g" "$dst"
-    sed -i "s|{{APPLY_TO_BACKEND}}|${APPLY_TO_BACKEND}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{APPLY_TO_BACKEND}}|${APPLY_TO_BACKEND}|g" "$dst"
-    sed -i "s|{{APPLY_TO_FRONTEND}}|${APPLY_TO_FRONTEND}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{APPLY_TO_FRONTEND}}|${APPLY_TO_FRONTEND}|g" "$dst"
-    sed -i "s|{{APPLY_TO_DEVOPS}}|${APPLY_TO_DEVOPS}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{APPLY_TO_DEVOPS}}|${APPLY_TO_DEVOPS}|g" "$dst"
-    sed -i "s|{{APPLY_TO_SECURITY}}|${APPLY_TO_SECURITY}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{APPLY_TO_SECURITY}}|${APPLY_TO_SECURITY}|g" "$dst"
-    sed -i "s|{{APPLY_TO_QA}}|${APPLY_TO_QA}|g" "$dst" 2>/dev/null || \
-        sed -i'' "s|{{APPLY_TO_QA}}|${APPLY_TO_QA}|g" "$dst"
+    # Replace all placeholders in one pass.
+    # Uses output redirection instead of sed -i to avoid BSD/GNU sed differences
+    # (macOS sed requires `sed -i ''` with a space; GNU sed accepts `sed -i`).
+    local tmp="${dst}.tmp"
+    sed \
+        -e "s|{{PROJECT_NAME}}|${PROJECT_NAME}|g" \
+        -e "s|{{PROJECT_DESCRIPTION}}|${PROJECT_DESCRIPTION}|g" \
+        -e "s|{{TECH_STACK}}|${TECH_STACK}|g" \
+        -e "s|{{TEAM_LEAD}}|${TEAM_LEAD}|g" \
+        -e "s|{{REPOSITORY_URL}}|${REPOSITORY_URL}|g" \
+        -e "s|{{DATE}}|${PROJECT_DATE}|g" \
+        -e "s|{{MODEL_ARCHITECT}}|${MODEL_ARCHITECT}|g" \
+        -e "s|{{MODEL_BACKEND}}|${MODEL_BACKEND}|g" \
+        -e "s|{{MODEL_FRONTEND}}|${MODEL_FRONTEND}|g" \
+        -e "s|{{MODEL_DEVOPS}}|${MODEL_DEVOPS}|g" \
+        -e "s|{{MODEL_SECURITY}}|${MODEL_SECURITY}|g" \
+        -e "s|{{MODEL_QA}}|${MODEL_QA}|g" \
+        -e "s|{{APPLY_TO_ARCHITECT}}|${APPLY_TO_ARCHITECT}|g" \
+        -e "s|{{APPLY_TO_BACKEND}}|${APPLY_TO_BACKEND}|g" \
+        -e "s|{{APPLY_TO_FRONTEND}}|${APPLY_TO_FRONTEND}|g" \
+        -e "s|{{APPLY_TO_DEVOPS}}|${APPLY_TO_DEVOPS}|g" \
+        -e "s|{{APPLY_TO_SECURITY}}|${APPLY_TO_SECURITY}|g" \
+        -e "s|{{APPLY_TO_QA}}|${APPLY_TO_QA}|g" \
+        "$dst" > "$tmp" && mv "$tmp" "$dst"
 
     success "$(basename "$dst")"
 }
