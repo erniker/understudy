@@ -1,21 +1,54 @@
-# macOS / Windows cruft
+# ── OS cruft ─────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
 
-# Editor
+# ── Editors ───────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *~
+*.orig
 
-# OS
-$RECYCLE.BIN/
+# ── Secrets — never commit these ──────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+*.cer
+*.crt
+secrets/
+credentials.json
 
-# Node (por si alguien prueba npm tooling)
+# ── Node ──────────────────────────────────────────────────────
 node_modules/
+package-lock.json
 
-# Sesión local y temporales
+# ── Test artifacts ────────────────────────────────────────────
+# Temporary directories created by bats tests (mktemp -d)
+/tmp/
+tests/tmp/
+# Bats internal files if run from repo root
+.bats_run_tmpdir/
+
+# ── Wizard output (projects generated during local testing) ───
+# If someone runs ./wizard.sh from inside the repo, the generated
+# project lands here — we don't want it committed.
+# Add your test project names below or use a consistent prefix.
+test-*/
+my-*/
+demo-*/
+
+# ── Claude Code local settings (machine-specific, not project templates) ─────
+# templates/.claude/ is source code and IS committed — this ignores only the
+# root .claude/ which holds per-machine session permissions.
+/.claude/
+
+# ── Logs and temporaries ──────────────────────────────────────
 *.log
 .tmp/
 tmp/
