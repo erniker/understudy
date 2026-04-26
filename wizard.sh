@@ -527,7 +527,21 @@ gather_project_info() {
     echo ""
 
     ask "Project name (no spaces, e.g. customer-portal)" PROJECT_NAME
-    ask "Base directory (${PROJECT_NAME}/ will be created inside)" BASE_DIR "."
+
+    # Show an OS-appropriate example path so users know the expected format.
+    # Git Bash on Windows requires forward slashes (C:/Users/...) or /c/... notation.
+    # Backslashes are processed by the terminal before bash sees them, so they cannot
+    # be typed directly — users must use forward slashes or the /c/... Git Bash path.
+    local _dir_hint
+    case "$(uname -s)" in
+        MINGW*|CYGWIN*|MSYS*)
+            _dir_hint="e.g. C:/Users/you/Desktop or /c/Users/you/Desktop" ;;
+        Darwin*)
+            _dir_hint="e.g. /Users/you/projects" ;;
+        *)
+            _dir_hint="e.g. /home/you/projects" ;;
+    esac
+    ask "Base directory [${_dir_hint}]" BASE_DIR "."
     BASE_DIR=$(normalize_path "$BASE_DIR")
     TARGET_DIR="${BASE_DIR}/${PROJECT_NAME}"
 
