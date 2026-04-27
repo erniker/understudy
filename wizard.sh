@@ -182,6 +182,10 @@ warn()    { echo -e "  ${YELLOW}⚠${NC}  $1"; }
 error()   { echo -e "  ${RED}✖${NC}  $1"; }
 step()    { echo -e "\n  ${CYAN}${BOLD}▸ $1${NC}"; }
 
+to_lower() {
+    printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 ask() {
     local prompt="$1"
     local var_name="$2"
@@ -206,7 +210,7 @@ confirm() {
     local prompt="$1"
     echo -ne "  ${YELLOW}?${NC}  ${prompt} ${CYAN}[Y/n]${NC}: "
     read -r answer
-    [[ "${answer,,}" != "n" ]]
+    [[ "$(to_lower "$answer")" != "n" ]]
 }
 
 # ─── Validations ────────────────────────────────────────────
@@ -613,19 +617,19 @@ gather_project_info() {
 
     local ans_copilot ans_claude ans_cursor
     ask "Deploy for GitHub Copilot? [Y/n]" ans_copilot "Y"
-    case "${ans_copilot,,}" in
+    case "$(to_lower "$ans_copilot")" in
         n|no) PLATFORM_COPILOT=false ;;
         *) PLATFORM_COPILOT=true ;;
     esac
 
     ask "Deploy for Claude Code? [Y/n]" ans_claude "Y"
-    case "${ans_claude,,}" in
+    case "$(to_lower "$ans_claude")" in
         n|no) PLATFORM_CLAUDE=false ;;
         *) PLATFORM_CLAUDE=true ;;
     esac
 
     ask "Deploy for Cursor? [Y/n]" ans_cursor "Y"
-    case "${ans_cursor,,}" in
+    case "$(to_lower "$ans_cursor")" in
         n|no) PLATFORM_CURSOR=false ;;
         *) PLATFORM_CURSOR=true ;;
     esac
