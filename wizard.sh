@@ -682,13 +682,13 @@ gather_project_info() {
 
     local ans_local_config ans_local_memory
     ask "Keep AI config local only? (agents, instructions, hooks) [y/N]" ans_local_config "N"
-    case "${ans_local_config,,}" in
+    case "$(to_lower "$ans_local_config")" in
         y|yes) GIT_LOCAL_CONFIG=true ;;
         *) GIT_LOCAL_CONFIG=false ;;
     esac
 
     ask "Keep session memory local only? (spec.md, decisions.md, session-log.md) [y/N]" ans_local_memory "N"
-    case "${ans_local_memory,,}" in
+    case "$(to_lower "$ans_local_memory")" in
         y|yes) GIT_LOCAL_MEMORY=true ;;
         *) GIT_LOCAL_MEMORY=false ;;
     esac
