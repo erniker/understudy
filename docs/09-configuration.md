@@ -37,17 +37,35 @@ guardrails:
 session:
   auto_read_context: true  # hint for start-session prompts
   auto_update_log: true    # hint for end-session prompts
+
+git:
+  local_config: false      # true = add AI config files to .gitignore (not committed)
+  local_memory: false      # true = add session memory files to .gitignore
 ```
 
 ## Fields
 
 | Field | Purpose |
-|---|---|
+| --- | --- |
 | `project.*` | Metadata used by templates (name, PM) |
 | `platforms.*` | Toggle Copilot / Claude / Cursor deployment |
 | `models.<role>` | Recommended model per role (shown to the user; applied directly in Claude and Cursor agents) |
 | `guardrails.mode` | `split` = dedicated guardrails file; `embedded` = critical rules only |
 | `session.*` | Hints used in `start-session` / `end-session` prompts |
+| `git.local_config` | `true` = gitignore AI agents, instructions, hooks — kept local only |
+| `git.local_memory` | `true` = gitignore spec.md, decisions.md, session-log.md — kept local only |
+
+## Local-only mode
+
+By default every file Understudy generates is committed to the repo. If you want to keep the AI configuration out of git — for example in a corporate repo where AI tool config is private, or an open source project where you don't want to expose your internal workflow — set `git.local_config: true`. The wizard adds the affected paths to the project's `.gitignore` automatically.
+
+```yaml
+git:
+  local_config: true   # agents, instructions, hooks, AGENTS.md, CLAUDE.md — gitignored
+  local_memory: false  # spec.md, decisions.md, session-log.md — still committed (shared memory)
+```
+
+You can also choose them interactively during `understudy` — the wizard asks both questions every time.
 
 ## Reapplying changes
 

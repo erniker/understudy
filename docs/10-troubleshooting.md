@@ -1,5 +1,23 @@
 # 10. Troubleshooting and FAQ
 
+## I don't want AI config files in my git repo
+
+Run `understudy` and answer **Y** to the "Keep AI config local only?" question.
+The wizard appends the affected paths to your project's `.gitignore` automatically.
+
+You can also set it in `understudy.yaml` so you never have to answer the question:
+
+```yaml
+git:
+  local_config: true   # gitignores agents, instructions, hooks, AGENTS.md, CLAUDE.md
+  local_memory: false  # keep session memory files committed (shared with team)
+```
+
+Two separate flags let you mix-and-match:
+
+- **`local_config: true`** — AI config stays local; teammates don't see it.
+- **`local_memory: true`** — `spec.md`, `decisions.md`, `session-log.md` stay local; useful when each dev has their own AI workspace.
+
 ## The agent ignores my instructions
 
 - On Copilot CLI: run `/instructions` and confirm the right file is toggled.
