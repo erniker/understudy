@@ -11,12 +11,23 @@ Prerequisites:
 - VS Code with the GitHub Copilot and Copilot Chat extensions installed.
 - Ideally the latest VS Code so prompt files and `applyTo` globs are honored.
 
+Install Understudy first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+Then open a new terminal so the `understudy` command is available.
+
 Deploy Understudy:
 
 ```bash
-./wizard.sh
+understudy
 # → Platforms: select "Copilot"
 ```
+
+If you are using a manual clone instead of the installed command, run
+`./wizard.sh` from the cloned Understudy repo.
 
 Same files as the CLI, with an important difference: every
 `.github/instructions/<role>.instructions.md` has a YAML frontmatter like:

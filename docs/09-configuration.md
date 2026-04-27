@@ -6,10 +6,14 @@ behavior. There is a priority chain:
 ```
 Wizard defaults (hardcoded)
     ↓ overridden by
-Global understudy.yaml next to wizard.sh
+Global understudy.yaml in the Understudy installation directory
     ↓ overridden by
 Project understudy.yaml at repo root
 ```
+
+If you installed Understudy with the one-liner, that global config lives next
+to the installed wizard files under `~/.understudy/`. If you are running from
+a manual clone, it lives next to `wizard.sh` in the cloned repo.
 
 ## Full example
 

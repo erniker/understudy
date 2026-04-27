@@ -54,6 +54,9 @@ models:
 
 Run the wizard with the add member option:
 ```bash
-./wizard.sh --add-member
+understudy --add-member
 ```
+If you are using a manual clone of Understudy instead of the installed
+command, run `./wizard.sh --add-member`.
+
 Or copy a template from `roles/` to `.github/instructions/` and register it here.

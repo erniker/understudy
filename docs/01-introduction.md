@@ -44,15 +44,19 @@ destructive ops without confirmation, no production changes without change
 control, spec-first, etc.). They are deployed automatically and, on Claude
 Code, enforced by a hook that blocks dangerous commands.
 
-**Wizard.** `wizard.sh` is the installer. It asks a handful of questions and
-generates all the platform-specific files (Copilot, Claude, Cursor) with your
-project data already filled in. It also integrates into existing projects
-without touching your code, and detects monorepos automatically.
+**Wizard.** After installation, you run Understudy with the `understudy`
+command. Under the hood it launches the same deployment wizard (`wizard.sh`),
+which asks a handful of questions and generates all the platform-specific
+files (Copilot, Claude, Cursor) with your project data already filled in. It
+also integrates into existing projects without touching your code, and detects
+monorepos automatically. If you are using a manual `git clone`, run
+`./wizard.sh` from the cloned repo instead.
 
 **Roles catalog.** The 6 core roles always ship (Architect, Backend,
 Frontend, DevOps, Security, QA). Optional roles live in `roles/` and you can
-add more with `./wizard.sh --add-member` or create your own with
-`--create-role`.
+add more with `understudy --add-member` or create your own with
+`understudy --create-role`. If you are using a manual clone, replace
+`understudy` with `./wizard.sh`.
 
 ## The 6 core roles
 

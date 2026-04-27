@@ -12,13 +12,16 @@ curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh 
 
 Then open a new terminal so the `understudy` command is available.
 
+Unless noted otherwise, the commands in the rest of this guide assume you are
+using the installed `understudy` command.
+
 **Manual (git clone):**
 
 ```bash
 git clone https://github.com/erniker/understudy.git
 cd understudy
 chmod +x wizard.sh
-# use ./wizard.sh instead of understudy in the commands below
+# if you use a manual clone, replace `understudy` with `./wizard.sh`
 ```
 
 ## Deploy in a project

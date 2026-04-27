@@ -10,15 +10,28 @@ Prerequisites:
 - A GitHub Copilot subscription.
 - The `copilot` CLI installed (`gh extension install github/gh-copilot` or
   the standalone `copilot` binary — see GitHub docs).
-- `bash ≥ 4` to run `wizard.sh`.
+
+Install Understudy first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+Then open a new terminal so the `understudy` command is available.
+
+If you prefer a manual clone instead of the installed command, you need
+`bash ≥ 4` to run `wizard.sh` from the cloned repo.
 
 Deploy Understudy into your project:
 
 ```bash
 cd your-project
-/path/to/understudy/wizard.sh
+understudy
 # → Platforms: select "Copilot"
 ```
+
+If you are using a manual clone instead of the installed command, run
+`/path/to/understudy/wizard.sh` from the cloned repo.
 
 After the wizard finishes, your repo will contain:
 
