@@ -8,12 +8,24 @@ auto-attached) and **agents** (invoked from the Agent panel).
 Prerequisites:
 
 - Cursor installed.
-- Deploy Understudy with Cursor selected:
+
+Install Understudy first:
 
 ```bash
-./wizard.sh
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+Then open a new terminal so the `understudy` command is available.
+
+Deploy Understudy with Cursor selected:
+
+```bash
+understudy
 # → Platforms: select "Cursor"
 ```
+
+If you are using a manual clone instead of the installed command, run
+`./wizard.sh` from the cloned Understudy repo.
 
 Generated files:
 

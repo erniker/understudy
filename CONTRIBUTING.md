@@ -38,8 +38,8 @@ git fetch upstream
 git rebase upstream/main
 ```
 
-There are no build dependencies. The only requirement to run the wizard is bash ≥ 4.
-On macOS install an updated bash with `brew install bash`.
+There are no build dependencies. The wizard requires **bash ≥ 3.2** (compatible with macOS, Linux, and Windows WSL).
+To contribute: clone the repo, then run the wizard with `./wizard.sh` or install globally with `./install.sh`.
 
 ---
 
@@ -122,7 +122,7 @@ If the change breaks backward compatibility, add `!` after the type or a `BREAKI
 feat!: change roles/ structure — directory now requires frontmatter
 
 BREAKING CHANGE: Files in roles/ without YAML frontmatter are no longer valid.
-Run `./wizard.sh --migrate` to update existing roles.
+Run `understudy --migrate` to update existing roles (or `./wizard.sh --migrate` if installed manually).
 ```
 
 ### Examples

@@ -7,6 +7,53 @@ on:
     branches: [main]
 
 jobs:
+  pr-template:
+    name: Pull request template
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+
+          # Normalize CRLF → LF (GitHub API may return \r\n)
+          PR_BODY=$(printf '%s\n' "$PR_BODY" | tr -d '\r')
+
+          if [ -z "${PR_BODY//[[:space:]]/}" ]; then
+            echo "PR body is empty. Use the pull request template."
+            exit 1
+          fi
+
+          required_sections=(
+            '## Description'
+            '## Type of change'
+            '## What changes?'
+            '## How to test'
+            '## Checklist'
+          )
+
+          for section in "${required_sections[@]}"; do
+            if ! printf '%s\n' "$PR_BODY" | grep -Fq "$section"; then
+              echo "Missing required PR template section: $section"
+              exit 1
+            fi
+          done
+
+          type_section=$(printf '%s\n' "$PR_BODY" | awk '
+            /^## Type of change$/ { capture=1; next }
+            /^---$/ && capture { exit }
+            capture { print }
+          ')
+
+          if ! printf '%s\n' "$type_section" | grep -Eq '^- \[(x|X)\] '; then
+            echo "Select at least one item in the 'Type of change' section."
+            exit 1
+          fi
+
+          echo "PR template validation passed."
+
   shellcheck:
     name: ShellCheck (bash scripts)
     runs-on: ubuntu-latest
