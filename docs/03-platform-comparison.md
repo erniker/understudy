@@ -1,7 +1,7 @@
 # 3. Platform Capability Matrix
 
 A single glance at what each platform can do out of the box after running
-`wizard.sh`.
+Understudy (`understudy`, or `./wizard.sh` if you are using a manual clone).
 
 | Capability | GitHub Copilot CLI | VS Code Copilot | Claude Code | Cursor |
 |---|:---:|:---:|:---:|:---:|

@@ -18,6 +18,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Normalize CRLF → LF (GitHub API may return \r\n)
+          PR_BODY=$(printf '%s\n' "$PR_BODY" | tr -d '\r')
+
           if [ -z "${PR_BODY//[[:space:]]/}" ]; then
             echo "PR body is empty. Use the pull request template."
             exit 1
