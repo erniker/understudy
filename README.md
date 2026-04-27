@@ -368,9 +368,10 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 The system uses an `understudy.yaml` configuration file with priority hierarchy:
 
 ```
-1. Wizard defaults (hardcoded in wizard.sh)     ← lowest priority
-2. understudy.yaml next to wizard.sh             ← global defaults
-3. understudy.yaml in the project                ← per-project override
+1. Wizard defaults (built-in)                    ← lowest priority
+2. ~/.understudy/understudy.yaml (installed)     ← global defaults
+   OR understudy.yaml next to wizard.sh (cloned) ← if installed manually
+3. understudy.yaml in the project                ← per-project override (highest)
 ```
 
 Example override: your project needs Opus for Security because it's fintech:
