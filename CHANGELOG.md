@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-27
+
 ### Added
 
 - **Local-only mode**: two new wizard questions and `git.local_config` /
