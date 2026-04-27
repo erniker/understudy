@@ -790,7 +790,7 @@ normalize_path() {
     local path="$1"
     if [[ "${path:1:1}" == ":" ]]; then
         local drive="${path:0:1}"
-        path="/${drive,,}${path:2}"
+        path="/$(tr '[:upper:]' '[:lower:]' <<< "$drive")${path:2}"
     fi
     path=$(tr '\134' '/' <<< "$path")
     echo "$path"
