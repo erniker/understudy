@@ -115,6 +115,20 @@ Guardrails protect the team from:
 | 🔀 **split** (recommended) | Critical guardrails always active in `copilot-instructions.md` + full details file in `guardrails.instructions.md` |
 | 📦 **embedded** | Only critical guardrails embedded in `copilot-instructions.md` (lighter, no separate file) |
 
+### Split vs Embedded: practical differences
+
+| Aspect | 🔀 split | 📦 embedded |
+|---|---|---|
+| **Enforcement level** | Critical guardrails are always active **and** full guardrails are available in a dedicated file | Only critical guardrails are always active |
+| **Visibility** | Higher: team can review complete guardrails in `guardrails.instructions.md` | Lower: only the reduced set is visible in global instructions |
+| **Maintenance** | Easier to evolve full guardrails without bloating global instructions | Simpler file structure, but less room for detailed policies |
+| **Best for** | Regulated teams, larger repos, multi-agent workflows, stricter governance | Small/fast projects, lightweight setups, teams that want minimal overhead |
+| **Trade-off** | More files and a bit more structure | Less explicit coverage of non-critical rules |
+
+**Rule of thumb:**
+- Choose **split** when you want stronger governance, better auditability and clearer team alignment.
+- Choose **embedded** when speed and simplicity matter more than policy depth.
+
 The mode is selected during the wizard and can be changed by editing `understudy.yaml`:
 
 ```yaml
