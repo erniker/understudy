@@ -486,6 +486,9 @@ Say you add support for a `--jetbrains` platform. You'll need:
 The CI runs three checks. You can run them locally to avoid waiting for the workflow:
 
 ```bash
+# Run the full test suite first (unit + hooks + integration)
+./run_tests.sh
+
 # ShellCheck (install with: brew install shellcheck / apt install shellcheck)
 shellcheck -e SC2155 -e SC1091 -e SC2034 -e SC2154 wizard.sh
 find templates -name "*.sh" -exec shellcheck -e SC2155 -e SC1091 {} \;
@@ -497,6 +500,44 @@ find templates -name "*.sh" -exec bash -n {} \;
 # Markdown lint (install with: npm install -g markdownlint-cli2)
 markdownlint-cli2 "README.md" "docs/**/*.md"
 ```
+
+### wizard.sh — rules for contributors
+
+`wizard.sh` runs on **bash 3.2+** (macOS ships 3.2 by default). Three things to keep in mind:
+
+#### 1. No bash 4+ features
+
+| ❌ Avoid | ✅ Use instead |
+| --- | --- |
+| `${var,,}` (lowercase) | `to_lower "$var"` (helper already defined) |
+| `${var^^}` (uppercase) | `echo "$var" \| tr '[:lower:]' '[:upper:]'` |
+| `declare -A` (assoc arrays) | parallel indexed arrays |
+| `mapfile` / `readarray` | `while IFS= read -r` loop |
+
+#### 2. Portable sed and awk
+
+macOS ships BSD sed and One True AWK — both differ from GNU versions:
+
+- Never use `sed -i "script" file` — BSD sed treats the first arg as backup suffix. Use `sed "script" file > file.tmp && mv file.tmp file` instead.
+- Never pass multiline strings via `awk -v var="..."` — use the `FNR==NR` pattern with a temp file instead.
+
+#### 3. Update integration tests when adding wizard questions
+
+`tests/integration/deploy_all_platforms.bats` pipes pre-filled answers to the wizard via stdin. When you add a new `ask()` or `confirm()` call inside `gather_project_info()`, you **must** also add an answer in `run_wizard_noninteractive()` and update its comment. The order of answers must exactly match the order of questions.
+
+### PR body format
+
+The CI validates that your PR body contains these exact headings:
+
+```
+## Description
+## Type of change
+## What changes?
+## How to test
+## Checklist
+```
+
+`Type of change` must also have at least one checked item (`- [x]`). The easiest way to get this right is to use the GitHub PR form which pre-fills the template.
 
 ---
 
