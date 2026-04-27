@@ -96,3 +96,10 @@ guardrails:
 spec:
   # Block coding until spec.md is approved?
   require_before_coding: true
+
+# ─── Git integration ─────────────────────────────────
+# Control what Understudy commits to the repository.
+# Set to true to add the files to .gitignore (local-only, not committed).
+git:
+  local_config: false   # agents, instructions, hooks, AGENTS.md, CLAUDE.md
+  local_memory: false   # spec.md, decisions.md, session-log.md, team-roster.md

@@ -7,6 +7,35 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **Local-only mode**: two new wizard questions and `git.local_config` /
+  `git.local_memory` keys in `understudy.yaml` — lets users keep AI config
+  or session memory files out of git (appended to project `.gitignore`).
+  Platform-aware: only gitignores files from selected platforms.
+- `tests/unit/deploy_gitignore.bats`: 21 new unit tests for the new feature.
+- `tests/unit/normalize_path.bats`: 14 cross-OS tests for path normalization.
+
+### Fixed
+
+- `deploy_file()`: replaced 18 `sed -i` calls with one portable `sed` + temp
+  file, fixing macOS BSD sed incompatibility that broke all placeholder tests.
+- `inject_guardrails_block()`: replaced `awk -v content=` with FNR==NR pattern,
+  fixing macOS awk rejection of multiline `-v` strings.
+- `ask()`: added `read -e` (readline) so arrow keys work in all terminals.
+- `normalize_path()`: converts Windows paths (`C:/...` → `/c/...`) entered in
+  Git Bash; shows OS-aware hint in the base-directory prompt.
+- shellcheck: added SC2153 exclusion (false positive for eval-assigned vars).
+
+### Changed
+
+- `docs/03-platform-comparison.md` and all platform pages: added missing
+  `Next:` navigation links so readers can follow the doc sequence.
+- `docs/09-configuration.md`: added `git.*` fields; documented local-only mode.
+- `docs/10-troubleshooting.md`: expanded integration mode FAQ; added
+  "I don't want AI config in my repo" entry.
+- `understudy.yaml`: removed non-existent `gpt-5.4` model from comments.
+
 ## [0.2.1] - 2026-04-27
 
 ### Fixed

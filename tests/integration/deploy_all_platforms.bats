@@ -18,7 +18,7 @@ teardown() {
 }
 
 # Helper: run wizard with pre-filled answers via stdin
-# Arguments: project_name base_dir [extra answers...]
+# Arguments: project_name base_dir [platform answers: Y/n Y/n Y/n]
 run_wizard_noninteractive() {
   local project_name="$1"
   local base_dir="$2"
@@ -26,6 +26,7 @@ run_wizard_noninteractive() {
   # Answers in order:
   # project name, base dir, description, stack, PM, repo URL,
   # guardrails mode (1=split), copilot (Y), claude (Y), cursor (Y),
+  # keep AI config local (N), keep session memory local (N),
   # confirm deploy (Y), git init (n)
   printf '%s\n' \
     "$project_name" \
@@ -36,6 +37,8 @@ run_wizard_noninteractive() {
     "local" \
     "1" \
     "$@" \
+    "N" \
+    "N" \
     "Y" \
     "n" \
     | bash "$WIZARD" 2>/dev/null

@@ -52,6 +52,10 @@ PLATFORM_COPILOT=true
 PLATFORM_CLAUDE=true
 PLATFORM_CURSOR=true
 
+# Git integration
+GIT_LOCAL_CONFIG=false   # gitignore AI config files (agents, instructions, hooks)
+GIT_LOCAL_MEMORY=false   # gitignore session memory files (spec, decisions, session-log)
+
 # Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -126,6 +130,13 @@ load_config() {
         [[ "$val_copilot" == "false" ]] && PLATFORM_COPILOT=false
         [[ "$val_claude" == "false" ]] && PLATFORM_CLAUDE=false
         [[ "$val_cursor" == "false" ]] && PLATFORM_CURSOR=false
+
+        # Git integration
+        local val_local_config val_local_memory
+        val_local_config=$(config_read "git" "local_config" "false" "$DEFAULT_CONFIG")
+        val_local_memory=$(config_read "git" "local_memory" "false" "$DEFAULT_CONFIG")
+        [[ "$val_local_config" == "true" ]] && GIT_LOCAL_CONFIG=true
+        [[ "$val_local_memory" == "true" ]] && GIT_LOCAL_MEMORY=true
     fi
 
     # Capa 2: override del proyecto (si existe)
@@ -148,6 +159,13 @@ load_config() {
         [[ "$val_copilot" == "false" ]] && PLATFORM_COPILOT=false || PLATFORM_COPILOT=true
         [[ "$val_claude" == "false" ]] && PLATFORM_CLAUDE=false || PLATFORM_CLAUDE=true
         [[ "$val_cursor" == "false" ]] && PLATFORM_CURSOR=false || PLATFORM_CURSOR=true
+
+        # Override git integration
+        local val_local_config val_local_memory
+        val_local_config=$(config_read "git" "local_config" "false" "$project_config")
+        val_local_memory=$(config_read "git" "local_memory" "false" "$project_config")
+        [[ "$val_local_config" == "true" ]] && GIT_LOCAL_CONFIG=true || GIT_LOCAL_CONFIG=false
+        [[ "$val_local_memory" == "true" ]] && GIT_LOCAL_MEMORY=true || GIT_LOCAL_MEMORY=false
     fi
 
     success "Configuration loaded — models: Arch=${MODEL_ARCHITECT}, Back=${MODEL_BACKEND}, Front=${MODEL_FRONTEND}, Ops=${MODEL_DEVOPS}, Sec=${MODEL_SECURITY}, QA=${MODEL_QA}"
@@ -193,14 +211,14 @@ ask() {
 
     if [[ -n "$default" ]]; then
         echo -ne "  ${YELLOW}?${NC}  ${prompt} ${CYAN}[${default}]${NC}: "
-        read -r input
+        read -r -e input
         eval "$var_name=\"${input:-$default}\""
     else
         echo -ne "  ${YELLOW}?${NC}  ${prompt}: "
-        read -r input
+        read -r -e input
         while [[ -z "$input" ]]; do
             echo -ne "  ${RED}!${NC}  This field is required: "
-            read -r input
+            read -r -e input
         done
         eval "$var_name=\"$input\""
     fi
@@ -531,7 +549,22 @@ gather_project_info() {
     echo ""
 
     ask "Project name (no spaces, e.g. customer-portal)" PROJECT_NAME
-    ask "Base directory (${PROJECT_NAME}/ will be created inside)" BASE_DIR "."
+
+    # Show an OS-appropriate example path so users know the expected format.
+    # Git Bash on Windows requires forward slashes (C:/Users/...) or /c/... notation.
+    # Backslashes are processed by the terminal before bash sees them, so they cannot
+    # be typed directly — users must use forward slashes or the /c/... Git Bash path.
+    local _dir_hint
+    case "$(uname -s)" in
+        MINGW*|CYGWIN*|MSYS*)
+            _dir_hint="e.g. C:/Users/you/Desktop or /c/Users/you/Desktop" ;;
+        Darwin*)
+            _dir_hint="e.g. /Users/you/projects" ;;
+        *)
+            _dir_hint="e.g. /home/you/projects" ;;
+    esac
+    ask "Base directory [${_dir_hint}]" BASE_DIR "."
+    BASE_DIR=$(normalize_path "$BASE_DIR")
     TARGET_DIR="${BASE_DIR}/${PROJECT_NAME}"
 
     INTEGRATION_MODE=false
@@ -640,6 +673,26 @@ gather_project_info() {
         info "Copilot selected by default."
     fi
 
+    echo ""
+    step "Git integration — what to commit"
+    echo ""
+    info "By default all Understudy files are committed to the repo."
+    info "You can keep them local so they never appear in git history."
+    echo ""
+
+    local ans_local_config ans_local_memory
+    ask "Keep AI config local only? (agents, instructions, hooks) [y/N]" ans_local_config "N"
+    case "$(to_lower "$ans_local_config")" in
+        y|yes) GIT_LOCAL_CONFIG=true ;;
+        *) GIT_LOCAL_CONFIG=false ;;
+    esac
+
+    ask "Keep session memory local only? (spec.md, decisions.md, session-log.md) [y/N]" ans_local_memory "N"
+    case "$(to_lower "$ans_local_memory")" in
+        y|yes) GIT_LOCAL_MEMORY=true ;;
+        *) GIT_LOCAL_MEMORY=false ;;
+    esac
+
     PROJECT_DATE="$(date +%Y-%m-%d)"
 
     echo ""
@@ -661,6 +714,11 @@ gather_project_info() {
     $PLATFORM_CLAUDE && platforms_display+="Claude "
     $PLATFORM_CURSOR && platforms_display+="Cursor "
     info "Platforms:    ${BOLD}${platforms_display}${NC}"
+    local git_display=""
+    $GIT_LOCAL_CONFIG && git_display+="AI config "
+    $GIT_LOCAL_MEMORY && git_display+="Session memory "
+    [[ -z "$git_display" ]] && git_display="committed (default)"
+    info "Local only:   ${BOLD}${git_display}${NC}"
     info "Target:       ${TARGET_DIR}"
     info "Date:         ${PROJECT_DATE}"
     echo ""
@@ -719,6 +777,23 @@ ${ref_line}
 - No dead code, unused imports or TODOs in commits
 - Explicit error handling with context — never silent failures
 GUARDRAILS_EOF
+}
+
+# ─── Path normalization ──────────────────────────────────────
+# Converts Windows-style paths to Unix/Git-Bash paths.
+# Safe no-op on Linux and macOS (paths without ':' or '\' pass through unchanged).
+#   C:\Users\foo\bar  →  /c/Users/foo/bar
+#   C:/Users/foo      →  /c/Users/foo
+#   /home/user/foo    →  /home/user/foo  (unchanged)
+#   .                 →  .               (unchanged)
+normalize_path() {
+    local path="$1"
+    if [[ "${path:1:1}" == ":" ]]; then
+        local drive="${path:0:1}"
+        path="/$(tr '[:upper:]' '[:lower:]' <<< "$drive")${path:2}"
+    fi
+    path=$(tr '\134' '/' <<< "$path")
+    echo "$path"
 }
 
 # ─── Inject guardrails into copilot-instructions.md ─────────
@@ -905,6 +980,71 @@ deploy_cursor() {
     fi
 }
 
+# ─── Git integration: local-only mode ──────────────────────
+# Appends Understudy-owned paths to the project's .gitignore when
+# the user chose to keep AI config or session memory out of git.
+
+deploy_gitignore() {
+    if ! $GIT_LOCAL_CONFIG && ! $GIT_LOCAL_MEMORY; then
+        return
+    fi
+
+    local gitignore="${TARGET_DIR}/.gitignore"
+
+    # Idempotent: skip if Understudy block already present
+    if [[ -f "$gitignore" ]] && grep -q "Understudy" "$gitignore"; then
+        warn ".gitignore already has an Understudy block — skipping"
+        return
+    fi
+
+    step "Configuring .gitignore (local-only mode)"
+
+    {
+        printf '\n# ── Understudy ────────────────────────────────────────────────\n'
+    } >> "$gitignore"
+
+    if $GIT_LOCAL_CONFIG; then
+        {
+            printf '# AI configuration — kept local, not committed to git\n'
+            printf 'AGENTS.md\n'
+            printf 'CLAUDE.md\n'
+            printf 'understudy.yaml\n'
+        } >> "$gitignore"
+
+        if $PLATFORM_COPILOT; then
+            {
+                printf '.github/copilot-instructions.md\n'
+                printf '.github/instructions/\n'
+                printf '.github/prompts/\n'
+            } >> "$gitignore"
+        fi
+
+        if $PLATFORM_CLAUDE; then
+            printf '.claude/\n' >> "$gitignore"
+        fi
+
+        if $PLATFORM_CURSOR; then
+            {
+                printf '.cursor/agents/\n'
+                printf '.cursor/rules/understudy-global.mdc\n'
+                printf '.cursor/rules/guardrails.mdc\n'
+            } >> "$gitignore"
+        fi
+    fi
+
+    if $GIT_LOCAL_MEMORY; then
+        {
+            printf '# Session memory — kept local, not shared via git\n'
+            printf 'docs/spec.md\n'
+            printf 'docs/decisions.md\n'
+            printf 'docs/session-log.md\n'
+            printf 'docs/team-roster.md\n'
+        } >> "$gitignore"
+    fi
+
+    success ".gitignore updated"
+}
+
 # ─── Deployment orchestrator ───────────────────────────────
 
 deploy_team() {
@@ -942,6 +1082,9 @@ deploy_team() {
         cp "$DEFAULT_CONFIG" "${TARGET_DIR}/understudy.yaml"
         success "understudy.yaml (edit it to override per-project settings)"
     fi
+
+    # Gitignore for local-only mode
+    deploy_gitignore
 
     # Initialize git if not present
     if [[ ! -d "${TARGET_DIR}/.git" ]]; then
