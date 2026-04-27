@@ -5,6 +5,24 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.2.1] - 2026-04-27
+
+### Fixed
+
+- `wizard.sh`: replaced Bash 4-only lowercase expansion (`${var,,}`) in
+  interactive confirmations/platform prompts with a Bash 3.2-compatible
+  conversion helper, fixing integration flow on macOS runners.
+
+### Changed
+
+- `.github/workflows/ci.yml`: added a required PR body validation job that
+  enforces core sections from `.github/PULL_REQUEST_TEMPLATE.md` and requires
+  at least one selected item in `Type of change`.
+- `README.md`: expanded documentation for Guardrails deployment modes with a
+  practical `split` vs `embedded` comparison and selection rule-of-thumb.
+
 ## [0.2.0] - 2026-04-25
 
 ### Added
