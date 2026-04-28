@@ -220,8 +220,10 @@ understudy/
 │       └── team-roster.md
 ├── roles/                       # 🎭 Optional roles catalog
 │   ├── data-engineer.instructions.md
+│   ├── git-specialist.instructions.md
 │   ├── mobile-engineer.instructions.md
 │   ├── ml-engineer.instructions.md
+│   ├── shell-scripting.instructions.md
 │   ├── tech-writer.instructions.md
 │   └── sre.instructions.md
 ├── tests/                       # 🧪 bats test suite
@@ -361,8 +363,10 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 | Role | When to use it |
 |---|---|
 | 📊 **data-engineer** | ETL/ELT pipelines, data warehouses, streaming, data governance |
+| 🌿 **git-specialist** | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 **mobile-engineer** | iOS/Android apps, React Native, Flutter |
 | 🤖 **ml-engineer** | ML models, MLOps, LLMs, RAG, responsible AI |
+| 🐚 **shell-scripting** | Bash/sh automation, cross-platform scripting, ShellCheck best practices |
 | 📝 **tech-writer** | Technical documentation, API docs, tutorials, Diataxis |
 | 🧭 **sre** | SLOs, observability, incident response, chaos engineering |
 
