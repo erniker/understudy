@@ -30,7 +30,8 @@ chmod +x wizard.sh
 # Run from anywhere — the wizard asks where to deploy
 understudy
 #  → Asks project name, stack, PM, platforms (Copilot / Claude / Cursor),
-#    guardrails mode (split/embedded) and optional team members.
+#    guardrails mode (split/embedded), local-only mode (keep AI config and/or
+#    session memory out of git) and optional team members.
 #  → Detects existing projects and offers integration mode.
 
 # Then open your AI tool in the generated project
@@ -47,6 +48,8 @@ cursor .          # Cursor
   `docs/team-roster.md` were scaffolded.
 - Guardrails were deployed according to `understudy.yaml → guardrails.mode`
   (`split` keeps them in a dedicated file, `embedded` inlines critical rules).
+- If you opted into local-only mode, the affected paths were appended to the
+  project's `.gitignore` (see [Configuration → Local-only mode](09-configuration.md#local-only-mode)).
 - Nothing else in your repository was modified.
 
 ## First session, step by step

@@ -105,6 +105,11 @@ your-project/
     └── rules/                    # Global rules + guardrails (always-on)
 ```
 
+If you enable **local-only mode** during the wizard, Understudy also appends
+the affected paths to the project's `.gitignore` so AI config and/or session
+memory stay out of git. See
+[Configuration → Local-only mode](09-configuration.md#local-only-mode).
+
 ---
 
 Next: [Quick Start](02-quick-start.md)
