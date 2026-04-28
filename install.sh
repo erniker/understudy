@@ -215,15 +215,17 @@ setup_path() {
 
 # ── Post-install summary ──────────────────────────────────────
 post_install() {
-  local msg="🎭  Understudy ${VERSION} installed!"
-  # Emoji counts as 1 in bash but takes 2 visual spaces, so subtract 1 from padding
-  local padding=$((42 - ${#msg} - 1))
+  # Build msg separately: emoji (always 2 visual columns) + text part
+  # Inner box width = 42: "║  🎭{text}{spaces} ║" → 2 + 2 + text_len + spaces + 1 = 42
+  # spaces = 37 - text_len  (independent of how bash counts the emoji)
+  local text="  Understudy ${VERSION} installed!"
+  local padding=$((37 - ${#text}))
   local spaces=""
   for ((i = 0; i < padding; i++)); do spaces+=" "; done
-  
+
   echo ""
   echo -e "  ${GREEN}${BOLD}╔══════════════════════════════════════════╗${NC}"
-  printf "  ${GREEN}${BOLD}║  %s%s ║${NC}\n" "$msg" "$spaces"
+  printf "  ${GREEN}${BOLD}║  🎭%s%s ║${NC}\n" "$text" "$spaces"
   echo -e "  ${GREEN}${BOLD}╚══════════════════════════════════════════╝${NC}"
   echo ""
   step "Quick start"
