@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-04-28
+
 ### Added
 
 - `--here` flag: deploy Understudy directly in the current directory using
