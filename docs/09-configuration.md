@@ -77,6 +77,22 @@ After editing `understudy.yaml`, re-run the wizard to regenerate the
 affected files. Existing customizations in your repo are preserved unless
 the file is one of the Understudy-owned templates.
 
+## Optional roles auto-deploy
+
+The wizard automatically deploys certain optional roles from the `roles/`
+catalog:
+
+| Role | Condition |
+|---|---|
+| `git-specialist` | Always included |
+| `shell-scripting` | Included when `*.sh`, `*.bash` or `*.zsh` files are detected |
+
+Auto-deployed roles are generated for every platform you selected (Copilot,
+Claude, Cursor) and the `docs/team-roster.md` is updated automatically.
+
+There is currently no YAML key to disable auto-deploy; the behavior is
+hardcoded in the wizard.
+
 ---
 
 Next: [Troubleshooting and FAQ](10-troubleshooting.md)
