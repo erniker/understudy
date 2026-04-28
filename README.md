@@ -300,6 +300,7 @@ The wizard scans up to 3 levels deep to detect technologies:
 | Python | `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile` | `Python: services/ml-scoring` |
 | Terraform | `*.tf` | `Terraform: infra/terraform` |
 | Docker | `Dockerfile`, `docker-compose.yml` | `Docker: 4 Dockerfiles` |
+| Shell | `*.sh`, `*.bash`, `*.zsh` | `Shell` (auto-adds shell-scripting role) |
 
 ### Monorepo Support
 
@@ -370,9 +371,14 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 | 📝 **tech-writer** | Technical documentation, API docs, tutorials, Diataxis |
 | 🧭 **sre** | SLOs, observability, incident response, chaos engineering |
 
-**How to add them:**
+**Auto-deploy:** The wizard always includes `git-specialist`. If shell scripts
+(`*.sh`, `*.bash`, `*.zsh`) are detected in your project, `shell-scripting` is
+added automatically. Both are deployed to every platform you selected (Copilot,
+Claude, Cursor).
 
-1. **From the existing catalog**: `understudy --add-member` → choose from menu
+**How to add more:**
+
+1. **From the existing catalog**: `understudy --add-member` → choose from menu (works with Copilot, Claude and Cursor projects)
 2. **Create a new one**: `understudy --create-role` → saved in `roles/` for reuse
 3. **Manual**: create a file `name.instructions.md` in `roles/` following the existing format
 

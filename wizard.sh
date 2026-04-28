@@ -59,7 +59,11 @@ PLATFORM_CURSOR=true
 GIT_LOCAL_CONFIG=false   # gitignore AI config files (agents, instructions, hooks)
 GIT_LOCAL_MEMORY=false   # gitignore session memory files (spec, decisions, session-log)
 
-# Optional roles automation
+# Detection defaults (set properly when detect_existing_project runs)
+DETECTED_STACK=""
+DETECTED_REPO=""
+DETECTED_DESC=""
+DETECTED_COMPONENTS=()
 DETECTED_HAS_SHELL=false
 
 # Colores

@@ -50,6 +50,8 @@ cursor .          # Cursor
   (`split` keeps them in a dedicated file, `embedded` inlines critical rules).
 - If you opted into local-only mode, the affected paths were appended to the
   project's `.gitignore` (see [Configuration → Local-only mode](09-configuration.md#local-only-mode)).
+- Optional roles were auto-deployed: `git-specialist` is always included,
+  and `shell-scripting` is added when shell scripts are detected.
 - Nothing else in your repository was modified.
 
 ## First session, step by step
@@ -75,7 +77,7 @@ cursor .          # Cursor
 ## Extending the team
 
 ```bash
-understudy --add-member       # pick from roles/ (data, ML, mobile, SRE, tech-writer)
+understudy --add-member       # pick from roles/ — deploys to all active platforms
 understudy --create-role      # interactive wizard to design a new role
 ```
 
