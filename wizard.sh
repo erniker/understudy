@@ -1145,34 +1145,79 @@ deploy_gitignore() {
 add_optional_role_to_project() {
     local role_name="$1"
 
-    # Optional roles currently map to Copilot instruction files.
-    if ! $PLATFORM_COPILOT; then
-        return
-    fi
-
     local src="${ROLES_DIR}/${role_name}.instructions.md"
-    local dst="${TARGET_DIR}/.github/instructions/${role_name}.instructions.md"
 
     if [[ ! -f "$src" ]]; then
         warn "Optional role not found in catalog: ${role_name}"
         return
     fi
 
-    if [[ -f "$dst" ]]; then
-        info "Optional role already present: ${role_name}"
-    else
-        cp "$src" "$dst"
-        success "Optional role added: ${role_name}"
+    local roster_ref=""
+
+    if $PLATFORM_COPILOT; then
+        local dst_copilot="${TARGET_DIR}/.github/instructions/${role_name}.instructions.md"
+        if [[ -f "$dst_copilot" ]]; then
+            info "Optional role already present (Copilot): ${role_name}"
+        else
+            cp "$src" "$dst_copilot"
+            success "Optional role added (Copilot): ${role_name}"
+        fi
+        [[ -z "$roster_ref" ]] && roster_ref=".github/instructions/${role_name}.instructions.md"
+    fi
+
+    if $PLATFORM_CLAUDE; then
+        local dst_claude="${TARGET_DIR}/.claude/agents/${role_name}.md"
+        if [[ -f "$dst_claude" ]]; then
+            info "Optional role already present (Claude): ${role_name}"
+        else
+            cat > "$dst_claude" << EOF
+---
+name: ${role_name}
+description: "Optional specialist role: ${role_name}"
+model: ${MODEL_BACKEND}
+tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+---
+
+EOF
+            cat "$src" >> "$dst_claude"
+            success "Optional role added (Claude): ${role_name}"
+        fi
+        [[ -z "$roster_ref" ]] && roster_ref=".claude/agents/${role_name}.md"
+    fi
+
+    if $PLATFORM_CURSOR; then
+        local dst_cursor="${TARGET_DIR}/.cursor/agents/${role_name}.md"
+        if [[ -f "$dst_cursor" ]]; then
+            info "Optional role already present (Cursor): ${role_name}"
+        else
+            cat > "$dst_cursor" << EOF
+---
+name: ${role_name}
+description: "Optional specialist role: ${role_name}"
+model: ${MODEL_BACKEND}
+---
+
+EOF
+            cat "$src" >> "$dst_cursor"
+            success "Optional role added (Cursor): ${role_name}"
+        fi
+        [[ -z "$roster_ref" ]] && roster_ref=".cursor/agents/${role_name}.md"
     fi
 
     # Keep team-roster in sync (idempotent)
     local roster="${TARGET_DIR}/docs/team-roster.md"
-    if [[ -f "$roster" ]] && ! grep -q "\.github/instructions/${role_name}\.instructions\.md" "$roster"; then
+    if [[ -f "$roster" ]] && [[ -n "$roster_ref" ]] && ! grep -q "${role_name}" "$roster"; then
         local display_name
         display_name="$(echo "$role_name" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')"
-        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`.github/instructions/${role_name}.instructions.md\` | ✅ Active |" "$roster" 2>/dev/null || \
+        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" 2>/dev/null || \
             sed -i'' "/<!-- new members here -->/a\\
-| **${display_name}** | ${display_name} | \`.github/instructions/${role_name}.instructions.md\` | ✅ Active |" "$roster"
+| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster"
         success "team-roster.md updated (${role_name})"
     fi
 }
@@ -1289,18 +1334,74 @@ add_team_member() {
 
     ask "Project directory where to add the member" TARGET_DIR
 
-    if [[ ! -d "${TARGET_DIR}/.github/instructions" ]]; then
+    local has_copilot=false has_claude=false has_cursor=false
+    [[ -d "${TARGET_DIR}/.github/instructions" ]] && has_copilot=true
+    [[ -d "${TARGET_DIR}/.claude/agents" ]] && has_claude=true
+    [[ -d "${TARGET_DIR}/.cursor/agents" ]] && has_cursor=true
+
+    if ! $has_copilot && ! $has_claude && ! $has_cursor; then
         error "This does not look like an Understudy project. Run the wizard first."
         exit 1
     fi
 
-    local dest="${TARGET_DIR}/.github/instructions/${selected_name}.instructions.md"
-    if [[ -f "$dest" ]]; then
+    local copied_any=false
+    local roster_ref=""
+
+    if $has_copilot; then
+        local dest_copilot="${TARGET_DIR}/.github/instructions/${selected_name}.instructions.md"
+        if [[ ! -f "$dest_copilot" ]]; then
+            cp "$selected_file" "$dest_copilot"
+            copied_any=true
+            [[ -z "$roster_ref" ]] && roster_ref=".github/instructions/${selected_name}.instructions.md"
+        fi
+    fi
+
+    if $has_claude; then
+        local dest_claude="${TARGET_DIR}/.claude/agents/${selected_name}.md"
+        if [[ ! -f "$dest_claude" ]]; then
+            cat > "$dest_claude" << EOF
+---
+name: ${selected_name}
+description: "Optional specialist role: ${selected_name}"
+model: ${MODEL_BACKEND}
+tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+---
+
+EOF
+            cat "$selected_file" >> "$dest_claude"
+            copied_any=true
+            [[ -z "$roster_ref" ]] && roster_ref=".claude/agents/${selected_name}.md"
+        fi
+    fi
+
+    if $has_cursor; then
+        local dest_cursor="${TARGET_DIR}/.cursor/agents/${selected_name}.md"
+        if [[ ! -f "$dest_cursor" ]]; then
+            cat > "$dest_cursor" << EOF
+---
+name: ${selected_name}
+description: "Optional specialist role: ${selected_name}"
+model: ${MODEL_BACKEND}
+---
+
+EOF
+            cat "$selected_file" >> "$dest_cursor"
+            copied_any=true
+            [[ -z "$roster_ref" ]] && roster_ref=".cursor/agents/${selected_name}.md"
+        fi
+    fi
+
+    if ! $copied_any; then
         warn "Role ${selected_name} already exists in this project."
         return
     fi
 
-    cp "$selected_file" "$dest"
     success "Role '${selected_name}' added to ${TARGET_DIR}"
 
     # Update team-roster.md
@@ -1308,13 +1409,13 @@ add_team_member() {
     if [[ -f "$roster" ]]; then
         local display_name
         display_name="$(echo "$selected_name" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')"
-        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Active |" "$roster" 2>/dev/null || \
+        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" 2>/dev/null || \
             sed -i'' "/<!-- new members here -->/a\\
-| **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Active |" "$roster"
+| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster"
         success "team-roster.md updated"
     fi
 
-    info "Activate the new agent in Copilot CLI with: /instructions"
+    info "Member added for detected platform(s). Activate it from your tool's agent/instructions flow."
 }
 
 # ─── Create custom role ─────────────────────────────────────
