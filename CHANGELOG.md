@@ -7,6 +7,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-04-28
+
+### Fixed
+
+- `CHANGELOG.md`: added missing entries for v0.4.1, v0.4.2 and v0.4.3.
+  Without these, `read_local_version()` always returned `v0.4.0` from the
+  installed tarball, causing `check_for_updates()` to loop infinitely after
+  a successful update.
+
 ## [0.4.3] - 2026-04-28
 
 ### Fixed
