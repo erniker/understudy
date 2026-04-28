@@ -52,12 +52,11 @@ jobs:
           version="${{ steps.version.outputs.version }}"
           archive="understudy-${version}.tar.gz"
 
-          # Pack only what users need — no tests, no CI, no dev tooling
+          # Pack only what users need — no tests, no CI, no dev tooling.
+          # NOTE: do NOT use --exclude='.github' here — it would also strip
+          # templates/.github/ (the Copilot templates). The listed paths
+          # already omit the repo's top-level .git, .github and tests dirs.
           tar -czf "$archive" \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='tests' \
-            --exclude='run_tests.sh' \
             --exclude='*.tar.gz' \
             wizard.sh \
             install.sh \
