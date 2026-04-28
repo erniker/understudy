@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-04-28
+
+### Fixed
+
+- Release tarball was missing `templates/.github/` (Copilot templates) due to
+  an over-broad `--exclude='.github'` flag in the release workflow that also
+  matched the nested `templates/.github/` directory. As a result, installs of
+  v0.5.0–v0.5.2 via the published tarball failed at deploy time with
+  `Missing Copilot template: .github/copilot-instructions.md`. The packaging
+  step now only excludes the temporary archive itself; the explicit list of
+  paths already keeps unwanted top-level dirs (`.git`, `.github`, `tests`)
+  out of the tarball.
+
 ## [0.5.2] - 2026-04-28
 
 ### Changed
