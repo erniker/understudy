@@ -371,7 +371,10 @@ tests/
 │   ├── detect_existing_project.bats      # Stack detection: Node/React/Vue/Angular,
 │   │                                     # .NET, Python, Terraform, Docker, Monorepo
 │   ├── deploy_file.bats                  # Placeholder substitution + file preservation
-│   └── inject_guardrails.bats            # Guardrail injection: split vs embedded modes
+│   ├── deploy_gitignore.bats             # Local-only mode: .gitignore generation per platform
+│   ├── inject_guardrails.bats            # Guardrail injection: split vs embedded modes
+│   ├── normalize_path.bats               # Windows/Unix path normalization (Git Bash, WSL)
+│   └── update_check.bats                 # Version comparison + local version detection
 ├── hooks/
 │   └── guardrails_check.bats             # Hook blocks destructive commands (exit 2),
 │                                         # warns on secrets (exit 0), allows safe ops
@@ -418,6 +421,9 @@ Key conventions:
 | New destructive pattern in `guardrails-check.sh` | `tests/hooks/guardrails_check.bats` |
 | New platform, new files deployed, new wizard flag | `tests/integration/deploy_all_platforms.bats` |
 | New fixture needed for detection | `tests/fixtures/` |
+| Update checker (`read_local_version`, `version_is_newer`) | `tests/unit/update_check.bats` |
+| Path normalization (`normalize_path`) | `tests/unit/normalize_path.bats` |
+| Git integration / `.gitignore` generation | `tests/unit/deploy_gitignore.bats` |
 
 ### Writing tests for a new feature — checklist
 

@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-28
+
+### Added
+
+- **Automatic update check**: `wizard.sh` now queries the GitHub Releases API at
+  startup. If a newer version is available it asks the user whether to update
+  immediately (runs the installer one-liner and re-executes the wizard).
+  Skipped automatically in non-interactive runs (stdin not a tty) and in
+  development clones (`.git` present next to `wizard.sh`). Can be suppressed
+  with `export UNDERSTUDY_SKIP_UPDATE_CHECK=1`.
+- `tests/unit/update_check.bats`: 8 unit tests for `read_local_version` and
+  `version_is_newer` (major / minor / patch / equal / lower / prerelease).
+
 ### Changed
 
 - `README.md`: added "Local-only mode" key concept so the v0.3.0 feature is

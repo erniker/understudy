@@ -49,7 +49,10 @@ Roles you create are available in every future deployment.
 
 ## How do I update Understudy?
 
-Re-run the installer — it replaces `~/.understudy/` with the latest release:
+Every time you run `understudy`, it checks GitHub for a newer release and
+prompts you to update automatically. Just answer **Y** when asked.
+
+If you prefer to update manually, re-run the installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
@@ -59,6 +62,12 @@ To pin a specific version:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.2.0
+```
+
+To disable the automatic check (CI, offline environments):
+
+```bash
+export UNDERSTUDY_SKIP_UPDATE_CHECK=1
 ```
 
 To uninstall:

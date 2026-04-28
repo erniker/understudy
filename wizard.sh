@@ -28,6 +28,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
 ROLES_DIR="${SCRIPT_DIR}/roles"
 DEFAULT_CONFIG="${SCRIPT_DIR}/understudy.yaml"
+UPDATE_REPO="erniker/understudy"
+UPDATE_API_URL="https://api.github.com/repos/${UPDATE_REPO}/releases/latest"
+UPDATE_INSTALL_URL="https://raw.githubusercontent.com/${UPDATE_REPO}/main/install.sh"
 
 # ─── Config defaults (overridden by understudy.yaml) ───────
 MODEL_ARCHITECT="claude-opus-4.6"
@@ -229,6 +232,81 @@ confirm() {
     echo -ne "  ${YELLOW}?${NC}  ${prompt} ${CYAN}[Y/n]${NC}: "
     read -r answer
     [[ "$(to_lower "$answer")" != "n" ]]
+}
+
+# ─── Version and update check ───────────────────────────────
+
+read_local_version() {
+    local changelog_file="${1:-${SCRIPT_DIR}/CHANGELOG.md}"
+    [[ -f "$changelog_file" ]] || return 1
+
+    awk -F'[][]' '
+        /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ {
+            print "v" $2
+            exit
+        }
+    ' "$changelog_file"
+}
+
+fetch_latest_version() {
+    command -v curl &>/dev/null || return 1
+
+    curl -fsSL \
+        --connect-timeout 2 \
+        --max-time 4 \
+        "$UPDATE_API_URL" \
+        -H "Accept: application/vnd.github+json" \
+        | awk -F'"' '/"tag_name"/ { print $4; exit }'
+}
+
+version_is_newer() {
+    local latest="${1#v}"
+    local current="${2#v}"
+    latest="${latest%%-*}"
+    current="${current%%-*}"
+
+    local l1=0 l2=0 l3=0 c1=0 c2=0 c3=0
+    IFS='.' read -r l1 l2 l3 <<< "$latest"
+    IFS='.' read -r c1 c2 c3 <<< "$current"
+    l1=${l1:-0}; l2=${l2:-0}; l3=${l3:-0}
+    c1=${c1:-0}; c2=${c2:-0}; c3=${c3:-0}
+
+    if (( l1 > c1 )); then return 0; fi
+    if (( l1 < c1 )); then return 1; fi
+    if (( l2 > c2 )); then return 0; fi
+    if (( l2 < c2 )); then return 1; fi
+    if (( l3 > c3 )); then return 0; fi
+    return 1
+}
+
+check_for_updates() {
+    [[ "${UNDERSTUDY_SKIP_UPDATE_CHECK:-0}" == "1" ]] && return 0
+
+    # Skip in non-interactive runs and local development clones.
+    [[ -t 0 ]] || return 0
+    [[ -d "${SCRIPT_DIR}/.git" ]] && return 0
+
+    local current_version latest_version
+    current_version="$(read_local_version "${SCRIPT_DIR}/CHANGELOG.md" 2>/dev/null || true)"
+    [[ -n "$current_version" ]] || return 0
+
+    latest_version="$(fetch_latest_version 2>/dev/null || true)"
+    [[ -n "$latest_version" ]] || return 0
+
+    if version_is_newer "$latest_version" "$current_version"; then
+        warn "New Understudy version available: ${latest_version} (current: ${current_version})"
+        if confirm "Do you want to update now?"; then
+            step "Updating Understudy"
+            if curl -fsSL "$UPDATE_INSTALL_URL" | bash; then
+                success "Update completed. Restarting Understudy..."
+                exec "$0" "$@"
+            else
+                warn "Update failed. Continuing with current version (${current_version})."
+            fi
+        fi
+    fi
+
+    return 0
 }
 
 # ─── Validations ────────────────────────────────────────────
@@ -1368,6 +1446,8 @@ show_help() {
 # ─── Main ────────────────────────────────────────────────────
 
 main() {
+    check_for_updates "$@"
+
     case "${1:-}" in
         --help|-h)
             show_help
