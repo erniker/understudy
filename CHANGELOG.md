@@ -7,6 +7,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- `--here` flag: deploy Understudy directly in the current directory using
+  values inferred from the repository (project name from folder/`package.json`,
+  description from `package.json` or `README.md`, stack/components from
+  existing files, repository URL from `git remote`, PM from `git config`).
+  Combine with `--yes` (or `-y`) to skip the confirmation prompt for fully
+  unattended deploys (`./wizard.sh --here --yes`).
+- README description fallback in `detect_existing_project()`: when no
+  `package.json` description is available, the first paragraph of `README.md`
+  is used (badges, blockquotes and headings are skipped).
+
 ## [0.5.0] - 2026-04-28
 
 ### Added

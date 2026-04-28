@@ -45,6 +45,30 @@ copilot           # GitHub Copilot CLI
 cursor .          # Cursor
 ```
 
+### Zero-question deploy (`--here`)
+
+Already inside an existing repo and don't want to answer the wizard's
+questions? Use `--here` — Understudy infers project name, description,
+stack, repository URL and PM from the files in your working directory:
+
+```bash
+cd /path/to/your/project
+understudy --here          # shows inferred values, asks one confirmation
+understudy --here --yes    # fully unattended, no prompts
+```
+
+What gets inferred:
+
+- **Project name** — from the folder name or root `package.json`
+- **Description** — from `package.json` or the first paragraph of `README.md`
+- **Stack** — Node.js / React / Vue / Angular / .NET / Python / Terraform / Docker / Shell
+- **Repository URL** — from `git remote get-url origin`
+- **PM** — from `git config user.name`
+
+Defaults applied for non-inferable choices: `split` guardrails, all three
+platforms enabled, files committed to the repo. Run without `--here` for
+the full interactive wizard if you need to customize them.
+
 ### Install options
 
 | Flag | Description |

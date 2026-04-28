@@ -41,6 +41,24 @@ claude            # Claude Code
 cursor .          # Cursor
 ```
 
+### Zero-question deploy (`--here`)
+
+If you're already inside an existing repository, skip the questions and let
+Understudy infer everything from the working tree:
+
+```bash
+cd /path/to/your/repo
+understudy --here          # shows inferred settings, asks one confirmation
+understudy --here --yes    # fully unattended, no prompts at all
+```
+
+Inferred from the repo: project name (folder / `package.json`), description
+(`package.json` or first paragraph of `README.md`), stack (Node / React /
+.NET / Python / Terraform / Docker / Shell …), repository URL (`git remote`)
+and PM (`git config user.name`). Sensible defaults are used for non-inferable
+choices (`split` guardrails, all three platforms, files committed). For full
+control, run without `--here` to launch the interactive wizard.
+
 ## What just happened
 
 - Files were generated only for the platforms you selected.

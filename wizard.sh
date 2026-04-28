@@ -66,6 +66,10 @@ DETECTED_DESC=""
 DETECTED_COMPONENTS=()
 DETECTED_HAS_SHELL=false
 
+# CLI flags
+DEPLOY_HERE=false        # --here: deploy in current directory using inferred values
+AUTO_CONFIRM=false       # --yes/-y: skip confirmation prompts when used with --here
+
 # Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -460,6 +464,23 @@ detect_existing_project() {
         is_project=true
     fi
 
+    # Fallback: extract description from README.md (first paragraph after title)
+    if [[ -z "$DETECTED_DESC" ]] && [[ -f "${dir}/README.md" ]]; then
+        DETECTED_DESC=$(awk '
+            BEGIN { found_title=0 }
+            /^#[^#]/ && !found_title { found_title=1; next }
+            found_title && NF==0 { next }
+            found_title && /^[#>!`-]/ { next }
+            found_title && /^[^[:space:]]/ {
+                # Strip simple markdown emphasis and inline code; keep link text intact
+                gsub(/\*\*/, "")
+                gsub(/`/, "")
+                print
+                exit
+            }
+        ' "${dir}/README.md" 2>/dev/null | cut -c1-200)
+    fi
+
     # ── .NET: scan for .csproj (depth 3) ──
     while IFS= read -r csproj; do
         [[ -z "$csproj" ]] && continue
@@ -639,9 +660,85 @@ detect_existing_project() {
     DETECTED_HAS_SHELL=$has_shell
 }
 
+# ─── Gather project information (--here mode) ───────────────
+# Deploys Understudy in $PWD using fully inferred values.
+# Asks at most one confirmation (skipped with --yes / -y).
+
+gather_project_info_here() {
+    step "Deploy in current directory (--here)"
+    echo ""
+
+    TARGET_DIR="$PWD"
+    BASE_DIR="$(dirname "$PWD")"
+
+    detect_existing_project "$TARGET_DIR"
+
+    PROJECT_NAME="${DETECTED_NAME:-$(basename "$PWD")}"
+    PROJECT_DESCRIPTION="${DETECTED_DESC:-}"
+    TECH_STACK="${DETECTED_STACK:-Unknown}"
+    REPOSITORY_URL="${DETECTED_REPO:-local}"
+    TEAM_LEAD="$(git config user.name 2>/dev/null || echo 'Project Lead')"
+
+    # Sensible defaults for non-inferable choices
+    GUARDRAILS_MODE="split"
+    PLATFORM_COPILOT=true
+    PLATFORM_CLAUDE=true
+    PLATFORM_CURSOR=true
+    GIT_LOCAL_CONFIG=false
+    GIT_LOCAL_MEMORY=false
+    PROJECT_DATE="$(date +%Y-%m-%d)"
+
+    case "$EXISTING_MODE" in
+        "understudy")
+            INTEGRATION_MODE=true
+            info "Understudy already deployed here — missing files will be added, existing files preserved."
+            ;;
+        "project")
+            INTEGRATION_MODE=true
+            info "Existing project detected — Understudy will be integrated without touching your files."
+            ;;
+        *)
+            INTEGRATION_MODE=false
+            info "Empty / fresh directory."
+            ;;
+    esac
+
+    echo ""
+    info "Inferred settings:"
+    info "  Project:      ${BOLD}${PROJECT_NAME}${NC}"
+    if [[ -n "$PROJECT_DESCRIPTION" ]]; then
+        info "  Description:  ${PROJECT_DESCRIPTION}"
+    else
+        info "  Description:  ${YELLOW}(none — add later in docs/spec.md)${NC}"
+    fi
+    info "  Stack:        ${TECH_STACK}"
+    info "  Repository:   ${REPOSITORY_URL}"
+    info "  PM:           ${TEAM_LEAD}"
+    info "  Target:       ${TARGET_DIR}"
+    info "  Guardrails:   ${BOLD}${GUARDRAILS_MODE}${NC} (default)"
+    info "  Platforms:    ${BOLD}Copilot + Claude + Cursor${NC} (default)"
+    info "  Git:          ${BOLD}committed${NC} (default)"
+    echo ""
+
+    if $AUTO_CONFIRM; then
+        info "Auto-confirm enabled (--yes) — proceeding."
+        return
+    fi
+
+    if ! confirm "Deploy with these settings?"; then
+        warn "Operation cancelled. Run without --here for the interactive wizard."
+        exit 0
+    fi
+}
+
 # ─── Gather project information ─────────────────────────────
 
 gather_project_info() {
+    if $DEPLOY_HERE; then
+        gather_project_info_here
+        return
+    fi
+
     step "Spec-Driven Development — Project data"
     echo ""
     info "I need some data to deploy your team."
@@ -1600,6 +1697,8 @@ show_help() {
     banner
     echo "  Usage:"
     echo "    ./wizard.sh                  Interactive Understudy deployment"
+    echo "    ./wizard.sh --here           Deploy in current directory using inferred values"
+    echo "    ./wizard.sh --here --yes     Same as --here, skip confirmation prompt"
     echo "    ./wizard.sh --add-member     Add a team member"
     echo "    ./wizard.sh --create-role    Create a new custom role"
     echo "    ./wizard.sh --help           Show this help"
@@ -1625,6 +1724,23 @@ show_help() {
 
 main() {
     check_for_updates "$@"
+
+    # Pre-parse flags that combine with the default deploy flow.
+    # --here / --yes (-y) can appear in any order before/after each other.
+    local _args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --here)     DEPLOY_HERE=true ;;
+            --yes|-y)   AUTO_CONFIRM=true ;;
+            *)          _args+=("$1") ;;
+        esac
+        shift
+    done
+    if [[ ${#_args[@]} -gt 0 ]]; then
+        set -- "${_args[@]}"
+    else
+        set --
+    fi
 
     case "${1:-}" in
         --help|-h)
