@@ -50,8 +50,9 @@ cursor .          # Cursor
   (`split` keeps them in a dedicated file, `embedded` inlines critical rules).
 - If you opted into local-only mode, the affected paths were appended to the
   project's `.gitignore` (see [Configuration → Local-only mode](09-configuration.md#local-only-mode)).
-- Optional roles were auto-deployed: `git-specialist` is always included,
-  and `shell-scripting` is added when shell scripts are detected.
+- Optional roles were auto-deployed: `git-specialist` and `repo-documenter`
+  are always included, and `shell-scripting` is added when shell scripts are
+  detected.
 - Nothing else in your repository was modified.
 
 ## First session, step by step

@@ -77,13 +77,14 @@ add more with `understudy --add-member` or create your own with
 | 🌿 git-specialist | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 mobile-engineer | iOS, Android, React Native, Flutter |
 | 🤖 ml-engineer | ML/LLMs, RAG, MLOps, responsible AI |
+| � repo-documenter | Codebase understanding, architecture docs, onboarding guides |
 | 🐚 shell-scripting | Bash/sh automation, cross-platform scripting, ShellCheck |
 | 📝 tech-writer | Docs, API reference, tutorials, Diataxis |
 | 🧭 sre | SLOs, observability, incidents, chaos engineering |
 
-> **Auto-deploy:** `git-specialist` is always included when you run the wizard.
-> `shell-scripting` is added automatically when `*.sh`, `*.bash` or `*.zsh`
-> files are detected in your project.
+> **Auto-deploy:** `git-specialist` and `repo-documenter` are always included
+> when you run the wizard. `shell-scripting` is added automatically when
+> `*.sh`, `*.bash` or `*.zsh` files are detected in your project.
 
 ## Files Understudy produces
 

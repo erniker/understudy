@@ -9,11 +9,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
-- New optional roles: **git-specialist** (Git workflows, branch policies, PR hygiene)
+- New optional roles: **git-specialist** (Git workflows, branch policies, PR hygiene),
+  **repo-documenter** (codebase understanding, architecture docs, onboarding guides)
   and **shell-scripting** (Bash/sh automation, cross-platform scripting, ShellCheck).
-- Auto-deploy of optional roles: `git-specialist` is always included;
-  `shell-scripting` is added automatically when `*.sh`/`*.bash`/`*.zsh` files
-  are detected in the project.
+- Auto-deploy of optional roles: `git-specialist` and `repo-documenter` are always
+  included; `shell-scripting` is added automatically when `*.sh`/`*.bash`/`*.zsh`
+  files are detected in the project.
 - Shell detection in `detect_existing_project()`: scans for `*.sh`, `*.bash`,
   `*.zsh` files and adds "Shell" to the detected stack.
 - Multi-platform support for optional roles: `--add-member` and auto-deploy

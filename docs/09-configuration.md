@@ -85,6 +85,7 @@ catalog:
 | Role | Condition |
 |---|---|
 | `git-specialist` | Always included |
+| `repo-documenter` | Always included |
 | `shell-scripting` | Included when `*.sh`, `*.bash` or `*.zsh` files are detected |
 
 Auto-deployed roles are generated for every platform you selected (Copilot,

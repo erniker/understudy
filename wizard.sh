@@ -1227,8 +1227,9 @@ EOF
 }
 
 deploy_default_optional_roles() {
-    # Always include repository workflow expertise by default.
+    # Always include repository workflow and documentation expertise by default.
     add_optional_role_to_project "git-specialist"
+    add_optional_role_to_project "repo-documenter"
 
     # Auto-add shell scripting specialist on scripting-heavy repositories.
     local stack_lc

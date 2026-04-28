@@ -223,6 +223,7 @@ understudy/
 │   ├── git-specialist.instructions.md
 │   ├── mobile-engineer.instructions.md
 │   ├── ml-engineer.instructions.md
+│   ├── repo-documenter.instructions.md
 │   ├── shell-scripting.instructions.md
 │   ├── tech-writer.instructions.md
 │   └── sre.instructions.md
@@ -367,14 +368,15 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 | 🌿 **git-specialist** | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 **mobile-engineer** | iOS/Android apps, React Native, Flutter |
 | 🤖 **ml-engineer** | ML models, MLOps, LLMs, RAG, responsible AI |
-| 🐚 **shell-scripting** | Bash/sh automation, cross-platform scripting, ShellCheck best practices |
+| � **repo-documenter** | Codebase understanding, architecture docs, onboarding guides |
+| �🐚 **shell-scripting** | Bash/sh automation, cross-platform scripting, ShellCheck best practices |
 | 📝 **tech-writer** | Technical documentation, API docs, tutorials, Diataxis |
 | 🧭 **sre** | SLOs, observability, incident response, chaos engineering |
 
-**Auto-deploy:** The wizard always includes `git-specialist`. If shell scripts
-(`*.sh`, `*.bash`, `*.zsh`) are detected in your project, `shell-scripting` is
-added automatically. Both are deployed to every platform you selected (Copilot,
-Claude, Cursor).
+**Auto-deploy:** The wizard always includes `git-specialist` and
+`repo-documenter`. If shell scripts (`*.sh`, `*.bash`, `*.zsh`) are detected
+in your project, `shell-scripting` is added automatically. All are deployed to
+every platform you selected (Copilot, Claude, Cursor).
 
 **How to add more:**
 
