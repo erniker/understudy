@@ -208,9 +208,14 @@ setup_path() {
 
 # ── Post-install summary ──────────────────────────────────────
 post_install() {
+  local msg="🎭  Understudy ${VERSION} installed!"
+  local padding=$((42 - ${#msg}))
+  local spaces=""
+  for ((i = 0; i < padding; i++)); do spaces+=" "; done
+  
   echo ""
   echo -e "  ${GREEN}${BOLD}╔══════════════════════════════════════════╗${NC}"
-  echo -e "  ${GREEN}${BOLD}║  🎭  Understudy ${VERSION} installed!  ║${NC}"
+  printf "  ${GREEN}${BOLD}║  %s%s ║${NC}\n" "$msg" "$spaces"
   echo -e "  ${GREEN}${BOLD}╚══════════════════════════════════════════╝${NC}"
   echo ""
   step "Quick start"
