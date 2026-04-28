@@ -65,6 +65,16 @@ What gets inferred:
 - **Repository URL** — from `git remote get-url origin`
 - **PM** — from `git config user.name`
 
+The wizard prints a numbered summary of all 9 settings (the same questions
+the interactive wizard asks) and offers three options at the confirmation
+prompt:
+
+- **`Y`** — deploy with the inferred settings (default).
+- **`n`** — cancel.
+- **`e`** — edit any field interactively. You enter the field number
+  (`1`-`9`), provide a new value, and repeat until satisfied. Then `d` to
+  deploy or `q` to quit.
+
 Defaults applied for non-inferable choices: `split` guardrails, all three
 platforms enabled, files committed to the repo. Run without `--here` for
 the full interactive wizard if you need to customize them.
@@ -295,6 +305,8 @@ published as a static site without restructuring.
 | Command | Description |
 |---|---|
 | `understudy` | Full interactive deployment |
+| `understudy --here` | Deploy in the current directory using values inferred from the repo (numbered summary, editable with `e`) |
+| `understudy --here --yes` | Same as `--here` but skip the confirmation prompt (fully unattended) |
 | `understudy --add-member` | Add a team member (data engineer, QA, etc.) |
 | `understudy --create-role` | Create a custom role from scratch |
 | `understudy --help` | Show help |
@@ -392,8 +404,8 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 | 🌿 **git-specialist** | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 **mobile-engineer** | iOS/Android apps, React Native, Flutter |
 | 🤖 **ml-engineer** | ML models, MLOps, LLMs, RAG, responsible AI |
-| � **repo-documenter** | Codebase understanding, architecture docs, onboarding guides |
-| �🐚 **shell-scripting** | Bash/sh automation, cross-platform scripting, ShellCheck best practices |
+| 📖 **repo-documenter** | Codebase understanding, architecture docs, onboarding guides |
+| 🐚 **shell-scripting** | Bash/sh automation, cross-platform scripting, ShellCheck best practices |
 | 📝 **tech-writer** | Technical documentation, API docs, tutorials, Diataxis |
 | 🧭 **sre** | SLOs, observability, incident response, chaos engineering |
 
