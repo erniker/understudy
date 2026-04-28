@@ -7,6 +7,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- `README.md`: added "Local-only mode" key concept so the v0.3.0 feature is
+  visible from the project entry page.
+- `docs/01-introduction.md`: noted that the wizard can append paths to
+  `.gitignore` when local-only mode is enabled.
+- `docs/02-quick-start.md`: updated the wizard question summary to include
+  the local-only mode prompts.
+- `docs/README.md`: linked the new "Local-only mode" subsection from the
+  configuration entry in the docs index.
+
 ## [0.3.0] - 2026-04-27
 
 ### Added

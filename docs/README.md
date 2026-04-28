@@ -16,6 +16,7 @@ restructuring.
    - [Cursor](platforms/cursor.md)
 5. [Cross-Platform Workflows](08-cross-platform-workflows.md)
 6. [Configuration Reference (`understudy.yaml`)](09-configuration.md)
+   - [Local-only mode](09-configuration.md#local-only-mode) — keep AI config out of git
 7. [Troubleshooting and FAQ](10-troubleshooting.md)
 
 ## How to read this

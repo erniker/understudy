@@ -99,6 +99,16 @@ They cover 8 categories: security, scope, process, destructive operations,
 data/PII, quality, environments and documentation. They are **non-negotiable** and
 deployed automatically with the wizard.
 
+### 7. 🔒 Local-only mode — "Keep AI config out of git"
+Optional. The wizard can append the generated AI config (`AGENTS.md`,
+`CLAUDE.md`, `.github/instructions/`, `.claude/`, `.cursor/`…) and/or the
+session memory files (`docs/spec.md`, `docs/decisions.md`,
+`docs/session-log.md`) to the project's `.gitignore` so they stay local.
+Useful in corporate repos where AI tool config is private, or open source
+projects where you don't want to expose your internal workflow. Toggle with
+`git.local_config` / `git.local_memory` in `understudy.yaml` — see
+[docs/09-configuration.md](docs/09-configuration.md#local-only-mode).
+
 ## Guardrails
 
 Guardrails protect the team from:
