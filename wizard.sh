@@ -664,6 +664,118 @@ detect_existing_project() {
 # Deploys Understudy in $PWD using fully inferred values.
 # Asks at most one confirmation (skipped with --yes / -y).
 
+_here_platforms_label() {
+    local out=""
+    $PLATFORM_COPILOT && out+="Copilot "
+    $PLATFORM_CLAUDE && out+="Claude "
+    $PLATFORM_CURSOR && out+="Cursor "
+    [[ -z "$out" ]] && out="(none)"
+    echo "${out% }"
+}
+
+_here_git_label() {
+    local out=""
+    $GIT_LOCAL_CONFIG && out+="AI config local "
+    $GIT_LOCAL_MEMORY && out+="Session memory local "
+    [[ -z "$out" ]] && out="committed (default)"
+    echo "${out% }"
+}
+
+_here_print_summary() {
+    info "Inferred settings:"
+    info "  ${BOLD}1)${NC} Project name:    ${BOLD}${PROJECT_NAME}${NC}"
+    if [[ -n "$PROJECT_DESCRIPTION" ]]; then
+        info "  ${BOLD}2)${NC} Description:     ${PROJECT_DESCRIPTION}"
+    else
+        info "  ${BOLD}2)${NC} Description:     ${YELLOW}(none — add later in docs/spec.md)${NC}"
+    fi
+    info "  ${BOLD}3)${NC} Tech stack:      ${TECH_STACK}"
+    info "  ${BOLD}4)${NC} Repository URL:  ${REPOSITORY_URL}"
+    info "  ${BOLD}5)${NC} PM (your name):  ${TEAM_LEAD}"
+    info "  ${BOLD}6)${NC} Guardrails mode: ${BOLD}${GUARDRAILS_MODE}${NC}"
+    info "  ${BOLD}7)${NC} Platforms:       ${BOLD}$(_here_platforms_label)${NC}"
+    info "  ${BOLD}8)${NC} AI config:       $($GIT_LOCAL_CONFIG && echo 'local only (gitignored)' || echo 'committed')"
+    info "  ${BOLD}9)${NC} Session memory:  $($GIT_LOCAL_MEMORY && echo 'local only (gitignored)' || echo 'committed')"
+    info "     Target dir:      ${TARGET_DIR}"
+}
+
+_here_edit_field() {
+    local field="$1"
+    local ans
+    case "$field" in
+        1)
+            ask "Project name (no spaces)" PROJECT_NAME "$PROJECT_NAME"
+            ;;
+        2)
+            ask "Short project description" PROJECT_DESCRIPTION "$PROJECT_DESCRIPTION"
+            ;;
+        3)
+            ask "Main stack (e.g. .NET + React, Node.js + Vue)" TECH_STACK "$TECH_STACK"
+            ;;
+        4)
+            ask "Repository URL (or 'local' if none)" REPOSITORY_URL "$REPOSITORY_URL"
+            ;;
+        5)
+            ask "Your name (Project Manager)" TEAM_LEAD "$TEAM_LEAD"
+            ;;
+        6)
+            ask "Guardrails mode [1=split, 2=embedded]" ans "$([[ $GUARDRAILS_MODE == embedded ]] && echo 2 || echo 1)"
+            case "$ans" in
+                2|embedded) GUARDRAILS_MODE="embedded" ;;
+                *)          GUARDRAILS_MODE="split" ;;
+            esac
+            ;;
+        7)
+            local cur_c cur_cl cur_cu
+            cur_c=$($PLATFORM_COPILOT && echo Y || echo N)
+            cur_cl=$($PLATFORM_CLAUDE && echo Y || echo N)
+            cur_cu=$($PLATFORM_CURSOR && echo Y || echo N)
+            ask "Deploy for GitHub Copilot? [Y/n]" ans "$cur_c"
+            case "$(to_lower "$ans")" in n|no) PLATFORM_COPILOT=false ;; *) PLATFORM_COPILOT=true ;; esac
+            ask "Deploy for Claude Code? [Y/n]" ans "$cur_cl"
+            case "$(to_lower "$ans")" in n|no) PLATFORM_CLAUDE=false ;; *) PLATFORM_CLAUDE=true ;; esac
+            ask "Deploy for Cursor? [Y/n]" ans "$cur_cu"
+            case "$(to_lower "$ans")" in n|no) PLATFORM_CURSOR=false ;; *) PLATFORM_CURSOR=true ;; esac
+            if ! $PLATFORM_COPILOT && ! $PLATFORM_CLAUDE && ! $PLATFORM_CURSOR; then
+                warn "At least one platform required — re-enabling Copilot."
+                PLATFORM_COPILOT=true
+            fi
+            ;;
+        8)
+            ask "Keep AI config local only? (agents, instructions, hooks) [y/N]" ans \
+                "$($GIT_LOCAL_CONFIG && echo Y || echo N)"
+            case "$(to_lower "$ans")" in y|yes) GIT_LOCAL_CONFIG=true ;; *) GIT_LOCAL_CONFIG=false ;; esac
+            ;;
+        9)
+            ask "Keep session memory local only? (spec.md, decisions.md, session-log.md) [y/N]" ans \
+                "$($GIT_LOCAL_MEMORY && echo Y || echo N)"
+            case "$(to_lower "$ans")" in y|yes) GIT_LOCAL_MEMORY=true ;; *) GIT_LOCAL_MEMORY=false ;; esac
+            ;;
+        *)
+            warn "Invalid field: $field"
+            ;;
+    esac
+}
+
+_here_edit_loop() {
+    local pick
+    while true; do
+        echo ""
+        _here_print_summary
+        echo ""
+        ask "Field number to edit (1-9), or ${BOLD}d${NC} to deploy / ${BOLD}q${NC} to quit" pick "d"
+        case "$(to_lower "$pick")" in
+            d|deploy|y|yes) return 0 ;;
+            q|quit|n|no)
+                warn "Operation cancelled."
+                exit 0
+                ;;
+            [1-9]) _here_edit_field "$pick" ;;
+            *) warn "Enter 1-9, d (deploy) or q (quit)." ;;
+        esac
+    done
+}
+
 gather_project_info_here() {
     step "Deploy in current directory (--here)"
     echo ""
@@ -704,20 +816,7 @@ gather_project_info_here() {
     esac
 
     echo ""
-    info "Inferred settings:"
-    info "  Project:      ${BOLD}${PROJECT_NAME}${NC}"
-    if [[ -n "$PROJECT_DESCRIPTION" ]]; then
-        info "  Description:  ${PROJECT_DESCRIPTION}"
-    else
-        info "  Description:  ${YELLOW}(none — add later in docs/spec.md)${NC}"
-    fi
-    info "  Stack:        ${TECH_STACK}"
-    info "  Repository:   ${REPOSITORY_URL}"
-    info "  PM:           ${TEAM_LEAD}"
-    info "  Target:       ${TARGET_DIR}"
-    info "  Guardrails:   ${BOLD}${GUARDRAILS_MODE}${NC} (default)"
-    info "  Platforms:    ${BOLD}Copilot + Claude + Cursor${NC} (default)"
-    info "  Git:          ${BOLD}committed${NC} (default)"
+    _here_print_summary
     echo ""
 
     if $AUTO_CONFIRM; then
@@ -725,10 +824,18 @@ gather_project_info_here() {
         return
     fi
 
-    if ! confirm "Deploy with these settings?"; then
-        warn "Operation cancelled. Run without --here for the interactive wizard."
-        exit 0
-    fi
+    local ans
+    ask "Deploy with these settings? [${BOLD}Y${NC}=yes / ${BOLD}n${NC}=cancel / ${BOLD}e${NC}=edit]" ans "Y"
+    case "$(to_lower "$ans")" in
+        n|no)
+            warn "Operation cancelled. Run without --here for the interactive wizard."
+            exit 0
+            ;;
+        e|edit)
+            _here_edit_loop
+            ;;
+        *) ;;
+    esac
 }
 
 # ─── Gather project information ─────────────────────────────

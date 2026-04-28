@@ -7,6 +7,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- `--here` Inferred settings summary now lists all 9 fields the manual wizard
+  asks (project name, description, tech stack, repository URL, PM, guardrails
+  mode, platforms, AI config visibility, session memory visibility) plus the
+  target directory.
+- The confirmation prompt in `--here` mode now accepts `e` (edit) in addition
+  to `Y`/`n`. Choosing `e` opens an interactive editor where each inferred
+  field can be modified by number before deploying (`d` to deploy, `q` to
+  quit).
+
 ## [0.5.1] - 2026-04-28
 
 ### Added
