@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-04-28
+
 ### Changed
 
 - `--here` Inferred settings summary now lists all 9 fields the manual wizard
