@@ -1218,10 +1218,11 @@ EOF
     local roster="${TARGET_DIR}/docs/team-roster.md"
     if [[ -f "$roster" ]] && [[ -n "$roster_ref" ]] && ! grep -q "${role_name}" "$roster"; then
         local display_name
-        display_name="$(echo "$role_name" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')"
-        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" 2>/dev/null || \
-            sed -i'' "/<!-- new members here -->/a\\
-| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster"
+        display_name="$(echo "$role_name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')"
+        local tmp_roster
+        tmp_roster="$(mktemp)"
+        sed "/<!-- new members here -->/a\\
+| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" > "$tmp_roster" && mv "$tmp_roster" "$roster"
         success "team-roster.md updated (${role_name})"
     fi
 }
@@ -1413,10 +1414,11 @@ EOF
     local roster="${TARGET_DIR}/docs/team-roster.md"
     if [[ -f "$roster" ]]; then
         local display_name
-        display_name="$(echo "$selected_name" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')"
-        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" 2>/dev/null || \
-            sed -i'' "/<!-- new members here -->/a\\
-| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster"
+        display_name="$(echo "$selected_name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')"
+        local tmp_roster
+        tmp_roster="$(mktemp)"
+        sed "/<!-- new members here -->/a\\
+| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" > "$tmp_roster" && mv "$tmp_roster" "$roster"
         success "team-roster.md updated"
     fi
 
