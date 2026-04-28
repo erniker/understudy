@@ -27,11 +27,21 @@ jobs:
           # Strip the leading 'v' to match CHANGELOG format (e.g. v1.2.0 → 1.2.0)
           semver="${version#v}"
 
+          # Require an explicit changelog section for the tag being released
+          if ! grep -q "^## \[${semver}\]" CHANGELOG.md; then
+            echo "ERROR: Missing CHANGELOG entry for ${version}."
+            echo "Add a section like: ## [${semver}] - YYYY-MM-DD"
+            exit 1
+          fi
+
           # Extract the block between ## [X.Y.Z] and the next ## heading
           notes=$(awk "/^## \[${semver}\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
 
-          if [[ -z "$notes" ]]; then
-            notes="See [CHANGELOG.md](CHANGELOG.md) for details."
+          # Require non-empty release notes under that section
+          if [[ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]]; then
+            echo "ERROR: CHANGELOG section for ${version} is empty."
+            echo "Add at least one item under ## [${semver}] before tagging/releasing."
+            exit 1
           fi
 
           # Write to file to preserve newlines
