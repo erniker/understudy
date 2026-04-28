@@ -184,7 +184,14 @@ setup_path() {
 
   case "$shell_name" in
     zsh)  shell_config="${ZDOTDIR:-$HOME}/.zshrc" ;;
-    bash) shell_config="${HOME}/.bashrc" ;;
+    bash)
+      # Try .bash_profile first (macOS), then .bashrc
+      if [[ -f "${HOME}/.bash_profile" ]]; then
+        shell_config="${HOME}/.bash_profile"
+      else
+        shell_config="${HOME}/.bashrc"
+      fi
+      ;;
     fish) shell_config="${HOME}/.config/fish/config.fish" ;;
     *)    shell_config="${HOME}/.profile" ;;
   esac
@@ -209,7 +216,8 @@ setup_path() {
 # ── Post-install summary ──────────────────────────────────────
 post_install() {
   local msg="🎭  Understudy ${VERSION} installed!"
-  local padding=$((42 - ${#msg}))
+  # Emoji counts as 1 in bash but takes 2 visual spaces, so subtract 1 from padding
+  local padding=$((42 - ${#msg} - 1))
   local spaces=""
   for ((i = 0; i < padding; i++)); do spaces+=" "; done
   
