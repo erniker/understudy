@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-28
+
 ### Added
 
 - New optional roles: **git-specialist** (Git workflows, branch policies, PR hygiene),
@@ -25,6 +27,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - `DETECTED_STACK` unbound variable crash when deploying to a new (empty)
   directory where `detect_existing_project()` was never called.
+- Portable `sed`/`awk` usage for macOS (BSD) compatibility in team-roster
+  updates and role title-casing.
 
 ## [0.4.4] - 2026-04-28
 
