@@ -49,8 +49,12 @@ command. Under the hood it launches the same deployment wizard (`wizard.sh`),
 which asks a handful of questions and generates all the platform-specific
 files (Copilot, Claude, Cursor) with your project data already filled in. It
 also integrates into existing projects without touching your code, and detects
-monorepos automatically. If you are using a manual `git clone`, run
-`./wizard.sh` from the cloned repo instead.
+monorepos automatically. If you are already inside the repo and want to skip
+the questions, use `understudy --here` (numbered summary you can edit before
+deploying) or `understudy --here --yes` for a fully unattended run — see
+[Quick Start → Zero-question deploy](02-quick-start.md#zero-question-deploy---here).
+If you are using a manual `git clone`, run `./wizard.sh` from the cloned
+repo instead.
 
 **Roles catalog.** The 6 core roles always ship (Architect, Backend,
 Frontend, DevOps, Security, QA). Optional roles live in `roles/` and you can
@@ -77,7 +81,7 @@ add more with `understudy --add-member` or create your own with
 | 🌿 git-specialist | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 mobile-engineer | iOS, Android, React Native, Flutter |
 | 🤖 ml-engineer | ML/LLMs, RAG, MLOps, responsible AI |
-| � repo-documenter | Codebase understanding, architecture docs, onboarding guides |
+| 📖 repo-documenter | Codebase understanding, architecture docs, onboarding guides |
 | 🐚 shell-scripting | Bash/sh automation, cross-platform scripting, ShellCheck |
 | 📝 tech-writer | Docs, API reference, tutorials, Diataxis |
 | 🧭 sre | SLOs, observability, incidents, chaos engineering |

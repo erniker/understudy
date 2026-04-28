@@ -56,8 +56,18 @@ Inferred from the repo: project name (folder / `package.json`), description
 (`package.json` or first paragraph of `README.md`), stack (Node / React /
 .NET / Python / Terraform / Docker / Shell …), repository URL (`git remote`)
 and PM (`git config user.name`). Sensible defaults are used for non-inferable
-choices (`split` guardrails, all three platforms, files committed). For full
-control, run without `--here` to launch the interactive wizard.
+choices (`split` guardrails, all three platforms, files committed).
+
+The wizard prints a numbered summary of all 9 settings (the same questions
+the interactive wizard asks) and offers three answers at the confirmation
+prompt:
+
+- **`Y`** — deploy with the inferred values (default).
+- **`n`** — cancel.
+- **`e`** — enter the editor: type the field number (`1`-`9`), provide a new
+  value, and repeat. When ready, type `d` to deploy or `q` to quit.
+
+For full control, run without `--here` to launch the interactive wizard.
 
 ## What just happened
 
