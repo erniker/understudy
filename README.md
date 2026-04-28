@@ -54,6 +54,17 @@ cursor .          # Cursor
 | `--no-path` | Skip PATH setup |
 | `--uninstall` | Remove Understudy from the system |
 
+### Automatic update checks
+
+When you run `understudy`, it checks for a new release on GitHub.
+If a newer version exists, it asks whether you want to update now.
+
+To disable this check (for CI or offline environments):
+
+```bash
+export UNDERSTUDY_SKIP_UPDATE_CHECK=1
+```
+
 ## What is this?
 
 A system that automatically generates all the configuration needed for

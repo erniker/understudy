@@ -84,12 +84,18 @@ available in every future deployment.
 
 ## Update Understudy
 
+Every time you invoke `understudy`, it checks if a newer release exists and can
+prompt you to update immediately.
+
 ```bash
 # Re-run the installer to get the latest version
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
 
 # Or pin to a specific version
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.2.0
+
+# Disable auto-check (useful for CI/offline)
+export UNDERSTUDY_SKIP_UPDATE_CHECK=1
 ```
 
 ---
