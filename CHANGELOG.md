@@ -7,6 +7,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-04-28
+
+### Fixed
+
+- `install.sh`: fixed banner padding with platform-independent calculation.
+  Bash counts emoji width differently per platform (1 char on Linux/macOS,
+  2 chars on Git Bash/Windows). Separated emoji from text in the padding
+  formula so the result is consistent across all platforms.
+
+## [0.4.2] - 2026-04-28
+
+### Fixed
+
+- `install.sh`: improved bash shell config detection — checks `.bash_profile`
+  first (used by macOS login shells) before falling back to `.bashrc` (Linux).
+
+## [0.4.1] - 2026-04-28
+
+### Fixed
+
+- `install.sh`: first attempt at aligning release banner (partial fix).
+
 ## [0.4.0] - 2026-04-28
 
 ### Added
