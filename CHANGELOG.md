@@ -7,6 +7,25 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- New optional roles: **git-specialist** (Git workflows, branch policies, PR hygiene),
+  **repo-documenter** (codebase understanding, architecture docs, onboarding guides)
+  and **shell-scripting** (Bash/sh automation, cross-platform scripting, ShellCheck).
+- Auto-deploy of optional roles: `git-specialist` and `repo-documenter` are always
+  included; `shell-scripting` is added automatically when `*.sh`/`*.bash`/`*.zsh`
+  files are detected in the project.
+- Shell detection in `detect_existing_project()`: scans for `*.sh`, `*.bash`,
+  `*.zsh` files and adds "Shell" to the detected stack.
+- Multi-platform support for optional roles: `--add-member` and auto-deploy
+  now generate role files for all active platforms (Copilot, Claude, Cursor)
+  with proper frontmatter.
+
+### Fixed
+
+- `DETECTED_STACK` unbound variable crash when deploying to a new (empty)
+  directory where `detect_existing_project()` was never called.
+
 ## [0.4.4] - 2026-04-28
 
 ### Fixed

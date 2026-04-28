@@ -59,6 +59,13 @@ PLATFORM_CURSOR=true
 GIT_LOCAL_CONFIG=false   # gitignore AI config files (agents, instructions, hooks)
 GIT_LOCAL_MEMORY=false   # gitignore session memory files (spec, decisions, session-log)
 
+# Detection defaults (set properly when detect_existing_project runs)
+DETECTED_STACK=""
+DETECTED_REPO=""
+DETECTED_DESC=""
+DETECTED_COMPONENTS=()
+DETECTED_HAS_SHELL=false
+
 # Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -414,6 +421,7 @@ detect_existing_project() {
     DETECTED_STACK=""
     DETECTED_REPO=""
     DETECTED_COMPONENTS=()
+    DETECTED_HAS_SHELL=false
     EXISTING_MODE="directory"
 
     local is_project=false
@@ -425,6 +433,7 @@ detect_existing_project() {
     local has_angular=false
     local has_terraform=false
     local has_docker=false
+    local has_shell=false
 
     # Already an Understudy project?
     if [[ -f "${dir}/AGENTS.md" ]] && [[ -d "${dir}/.github/instructions" ]]; then
@@ -570,6 +579,15 @@ detect_existing_project() {
         is_project=true
     fi
 
+    # ── Shell scripting ──
+    local shell_count
+    shell_count=$(find "$dir" -maxdepth 3 \( -name "*.sh" -o -name "*.bash" -o -name "*.zsh" \) -not -path "*/.git/*" -not -path "*/node_modules/*" 2>/dev/null | wc -l)
+    if [[ $shell_count -gt 0 ]]; then
+        DETECTED_COMPONENTS+=("Shell scripting: ${shell_count} script(s)")
+        has_shell=true
+        is_project=true
+    fi
+
     # ── Build DETECTED_STACK summary ──
     local stack_parts=()
     if [[ $dotnet_count -gt 1 ]]; then
@@ -595,6 +613,7 @@ detect_existing_project() {
 
     $has_terraform && stack_parts+=("Terraform")
     $has_docker && stack_parts+=("Docker")
+    $has_shell && stack_parts+=("Shell")
 
     # Join with " + "
     local joined=""
@@ -616,6 +635,8 @@ detect_existing_project() {
     if $is_project && [[ "$EXISTING_MODE" != "understudy" ]]; then
         EXISTING_MODE="project"
     fi
+
+    DETECTED_HAS_SHELL=$has_shell
 }
 
 # ─── Gather project information ─────────────────────────────
@@ -1123,6 +1144,103 @@ deploy_gitignore() {
     success ".gitignore updated"
 }
 
+# ─── Optional roles automation ──────────────────────────────
+
+add_optional_role_to_project() {
+    local role_name="$1"
+
+    local src="${ROLES_DIR}/${role_name}.instructions.md"
+
+    if [[ ! -f "$src" ]]; then
+        warn "Optional role not found in catalog: ${role_name}"
+        return
+    fi
+
+    local roster_ref=""
+
+    if $PLATFORM_COPILOT; then
+        local dst_copilot="${TARGET_DIR}/.github/instructions/${role_name}.instructions.md"
+        if [[ -f "$dst_copilot" ]]; then
+            info "Optional role already present (Copilot): ${role_name}"
+        else
+            cp "$src" "$dst_copilot"
+            success "Optional role added (Copilot): ${role_name}"
+        fi
+        [[ -z "$roster_ref" ]] && roster_ref=".github/instructions/${role_name}.instructions.md"
+    fi
+
+    if $PLATFORM_CLAUDE; then
+        local dst_claude="${TARGET_DIR}/.claude/agents/${role_name}.md"
+        if [[ -f "$dst_claude" ]]; then
+            info "Optional role already present (Claude): ${role_name}"
+        else
+            cat > "$dst_claude" << EOF
+---
+name: ${role_name}
+description: "Optional specialist role: ${role_name}"
+model: ${MODEL_BACKEND}
+tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+---
+
+EOF
+            cat "$src" >> "$dst_claude"
+            success "Optional role added (Claude): ${role_name}"
+        fi
+        [[ -z "$roster_ref" ]] && roster_ref=".claude/agents/${role_name}.md"
+    fi
+
+    if $PLATFORM_CURSOR; then
+        local dst_cursor="${TARGET_DIR}/.cursor/agents/${role_name}.md"
+        if [[ -f "$dst_cursor" ]]; then
+            info "Optional role already present (Cursor): ${role_name}"
+        else
+            cat > "$dst_cursor" << EOF
+---
+name: ${role_name}
+description: "Optional specialist role: ${role_name}"
+model: ${MODEL_BACKEND}
+---
+
+EOF
+            cat "$src" >> "$dst_cursor"
+            success "Optional role added (Cursor): ${role_name}"
+        fi
+        [[ -z "$roster_ref" ]] && roster_ref=".cursor/agents/${role_name}.md"
+    fi
+
+    # Keep team-roster in sync (idempotent)
+    local roster="${TARGET_DIR}/docs/team-roster.md"
+    if [[ -f "$roster" ]] && [[ -n "$roster_ref" ]] && ! grep -q "${role_name}" "$roster"; then
+        local display_name
+        display_name="$(echo "$role_name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')"
+        local tmp_roster
+        tmp_roster="$(mktemp)"
+        sed "/<!-- new members here -->/a\\
+| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" > "$tmp_roster" && mv "$tmp_roster" "$roster"
+        success "team-roster.md updated (${role_name})"
+    fi
+}
+
+deploy_default_optional_roles() {
+    # Always include repository workflow and documentation expertise by default.
+    add_optional_role_to_project "git-specialist"
+    add_optional_role_to_project "repo-documenter"
+
+    # Auto-add shell scripting specialist on scripting-heavy repositories.
+    local stack_lc
+    stack_lc="$(to_lower "${TECH_STACK} ${DETECTED_STACK}")"
+    if $DETECTED_HAS_SHELL || [[ "$stack_lc" == *"bash"* ]] || [[ "$stack_lc" == *"shell"* ]] || [[ "$stack_lc" == *"scripting"* ]]; then
+        add_optional_role_to_project "shell-scripting"
+        info "Auto-selected optional role: shell-scripting"
+    fi
+}
+
 # ─── Deployment orchestrator ───────────────────────────────
 
 deploy_team() {
@@ -1154,6 +1272,9 @@ deploy_team() {
     deploy_file "${TEMPLATES_DIR}/docs/decisions.md" "${TARGET_DIR}/docs/decisions.md"
     deploy_file "${TEMPLATES_DIR}/docs/session-log.md" "${TARGET_DIR}/docs/session-log.md"
     deploy_file "${TEMPLATES_DIR}/docs/team-roster.md" "${TARGET_DIR}/docs/team-roster.md"
+
+    # Optional roles defaults and auto-detection
+    deploy_default_optional_roles
 
     # Copy config to project for local override
     if [[ -f "$DEFAULT_CONFIG" ]] && [[ ! -f "${TARGET_DIR}/understudy.yaml" ]]; then
@@ -1219,32 +1340,89 @@ add_team_member() {
 
     ask "Project directory where to add the member" TARGET_DIR
 
-    if [[ ! -d "${TARGET_DIR}/.github/instructions" ]]; then
+    local has_copilot=false has_claude=false has_cursor=false
+    [[ -d "${TARGET_DIR}/.github/instructions" ]] && has_copilot=true
+    [[ -d "${TARGET_DIR}/.claude/agents" ]] && has_claude=true
+    [[ -d "${TARGET_DIR}/.cursor/agents" ]] && has_cursor=true
+
+    if ! $has_copilot && ! $has_claude && ! $has_cursor; then
         error "This does not look like an Understudy project. Run the wizard first."
         exit 1
     fi
 
-    local dest="${TARGET_DIR}/.github/instructions/${selected_name}.instructions.md"
-    if [[ -f "$dest" ]]; then
+    local copied_any=false
+    local roster_ref=""
+
+    if $has_copilot; then
+        local dest_copilot="${TARGET_DIR}/.github/instructions/${selected_name}.instructions.md"
+        if [[ ! -f "$dest_copilot" ]]; then
+            cp "$selected_file" "$dest_copilot"
+            copied_any=true
+            [[ -z "$roster_ref" ]] && roster_ref=".github/instructions/${selected_name}.instructions.md"
+        fi
+    fi
+
+    if $has_claude; then
+        local dest_claude="${TARGET_DIR}/.claude/agents/${selected_name}.md"
+        if [[ ! -f "$dest_claude" ]]; then
+            cat > "$dest_claude" << EOF
+---
+name: ${selected_name}
+description: "Optional specialist role: ${selected_name}"
+model: ${MODEL_BACKEND}
+tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+---
+
+EOF
+            cat "$selected_file" >> "$dest_claude"
+            copied_any=true
+            [[ -z "$roster_ref" ]] && roster_ref=".claude/agents/${selected_name}.md"
+        fi
+    fi
+
+    if $has_cursor; then
+        local dest_cursor="${TARGET_DIR}/.cursor/agents/${selected_name}.md"
+        if [[ ! -f "$dest_cursor" ]]; then
+            cat > "$dest_cursor" << EOF
+---
+name: ${selected_name}
+description: "Optional specialist role: ${selected_name}"
+model: ${MODEL_BACKEND}
+---
+
+EOF
+            cat "$selected_file" >> "$dest_cursor"
+            copied_any=true
+            [[ -z "$roster_ref" ]] && roster_ref=".cursor/agents/${selected_name}.md"
+        fi
+    fi
+
+    if ! $copied_any; then
         warn "Role ${selected_name} already exists in this project."
         return
     fi
 
-    cp "$selected_file" "$dest"
     success "Role '${selected_name}' added to ${TARGET_DIR}"
 
     # Update team-roster.md
     local roster="${TARGET_DIR}/docs/team-roster.md"
     if [[ -f "$roster" ]]; then
         local display_name
-        display_name="$(echo "$selected_name" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')"
-        sed -i "/<!-- new members here -->/a | **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Active |" "$roster" 2>/dev/null || \
-            sed -i'' "/<!-- new members here -->/a\\
-| **${display_name}** | ${display_name} | \`.github/instructions/${selected_name}.instructions.md\` | ✅ Active |" "$roster"
+        display_name="$(echo "$selected_name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')"
+        local tmp_roster
+        tmp_roster="$(mktemp)"
+        sed "/<!-- new members here -->/a\\
+| **${display_name}** | ${display_name} | \`${roster_ref}\` | ✅ Active |" "$roster" > "$tmp_roster" && mv "$tmp_roster" "$roster"
         success "team-roster.md updated"
     fi
 
-    info "Activate the new agent in Copilot CLI with: /instructions"
+    info "Member added for detected platform(s). Activate it from your tool's agent/instructions flow."
 }
 
 # ─── Create custom role ─────────────────────────────────────

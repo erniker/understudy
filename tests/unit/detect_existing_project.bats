@@ -122,6 +122,15 @@ run_detect() {
   [[ "$DETECTED_STACK" == *"Docker"* ]]
 }
 
+# ── Shell scripting ──────────────────────────────────────────────────────────
+
+@test "detects shell scripting projects" {
+  mkdir -p "$TEST_TMP/shell/scripts"
+  touch "$TEST_TMP/shell/scripts/deploy.sh"
+  run_detect "$TEST_TMP/shell"
+  [[ "$DETECTED_STACK" == *"Shell"* ]]
+}
+
 # ── Monorepo ──────────────────────────────────────────────────────────────────
 
 @test "labels as Monorepo when 3+ independent projects found" {

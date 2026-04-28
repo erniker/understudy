@@ -553,11 +553,20 @@ Optional roles live in `roles/`. Follow the structure of existing roles:
 
 ```
 roles/
-  my-role.instructions.md   ← role instructions for Copilot/VS Code
+  my-role.instructions.md   ← role instructions (Markdown)
 ```
 
 Each file has YAML frontmatter with `applyTo` and the body in Markdown.
 See `roles/data-engineer.instructions.md` as a reference.
+
+When deployed via `--add-member` or auto-deploy, the wizard generates
+platform-specific files for every active platform:
+
+| Platform | Destination | Extra frontmatter |
+|---|---|---|
+| Copilot | `.github/instructions/<role>.instructions.md` | — |
+| Claude | `.claude/agents/<role>.md` | `name`, `description`, `model`, `tools` |
+| Cursor | `.cursor/agents/<role>.md` | `name`, `description`, `model` |
 
 If the new role makes sense for the general community, open a PR.
 If it's very domain-specific, keep it in your fork or in a local `roles/`.
