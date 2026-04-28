@@ -287,7 +287,7 @@ check_for_updates() {
     [[ -d "${SCRIPT_DIR}/.git" ]] && return 0
 
     local current_version latest_version
-    current_version="$(read_local_version 2>/dev/null || true)"
+    current_version="$(read_local_version "${SCRIPT_DIR}/CHANGELOG.md" 2>/dev/null || true)"
     [[ -n "$current_version" ]] || return 0
 
     latest_version="$(fetch_latest_version 2>/dev/null || true)"
