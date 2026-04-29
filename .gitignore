@@ -54,3 +54,6 @@ demo-*/
 *.log
 .tmp/
 tmp/
+
+__pycache__/
+*.pyc

@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **Caveman evals harness** under `tests/evals/`:
+  - `dogfood.py` — runs `scripts/understudy-compress` against any Markdown
+    tree and reports per-file token reduction.
+  - `three_arms.py` — measures input-token cost for three context bundles
+    (no-caveman / role / role+compress) using the same fixture task.
+  - `measure.py` — uses `tiktoken` (`cl100k_base`) when available, falls
+    back to whitespace word count and labels its method honestly.
+  - `run.sh` — orchestrator that regenerates `tests/evals/RESULTS.md` with
+    sections delimited by HTML markers, so re-runs produce diffable output.
+  - `RESULTS.md` — committed snapshot from this repo (terse `templates/docs/`,
+    prose-heavy `docs/`, three-arm context measurement).
+
 ### Documentation
 
 - Added an `Acknowledgments` section to `README.md` thanking

@@ -202,6 +202,8 @@ actually uses, not on toy fixtures. Word count is a rough proxy.
 ## Related
 
 - Upstream: [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)
+- [Evals harness](../tests/evals/README.md) — reproducible token-reduction
+  numbers for this repo (run `./tests/evals/run.sh` to regenerate)
 - [Configuration reference](09-configuration.md) — adding optional roles
 - [Cross-Platform Workflows](08-cross-platform-workflows.md) — using
   `caveman` alongside other team members
