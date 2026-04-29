@@ -238,11 +238,33 @@ ask() {
     fi
 }
 
+# Prompt the user for a yes/no confirmation.
+#
+# Behavior:
+# - Returns 0 only when the resolved answer is "y" / "yes" (case-insensitive).
+# - Empty input or EOF falls back to the second argument (defaults to "Y" so
+#   non-destructive prompts keep their previous "press Enter to accept"
+#   semantics, including non-interactive runs that pipe input and let stdin
+#   close after the last expected answer).
+#
+# For destructive prompts (update, delete, overwrite) callers should pass
+# `"N"` as the second argument so that an unanswered prompt — including the
+# case where the read silently fails because the script is wrapped in a
+# non-interactive launcher — cannot trigger the destructive action.
 confirm() {
     local prompt="$1"
-    echo -ne "  ${YELLOW}?${NC}  ${prompt} ${CYAN}[Y/n]${NC}: "
-    read -r answer
-    [[ "$(to_lower "$answer")" != "n" ]]
+    local default="${2:-Y}"
+    local default_label="[Y/n]"
+    [[ "$(to_lower "$default")" == "n" ]] && default_label="[y/N]"
+
+    echo -ne "  ${YELLOW}?${NC}  ${prompt} ${CYAN}${default_label}${NC}: "
+
+    local answer=""
+    # On EOF `read` returns non-zero and leaves $answer empty; in either case
+    # we let the default resolve the answer below.
+    IFS= read -r answer || true
+    answer="${answer:-$default}"
+    [[ "$(to_lower "$answer")" == "y" || "$(to_lower "$answer")" == "yes" ]]
 }
 
 # ─── Version and update check ───────────────────────────────
@@ -306,7 +328,11 @@ check_for_updates() {
 
     if version_is_newer "$latest_version" "$current_version"; then
         warn "New Understudy version available: ${latest_version} (current: ${current_version})"
-        if confirm "Do you want to update now?"; then
+        # Default to "N": never auto-update silently. If for any reason the
+        # prompt cannot be answered (EOF, wrapper closing stdin, etc.) the
+        # wizard simply continues with the installed version and the user
+        # can update manually whenever they want.
+        if confirm "Do you want to update now?" "N"; then
             step "Updating Understudy"
             if curl -fsSL "$UPDATE_INSTALL_URL" | bash; then
                 success "Update completed. Restarting Understudy..."
