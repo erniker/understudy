@@ -35,8 +35,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Make compressor executable
-        run: chmod +x scripts/understudy-compress
+      - name: Make compressor and harness executable
+        run: chmod +x scripts/understudy-compress tests/evals/run.sh
 
       - name: Run evals harness (word-count fallback, no tiktoken)
         run: ./tests/evals/run.sh
