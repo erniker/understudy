@@ -23,6 +23,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- **PR template check is now lenient**: the `Pull request template`
+  job in `.github/workflows/ci.yml` matches required H2 sections
+  case-insensitively and tolerates trailing punctuation or emojis
+  (e.g. `## How to Test 🧪`). Minor formatting differences no longer
+  silently fail the gate. Documented in `CONTRIBUTING.md` §7, along
+  with the `gh pr edit` retrigger gotcha (close+reopen the PR or push
+  a new commit).
 - `CONTRIBUTING.md` §6: documents the `### Breaking Changes` subsection
   in the `[Unreleased]` block and ties it to the `feat!:` /
   `BREAKING CHANGE:` footer convention from §4. Listed first in each

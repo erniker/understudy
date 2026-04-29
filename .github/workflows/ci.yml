@@ -26,28 +26,45 @@ jobs:
             exit 1
           fi
 
-          required_sections=(
-            '## Description'
-            '## Type of change'
-            '## What changes?'
-            '## How to test'
-            '## Checklist'
+          # Required section headings. Matched case-insensitively and we
+          # allow trailing punctuation/emojis (e.g. "## Description :"),
+          # so a typo like an extra ':' or a translated emoji does not
+          # silently fail the gate. The leading '## ' prefix is still
+          # mandatory so contributors keep using H2 sections.
+          required_patterns=(
+            '^##[[:space:]]+description([[:space:]]|[^[:alnum:]]|$)'
+            '^##[[:space:]]+type[[:space:]]+of[[:space:]]+change([[:space:]]|[^[:alnum:]]|$)'
+            '^##[[:space:]]+what[[:space:]]+changes\??([[:space:]]|[^[:alnum:]]|$)'
+            '^##[[:space:]]+how[[:space:]]+to[[:space:]]+test([[:space:]]|[^[:alnum:]]|$)'
+            '^##[[:space:]]+checklist([[:space:]]|[^[:alnum:]]|$)'
+          )
+          missing_labels=(
+            'Description'
+            'Type of change'
+            'What changes?'
+            'How to test'
+            'Checklist'
           )
 
-          for section in "${required_sections[@]}"; do
-            if ! printf '%s\n' "$PR_BODY" | grep -Fq "$section"; then
-              echo "Missing required PR template section: $section"
+          for i in "${!required_patterns[@]}"; do
+            if ! printf '%s\n' "$PR_BODY" | grep -Eiq "${required_patterns[$i]}"; then
+              echo "Missing required PR template section: ## ${missing_labels[$i]}"
               exit 1
             fi
           done
 
+          # Capture the body of the "Type of change" section (until the
+          # next H2 or a horizontal rule). Lower-cased inside awk so the
+          # heading match is case-insensitive on both gawk and mawk.
           type_section=$(printf '%s\n' "$PR_BODY" | awk '
-            /^## Type of change$/ { capture=1; next }
-            /^---$/ && capture { exit }
+            { lc = tolower($0) }
+            lc ~ /^##[[:space:]]+type[[:space:]]+of[[:space:]]+change/ { capture=1; next }
+            capture && lc ~ /^##[[:space:]]/ { exit }
+            capture && /^---$/ { exit }
             capture { print }
           ')
 
-          if ! printf '%s\n' "$type_section" | grep -Eq '^- \[(x|X)\] '; then
+          if ! printf '%s\n' "$type_section" | grep -Eq '^[[:space:]]*-[[:space:]]*\[(x|X)\][[:space:]]+'; then
             echo "Select at least one item in the 'Type of change' section."
             exit 1
           fi

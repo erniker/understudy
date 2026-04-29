@@ -318,6 +318,30 @@ After the push, CI will:
 - Reference the related issue with `Closes #NNN` or `Fixes #NNN`.
 - If the PR is a **draft**, explicitly mark it as Draft.
 
+### PR template check
+
+The required check **"Pull request template"** validates that the PR
+body keeps the H2 sections from `.github/PULL_REQUEST_TEMPLATE.md`
+(`## Description`, `## Type of change`, `## What changes?`,
+`## How to test`, `## Checklist`) and that at least one box under
+`## Type of change` is checked. The match is case-insensitive and
+tolerates trailing punctuation or emojis (e.g. `## How to Test 🧪`),
+so minor formatting differences do not break the gate.
+
+> **Gotcha — `gh pr edit` does not retrigger workflows.**
+> If the check fails because of a body issue, fixing the body with
+> `gh pr edit --body-file` will update the PR text but will **not**
+> rerun the "Pull request template" job. To retrigger it, close and
+> reopen the PR:
+>
+> ```bash
+> gh pr close <NUMBER>
+> gh pr reopen <NUMBER>
+> ```
+>
+> Pushing a new commit also retriggers all checks and is the cleanest
+> option when you also need to amend the diff.
+
 ### Review
 
 - At least **1 approval** from a maintainer to merge.
