@@ -424,6 +424,24 @@ Key conventions:
 | Update checker (`read_local_version`, `version_is_newer`) | `tests/unit/update_check.bats` |
 | Path normalization (`normalize_path`) | `tests/unit/normalize_path.bats` |
 | Git integration / `.gitignore` generation | `tests/unit/deploy_gitignore.bats` |
+| `caveman` role file or wizard wiring | `tests/unit/caveman_role.bats` |
+| `scripts/understudy-compress` (rules, safety gates, restore) | `tests/unit/compress.bats` |
+
+### Caveman evals harness (opt-in)
+
+The directory [`tests/evals/`](../tests/evals/README.md) ships a separate,
+opt-in measurement harness for [caveman mode](../docs/11-caveman-mode.md). It
+is **not** wired into `./run_tests.sh` and does not gate CI — it produces
+human-readable token-reduction numbers in `tests/evals/RESULTS.md`. Run it
+manually after changes to the role, the compress script, or the template
+fixtures it consumes:
+
+```bash
+./tests/evals/run.sh        # regenerates tests/evals/RESULTS.md
+```
+
+The harness uses `tiktoken` (cl100k_base) when available and falls back to
+whitespace word count otherwise; method is labelled in the output.
 
 ### Writing tests for a new feature — checklist
 

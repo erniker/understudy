@@ -113,6 +113,27 @@ understudy --create-role      # interactive wizard to design a new role
 Roles created with `--create-role` are stored in `roles/` and will be
 available in every future deployment.
 
+## Optional: caveman mode (token-efficient)
+
+If you want shorter, denser AI replies and a smaller context bill, opt into
+[caveman mode](11-caveman-mode.md):
+
+```bash
+understudy --caveman          # add the caveman role at deploy time
+understudy --add-member caveman   # add it to an existing deployment
+```
+
+For the prose Understudy itself generates, the bundled compress script can
+shrink Markdown in place (preserving code, paths, URLs and GUARDRAILS):
+
+```bash
+scripts/understudy-compress docs/spec.md     # writes docs/spec.original.md backup
+scripts/understudy-compress --restore docs/spec.md
+```
+
+Full rationale, intensity levels, safety gates and the
+[evals harness](../tests/evals/README.md) live in chapter 11.
+
 ## Update Understudy
 
 Every time you invoke `understudy`, it checks if a newer release exists and can

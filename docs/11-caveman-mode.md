@@ -179,10 +179,11 @@ port (yet). Each was evaluated and consciously deferred:
 | **Statusline** | Deferred | Claude-only. Limited cross-platform value. |
 | **Slash commands** for compression | Deferred | Each platform has its own command grammar; needs a separate design. |
 | **wenyan** (Classical Chinese post-processor) | Skipped | Out of scope for an English-language ops tool. |
-| **Token evaluation harness** | Deferred | Belongs in a `tests/evals/` folder with `tiktoken` and a 3-arm methodology (no-caveman vs. caveman role vs. compress + role). |
+| **Token evaluation harness** | **Shipped** in [`tests/evals/`](../tests/evals/README.md) | Dogfood + 3-arm methodology (no-caveman / role / role+compress). Opt-in; not wired into `run_tests.sh`. |
 
-The full deferred-features rationale and revisit conditions are tracked in
-`/memories/repo/caveman-deferred-features.md` (workspace memory).
+The full deferred-features rationale and revisit conditions for the items
+still marked **Deferred** above are tracked in repository memory; open an
+issue if you want one promoted to a roadmap milestone.
 
 ---
 
