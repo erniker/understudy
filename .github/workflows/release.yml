@@ -77,29 +77,35 @@ jobs:
           echo "CHANGELOG date ${declared} is within +/- 1 day of release date ${today} (UTC). OK."
 
       - name: Build release tarball
+        id: tarball
         run: |
           version="${{ steps.version.outputs.version }}"
           archive="understudy-${version}.tar.gz"
 
-          # Pack only what users need — no tests, no CI, no dev tooling.
-          # NOTE: do NOT use --exclude='.github' here — it would also strip
-          # templates/.github/ (the Copilot templates). The listed paths
-          # already omit the repo's top-level .git, .github and tests dirs.
-          tar -czf "$archive" \
-            --exclude='*.tar.gz' \
-            wizard.sh \
-            install.sh \
-            understudy.yaml \
-            templates \
-            roles \
-            scripts \
-            docs \
-            README.md \
-            CHANGELOG.md \
-            LICENSE
+          # Use `git archive` so the tarball stays in sync with the repo
+          # contents automatically. Dev-only paths (.github/, tests/,
+          # CONTRIBUTING.md, ...) are filtered out via `export-ignore`
+          # entries in .gitattributes — see issue #45.
+          #
+          # `--worktree-attributes` makes git read .gitattributes from the
+          # working tree (the file is itself `export-ignore`d, so it does
+          # not ship inside the tarball).
+          # No `--prefix` is set: install.sh extracts with
+          # `--strip-components=0`, which assumes a flat tarball.
+          git archive \
+            --format=tar.gz \
+            --worktree-attributes \
+            -o "$archive" \
+            HEAD
 
           echo "archive=$archive" >> "$GITHUB_OUTPUT"
-        id: tarball
+
+      - name: Show tarball contents
+        run: |
+          archive="${{ steps.tarball.outputs.archive }}"
+          echo "Tarball contents ($archive):"
+          tar tzf "$archive" | sort
+          echo "Total entries: $(tar tzf "$archive" | wc -l)"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
