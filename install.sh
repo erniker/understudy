@@ -149,6 +149,9 @@ download_and_install() {
   mkdir -p "$INSTALL_DIR"
   tar -xzf "${tmp_dir}/${archive}" -C "$INSTALL_DIR" --strip-components=0
   chmod +x "${INSTALL_DIR}/wizard.sh"
+  # Optional: scripts directory only present from v0.6.0 onwards.
+  [[ -f "${INSTALL_DIR}/scripts/understudy-compress" ]] && \
+    chmod +x "${INSTALL_DIR}/scripts/understudy-compress"
   rm -rf "$tmp_dir"
 
   success "Files installed to ${INSTALL_DIR}"

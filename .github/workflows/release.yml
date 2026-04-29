@@ -63,6 +63,7 @@ jobs:
             understudy.yaml \
             templates \
             roles \
+            scripts \
             docs \
             README.md \
             CHANGELOG.md \
