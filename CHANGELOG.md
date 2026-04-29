@@ -23,6 +23,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- **Caveman roadmap is now discoverable**: the Deferred items in
+  `docs/11-caveman-mode.md` § Not shipped are tracked as labelled
+  (`caveman`) issues — hooks (#59), statusline (#60), and slash
+  commands (#61) — and the table in the doc links to each one.
 - **PR template check is now lenient**: the `Pull request template`
   job in `.github/workflows/ci.yml` matches required H2 sections
   case-insensitively and tolerates trailing punctuation or emojis

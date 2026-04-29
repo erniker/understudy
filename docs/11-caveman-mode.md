@@ -175,15 +175,15 @@ port (yet). Each was evaluated and consciously deferred:
 
 | Feature | Status | Why deferred |
 | --- | --- | --- |
-| Pre/post-prompt **hooks** | Deferred | Platform-specific; Claude Code is the only first-class target. Will land as `--with-hooks` in a future minor release. |
-| **Statusline** | Deferred | Claude-only. Limited cross-platform value. |
-| **Slash commands** for compression | Deferred | Each platform has its own command grammar; needs a separate design. |
+| Pre/post-prompt **hooks** | Deferred ([#59](https://github.com/erniker/understudy/issues/59)) | Platform-specific; Claude Code is the only first-class target. Will land as `--with-hooks` in a future minor release. |
+| **Statusline** | Deferred ([#60](https://github.com/erniker/understudy/issues/60)) | Claude-only. Limited cross-platform value. |
+| **Slash commands** for compression | Deferred ([#61](https://github.com/erniker/understudy/issues/61)) | Each platform has its own command grammar; needs a separate design. |
 | **wenyan** (Classical Chinese post-processor) | Skipped | Out of scope for an English-language ops tool. |
 | **Token evaluation harness** | **Shipped** in [`tests/evals/`](../tests/evals/README.md) | Dogfood + 3-arm methodology (no-caveman / role / role+compress). Opt-in; not wired into `run_tests.sh`. |
 
-The full deferred-features rationale and revisit conditions for the items
-still marked **Deferred** above are tracked in repository memory; open an
-issue if you want one promoted to a roadmap milestone.
+The deferred items above are tracked as labelled (`caveman`) issues so
+they are discoverable in the issue tracker. They are open for
+discussion, not committed work.
 
 ---
 
