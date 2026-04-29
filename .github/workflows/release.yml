@@ -47,6 +47,35 @@ jobs:
           # Write to file to preserve newlines
           echo "$notes" > release_notes.md
 
+      - name: Validate CHANGELOG date matches release date
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          semver="${version#v}"
+
+          # Pull "YYYY-MM-DD" from "## [X.Y.Z] - YYYY-MM-DD"
+          declared=$(grep -E "^## \[${semver}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}" CHANGELOG.md \
+            | head -n1 \
+            | sed -E 's/.*- ([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/')
+
+          if [[ -z "$declared" ]]; then
+            echo "::error::CHANGELOG entry for ${version} is missing a date in '## [${semver}] - YYYY-MM-DD' format."
+            exit 1
+          fi
+
+          today=$(date -u +%Y-%m-%d)
+          yesterday=$(date -u -d "yesterday" +%Y-%m-%d)
+          tomorrow=$(date -u -d "tomorrow" +%Y-%m-%d)
+
+          # Allow +/- 1 day for timezone slop between the tagger's local
+          # clock and the runner's UTC clock. Anything beyond that is
+          # almost certainly a forgotten CHANGELOG bump.
+          if [[ "$declared" != "$today" && "$declared" != "$yesterday" && "$declared" != "$tomorrow" ]]; then
+            echo "::error::CHANGELOG date for ${version} is ${declared} but the release ran on ${today} (UTC). Update '## [${semver}] - ...' before re-tagging."
+            exit 1
+          fi
+
+          echo "CHANGELOG date ${declared} is within +/- 1 day of release date ${today} (UTC). OK."
+
       - name: Build release tarball
         run: |
           version="${{ steps.version.outputs.version }}"

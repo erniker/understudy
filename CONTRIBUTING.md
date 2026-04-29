@@ -190,8 +190,11 @@ git push upstream v0.2.0
 After the push, CI will:
 
 1. Extract the `[X.Y.Z]` section from `CHANGELOG.md` as release notes.
-2. Build `understudy-vX.Y.Z.tar.gz` (wizard, templates, roles, docs — no test files).
-3. Publish the GitHub Release with the tarball attached.
+2. Validate that the date in `## [X.Y.Z] - YYYY-MM-DD` is within ±1 day
+   (UTC) of the release run. The workflow fails otherwise — bump the
+   date before re-tagging.
+3. Build `understudy-vX.Y.Z.tar.gz` (wizard, templates, roles, docs — no test files).
+4. Publish the GitHub Release with the tarball attached.
 
 ### What goes in the release tarball
 
@@ -222,6 +225,9 @@ After the push, CI will:
 ```markdown
 ## [Unreleased]
 
+### Breaking Changes
+- Description of a backward-incompatible change. Always listed first.
+
 ### Added
 - Description of new functionality.
 
@@ -240,6 +246,14 @@ After the push, CI will:
 ### Security
 - Fixed vulnerability.
 ```
+
+> **Breaking Changes convention.** Any commit landed with `feat!:` /
+> `fix!:` / `BREAKING CHANGE:` footer (see §4) MUST add a bullet under
+> `### Breaking Changes` in `[Unreleased]`. The subsection is listed
+> **before** `### Added` so downstream consumers see breakage first.
+> While the project is at `0.x.y`, breaking changes are still allowed in
+> a MINOR bump (pre-1.0 SemVer), but they must still be marked.
+
 
 ### Rules
 

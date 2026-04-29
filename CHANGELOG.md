@@ -16,9 +16,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   Uses the word-count fallback (no `tiktoken` install) so the job stays
   fast. The companion issue #43 covers regenerating `RESULTS.md` with
   real `tiktoken` numbers.
+- **Release date guard**: `.github/workflows/release.yml` now validates
+  that the date in `## [X.Y.Z] - YYYY-MM-DD` is within ±1 day (UTC) of
+  the release run, so a forgotten CHANGELOG date bump fails the workflow
+  instead of shipping silently with the wrong date.
 
 ### Changed
 
+- `CONTRIBUTING.md` §6: documents the `### Breaking Changes` subsection
+  in the `[Unreleased]` block and ties it to the `feat!:` /
+  `BREAKING CHANGE:` footer convention from §4. Listed first in each
+  release block so downstream consumers see breakage before additions.
 - `run_tests.sh`: prints an informational notice if `python3` is missing
   and exports `UNDERSTUDY_NO_PYTHON=1` so any future Python-dependent
   test can gate on it cleanly instead of failing with an opaque "command
