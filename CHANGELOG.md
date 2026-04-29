@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- `run_tests.sh`: prints an informational notice if `python3` is missing
+  and exports `UNDERSTUDY_NO_PYTHON=1` so any future Python-dependent
+  test can gate on it cleanly instead of failing with an opaque "command
+  not found". Documented in `CONTRIBUTING.md` §8.
+
 ## [0.7.0] - 2026-04-29
 
 ### Added

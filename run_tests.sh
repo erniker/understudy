@@ -32,6 +32,16 @@ if ! command -v bats &>/dev/null; then
   exit 1
 fi
 
+# Optional: python3 is not required by the bash test suite, but some
+# opt-in tooling under tests/evals/ uses it. Warn early so any future
+# test that depends on python3 can gate cleanly on this variable
+# instead of failing with an opaque "command not found".
+if ! command -v python3 &>/dev/null; then
+  echo -e "${CYAN}ℹ${NC}  python3 not found; tests that require it will be skipped."
+  echo ""
+  export UNDERSTUDY_NO_PYTHON=1
+fi
+
 echo ""
 echo -e "  ${BOLD}🎭 Understudy Test Suite${NC}"
 echo -e "  bats $(bats --version 2>/dev/null | head -1)"
