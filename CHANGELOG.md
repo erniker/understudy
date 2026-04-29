@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Documentation
+
+- Added an `Acknowledgments` section to `README.md` thanking
+  [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) for
+  inspiring caveman mode, and reinforced the upstream credit in the chapter
+  intro of [docs/11-caveman-mode.md](docs/11-caveman-mode.md).
+
 ## [0.6.1] - 2026-04-29
 
 ### Fixed
