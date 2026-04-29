@@ -69,6 +69,7 @@ DETECTED_HAS_SHELL=false
 # CLI flags
 DEPLOY_HERE=false        # --here: deploy in current directory using inferred values
 AUTO_CONFIRM=false       # --yes/-y: skip confirmation prompts when used with --here
+INCLUDE_CAVEMAN=false    # --caveman: opt-in token-efficient communication overlay role
 
 # Colores
 RED='\033[0;31m'
@@ -1486,6 +1487,12 @@ deploy_default_optional_roles() {
         add_optional_role_to_project "shell-scripting"
         info "Auto-selected optional role: shell-scripting"
     fi
+
+    # Opt-in caveman overlay (token-efficient communication style).
+    if $INCLUDE_CAVEMAN; then
+        add_optional_role_to_project "caveman"
+        info "Opt-in optional role: caveman (token-efficient communication)"
+    fi
 }
 
 # ─── Deployment orchestrator ───────────────────────────────
@@ -1849,6 +1856,7 @@ show_help() {
     echo "    ./wizard.sh                  Interactive Understudy deployment"
     echo "    ./wizard.sh --here           Deploy in current directory using inferred values"
     echo "    ./wizard.sh --here --yes     Same as --here, skip confirmation prompt"
+    echo "    ./wizard.sh --caveman        Include the caveman role (token-efficient overlay)"
     echo "    ./wizard.sh --add-member     Add a team member"
     echo "    ./wizard.sh --create-role    Create a new custom role"
     echo "    ./wizard.sh --help           Show this help"
@@ -1882,6 +1890,7 @@ main() {
         case "$1" in
             --here)     DEPLOY_HERE=true ;;
             --yes|-y)   AUTO_CONFIRM=true ;;
+            --caveman)  INCLUDE_CAVEMAN=true ;;
             *)          _args+=("$1") ;;
         esac
         shift
