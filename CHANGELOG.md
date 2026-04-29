@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-04-29
+
+### Fixed
+
+- Auto-update prompt now actually waits for the user to answer. v0.5.4
+  prevented silent auto-update by defaulting to `N` on EOF, but in
+  environments where the script's stdin is closed by an outer wrapper
+  the prompt received an instant EOF and resolved to `N` without giving
+  the user a chance to type. `check_for_updates` now reads the answer
+  directly from `/dev/tty`, so any buffered or closed stdin cannot
+  pre-answer the prompt. If no controlling terminal is available the
+  wizard skips the update with an explicit warning instead of guessing.
+
 ## [0.5.4] - 2026-04-28
 
 ### Fixed

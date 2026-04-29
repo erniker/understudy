@@ -328,19 +328,36 @@ check_for_updates() {
 
     if version_is_newer "$latest_version" "$current_version"; then
         warn "New Understudy version available: ${latest_version} (current: ${current_version})"
-        # Default to "N": never auto-update silently. If for any reason the
-        # prompt cannot be answered (EOF, wrapper closing stdin, etc.) the
-        # wizard simply continues with the installed version and the user
-        # can update manually whenever they want.
-        if confirm "Do you want to update now?" "N"; then
-            step "Updating Understudy"
-            if curl -fsSL "$UPDATE_INSTALL_URL" | bash; then
-                success "Update completed. Restarting Understudy..."
-                exec "$0" "$@"
-            else
-                warn "Update failed. Continuing with current version (${current_version})."
-            fi
+
+        # Read the answer directly from the controlling terminal so that any
+        # buffered input on stdin (caused by wrappers, here-docs, leftover
+        # bytes from previous reads, etc.) cannot pre-answer this prompt.
+        # The wizard explicitly waits here for the user to type y/N.
+        local answer=""
+        echo -ne "  ${YELLOW}?${NC}  Do you want to update now? ${CYAN}[y/N]${NC}: "
+        if [[ -r /dev/tty ]]; then
+            IFS= read -r answer < /dev/tty || answer=""
+        else
+            # No controlling terminal available — do not auto-update.
+            echo ""
+            warn "No interactive terminal detected; skipping update."
+            return 0
         fi
+
+        case "$(to_lower "${answer:-n}")" in
+            y|yes)
+                step "Updating Understudy"
+                if curl -fsSL "$UPDATE_INSTALL_URL" | bash; then
+                    success "Update completed. Restarting Understudy..."
+                    exec "$0" "$@"
+                else
+                    warn "Update failed. Continuing with current version (${current_version})."
+                fi
+                ;;
+            *)
+                info "Continuing with the installed version (${current_version})."
+                ;;
+        esac
     fi
 
     return 0
