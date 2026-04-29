@@ -7,6 +7,26 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-04-28
+
+### Fixed
+
+- Auto-update prompt could trigger an unattended update. The "New
+  Understudy version available — do you want to update now?" prompt used
+  `confirm` with a `[Y/n]` default of "yes" *and* treated empty/EOF input
+  as confirmation, so any environment that silently closed stdin (some
+  PowerShell wrappers, non-interactive launchers, certain `bash -c`
+  invocations) auto-accepted the update without the user pressing
+  anything.
+  - `confirm` now takes an explicit second argument for the default and
+    only returns success on an explicit `y`/`yes` answer or when the
+    default itself is `Y`. Empty input or EOF resolves to the provided
+    default.
+  - The auto-update call now passes `"N"` as the default so the prompt is
+    rendered as `[y/N]` and any unanswered case continues with the
+    installed version. Manual updates via the installer one-liner are
+    unaffected.
+
 ## [0.5.3] - 2026-04-28
 
 ### Fixed
