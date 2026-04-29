@@ -18,6 +18,7 @@ restructuring.
 6. [Configuration Reference (`understudy.yaml`)](09-configuration.md)
    - [Local-only mode](09-configuration.md#local-only-mode) — keep AI config out of git
 7. [Troubleshooting and FAQ](10-troubleshooting.md)
+8. [Caveman Mode (token-efficient role + compress script)](11-caveman-mode.md)
 
 ## How to read this
 

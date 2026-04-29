@@ -400,7 +400,8 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 
 | Role | When to use it |
 |---|---|
-| 📊 **data-engineer** | ETL/ELT pipelines, data warehouses, streaming, data governance |
+| � **caveman** | Token-efficient prose. Drops fillers; keeps code/paths/URLs. Opt-in via `--caveman`. See [Caveman Mode](docs/11-caveman-mode.md). |
+| �📊 **data-engineer** | ETL/ELT pipelines, data warehouses, streaming, data governance |
 | 🌿 **git-specialist** | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 **mobile-engineer** | iOS/Android apps, React Native, Flutter |
 | 🤖 **ml-engineer** | ML models, MLOps, LLMs, RAG, responsible AI |
