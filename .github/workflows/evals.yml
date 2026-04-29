@@ -1,0 +1,85 @@
+name: Evals (real tiktoken)
+
+# Regenerates tests/evals/RESULTS.md with real cl100k_base token counts
+# instead of the word-count fallback. Triggered manually by maintainers
+# (workflow_dispatch) or once a week (schedule). Uploads RESULTS.md as a
+# workflow artifact — a maintainer commits it to the repo when the numbers
+# change meaningfully.
+#
+# Non-blocking: not a required check on PRs. The lightweight smoke version
+# that runs on PRs lives in evals-smoke.yml.
+#
+# Tracked by issue #43.
+
+on:
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: "Python version (default 3.12; pick 3.11/3.12/3.13 if a wheel is missing)"
+        required: false
+        default: "3.12"
+  schedule:
+    # Mondays at 06:00 UTC. Cheap (Linux job, ~30s) and surfaces wheel
+    # regressions early. Adjust if it turns into noise.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    name: "Evals (cl100k_base)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ github.event.inputs.python-version || '3.12' }}
+
+      - name: Install tiktoken
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tiktoken
+
+      - name: Confirm tiktoken is on sys.path
+        run: python -c "import tiktoken; print('tiktoken', tiktoken.__version__)"
+
+      - name: Make compressor and harness executable
+        run: chmod +x scripts/understudy-compress tests/evals/run.sh
+
+      - name: Run evals harness with real tiktoken
+        run: ./tests/evals/run.sh
+
+      - name: Sanity-check that RESULTS.md uses cl100k_base
+        run: |
+          if ! grep -q "cl100k_base" tests/evals/RESULTS.md; then
+            echo "::error::tests/evals/RESULTS.md does not declare cl100k_base — tiktoken did not pick up." >&2
+            head -40 tests/evals/RESULTS.md >&2 || true
+            exit 1
+          fi
+
+      - name: Surface RESULTS.md head in job summary
+        run: |
+          {
+            echo "### Evals (cl100k_base, tiktoken)"
+            echo
+            echo '_Authoritative token counts. The lightweight word-count smoke runs in `evals-smoke.yml` on PRs._'
+            echo
+            echo '<details><summary>RESULTS.md (head)</summary>'
+            echo
+            echo '```markdown'
+            head -80 tests/evals/RESULTS.md
+            echo '```'
+            echo
+            echo '</details>'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload RESULTS.md as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: evals-RESULTS-${{ github.run_id }}
+          path: tests/evals/RESULTS.md
+          if-no-files-found: error
+          retention-days: 90

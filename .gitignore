@@ -57,3 +57,7 @@ tmp/
 
 __pycache__/
 *.pyc
+
+# ── Python virtualenvs (e.g. .venv-evals/ for tests/evals/) ──
+.venv/
+.venv-*/

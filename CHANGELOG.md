@@ -16,6 +16,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   Uses the word-count fallback (no `tiktoken` install) so the job stays
   fast. The companion issue #43 covers regenerating `RESULTS.md` with
   real `tiktoken` numbers.
+- **Evals workflow with real `tiktoken`** (`.github/workflows/evals.yml`):
+  manual (`workflow_dispatch`) and weekly (Mon 06:00 UTC) job that
+  installs `tiktoken`, runs the harness with `cl100k_base`, fails if
+  `RESULTS.md` does not declare `cl100k_base`, and uploads it as a
+  workflow artifact. Non-blocking, not a required PR check. Local
+  recipes for `uv` / `python -m venv` / `pipx` are documented in
+  `tests/evals/README.md`.
 - **Release date guard**: `.github/workflows/release.yml` now validates
   that the date in `## [X.Y.Z] - YYYY-MM-DD` is within ±1 day (UTC) of
   the release run, so a forgotten CHANGELOG date bump fails the workflow
