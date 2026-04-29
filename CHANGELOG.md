@@ -7,6 +7,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-04-29
+
+### Fixed
+
+- Release tarball was missing `scripts/` (the `understudy-compress` Python
+  script and `requirements.txt` shipped in v0.6.0). The release workflow's
+  explicit file list did not include `scripts/`, so users installing v0.6.0
+  via the published tarball received the caveman role but not the compress
+  script. v0.6.1 adds `scripts/` to the tarball and makes
+  `scripts/understudy-compress` executable on install. Users on v0.6.0
+  should re-run the installer one-liner to get the script.
+
 ## [0.6.0] - 2026-04-29
 
 ### Added
