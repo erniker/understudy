@@ -1,0 +1,6 @@
+# Optional dependencies for understudy-compress.
+# The script works with stdlib only; these add value but are not required.
+#
+# Install:  pip install --user -r scripts/requirements.txt
+#
+tiktoken>=0.7  # Exact token counts for OpenAI/Anthropic-compatible BPE.
