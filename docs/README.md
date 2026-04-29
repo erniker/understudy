@@ -19,6 +19,11 @@ restructuring.
    - [Local-only mode](09-configuration.md#local-only-mode) — keep AI config out of git
 7. [Troubleshooting and FAQ](10-troubleshooting.md)
 8. [Caveman Mode (token-efficient role + compress script)](11-caveman-mode.md)
+   - [Evals harness](../tests/evals/README.md) — reproducible token-reduction numbers
+
+> File names keep their historical numeric prefix (`08-`, `09-`, `10-`,
+> `11-`) for stable external links; the index above is the recommended
+> reading order.
 
 ## How to read this
 
