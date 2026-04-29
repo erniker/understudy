@@ -1,0 +1,85 @@
+name: Evals smoke
+
+# Lightweight smoke check that ./tests/evals/run.sh still works and that
+# caveman compression still produces a positive reduction on docs/. Runs
+# only on PRs that touch the compressor or the harness, so it does not
+# add noise to unrelated PRs.
+#
+# Bloqueante: the harness must succeed (no continue-on-error).
+# Informational: the metric threshold is a workflow warning, not a fail.
+#
+# Tracked by issue #46. The companion #43 covers regenerating RESULTS.md
+# with real tiktoken numbers; this workflow uses the word-count fallback
+# and stays fast (no pip install).
+
+on:
+  pull_request:
+    paths:
+      - "scripts/understudy-compress"
+      - "tests/evals/**"
+      - "roles/caveman.instructions.md"
+      - ".github/workflows/evals-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Evals smoke (word-count)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Make compressor executable
+        run: chmod +x scripts/understudy-compress
+
+      - name: Run evals harness (word-count fallback, no tiktoken)
+        run: ./tests/evals/run.sh
+
+      - name: Surface results in job summary
+        run: |
+          {
+            echo "### Evals smoke (word-count fallback)"
+            echo
+            echo '_Real `tiktoken` numbers are produced by the workflow tracked in #43._'
+            echo
+            head -60 tests/evals/RESULTS.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Warn if compression regressed on docs/
+        # The DOGFOOD-DOCS section ends with a TOTAL row whose 4th column
+        # is the reduction percentage. Anything <= 0 means caveman mode
+        # stopped reducing prose-heavy docs and likely regressed.
+        run: |
+          # Extract the reduction percentage from the docs/ TOTAL row.
+          pct=$(awk '
+            /<!-- DOGFOOD-DOCS-START -->/ { inblock=1; next }
+            /<!-- DOGFOOD-DOCS-END -->/   { inblock=0 }
+            inblock && /\*\*TOTAL\*\*/ {
+              # Match the 4th column (the percentage), tolerant to spaces.
+              if (match($0, /\| \*\*[0-9.]+%\*\* \|/)) {
+                m = substr($0, RSTART, RLENGTH)
+                gsub(/[^0-9.]/, "", m)
+                print m
+                exit
+              }
+            }
+          ' tests/evals/RESULTS.md)
+
+          if [ -z "$pct" ]; then
+            echo "::warning::Could not parse docs/ reduction percentage from RESULTS.md"
+            exit 0
+          fi
+
+          # Compare with awk so we do not depend on bc.
+          regressed=$(awk -v p="$pct" 'BEGIN { print (p+0 <= 0) ? "1" : "0" }')
+          if [ "$regressed" = "1" ]; then
+            echo "::warning::Caveman compression on docs/ reduced ${pct}% (<=0). Possible regression."
+          else
+            echo "Caveman compression on docs/ reduced ${pct}% (ok)."
+          fi

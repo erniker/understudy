@@ -7,6 +7,16 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **Evals smoke workflow** (`.github/workflows/evals-smoke.yml`):
+  runs `./tests/evals/run.sh` on PRs that touch the compressor or the
+  harness, surfaces the results in the job summary, and emits a workflow
+  warning if caveman compression on `docs/` stops reducing tokens.
+  Uses the word-count fallback (no `tiktoken` install) so the job stays
+  fast. The companion issue #43 covers regenerating `RESULTS.md` with
+  real `tiktoken` numbers.
+
 ### Changed
 
 - `run_tests.sh`: prints an informational notice if `python3` is missing
