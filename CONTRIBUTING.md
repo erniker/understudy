@@ -350,6 +350,21 @@ npm install -g bats
 bats tests/unit/config_read.bats
 ```
 
+### Optional: python3
+
+`run_tests.sh` is pure Bash and does **not** require `python3`. The runner
+prints a friendly notice if `python3` is missing and exports
+`UNDERSTUDY_NO_PYTHON=1` so any future test that depends on Python can
+gate on it cleanly:
+
+```bash
+# inside a future python-dependent .bats file
+[[ -n "${UNDERSTUDY_NO_PYTHON:-}" ]] && skip "python3 not available"
+```
+
+The opt-in `tests/evals/` harness has its own Python requirement and is
+not driven by `run_tests.sh` — see the section below.
+
 ### Test layout
 
 ```
