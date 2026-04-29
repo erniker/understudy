@@ -432,8 +432,10 @@ tests/
 │   └── guardrails_check.bats             # Hook blocks destructive commands (exit 2),
 │                                         # warns on secrets (exit 0), allows safe ops
 └── integration/
-    └── deploy_all_platforms.bats         # Full wizard run: files created, placeholders
-                                          # replaced, integration mode preserves files
+    ├── deploy_all_platforms.bats         # Full wizard run: files created, placeholders
+    │                                     # replaced, integration mode preserves files
+    └── deploy_caveman.bats                # Full wizard run with --caveman: opt-in
+                                          # caveman role deploys to all 3 platforms
 ```
 
 ### Anatomy of a test
@@ -477,7 +479,7 @@ Key conventions:
 | Update checker (`read_local_version`, `version_is_newer`) | `tests/unit/update_check.bats` |
 | Path normalization (`normalize_path`) | `tests/unit/normalize_path.bats` |
 | Git integration / `.gitignore` generation | `tests/unit/deploy_gitignore.bats` |
-| `caveman` role file or wizard wiring | `tests/unit/caveman_role.bats` |
+| `caveman` role file or wizard wiring | `tests/unit/caveman_role.bats` (unit) and `tests/integration/deploy_caveman.bats` (end-to-end wizard run) |
 | `scripts/understudy-compress` (rules, safety gates, restore) | `tests/unit/compress.bats` |
 
 ### Caveman evals harness (opt-in)

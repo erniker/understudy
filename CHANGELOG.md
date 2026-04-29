@@ -20,6 +20,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   that the date in `## [X.Y.Z] - YYYY-MM-DD` is within ±1 day (UTC) of
   the release run, so a forgotten CHANGELOG date bump fails the workflow
   instead of shipping silently with the wrong date.
+- **Caveman integration coverage**: `tests/integration/deploy_caveman.bats`
+  runs the full wizard with `--caveman` against Copilot/Claude/Cursor
+  combinations and asserts the role files materialise with correct
+  frontmatter, so a regression that breaks caveman deploy on a single
+  platform is now caught by CI.
 
 ### Changed
 
