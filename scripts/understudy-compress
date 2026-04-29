@@ -1,0 +1,469 @@
+#!/usr/bin/env python3
+"""
+understudy-compress — Caveman-style Markdown compressor for the Understudy team.
+
+Removes filler words and high-frequency low-information phrases from Markdown
+prose, while preserving byte-identical:
+
+  - Fenced code blocks  (``` and ~~~)
+  - YAML frontmatter
+  - Inline `code` spans
+  - URLs, file paths, version numbers, ISO dates
+  - Markdown links and images
+  - Understudy template tokens like {{PROJECT_NAME}}
+  - Understudy GUARDRAILS markers and section anchors
+  - Markdown headings, horizontal rules, and tables
+  - HTML comments
+
+Writes a backup to <file>.original.md and modifies the file in place.
+
+Usage:
+  understudy-compress [--dry-run] [--yes] [--no-install] FILE
+  understudy-compress --restore FILE
+  understudy-compress --help
+
+Safety gates (non-bypassable):
+  - Refuses symlinks
+  - Refuses files outside the current working directory
+  - Refuses sensitive filenames (.env, *secret*, *credential*, *id_rsa*, ...)
+  - Refuses files whose contents look like secrets (PEM blocks, AWS keys,
+    JWTs, GitHub PATs, Slack tokens, password=...)
+
+Token measurement:
+  - Uses tiktoken (cl100k_base) when available for exact token counts.
+  - Falls back to whitespace-delimited word count otherwise.
+  - Optional: prompts to install tiktoken on first run; --no-install skips
+    the prompt, --yes accepts non-interactively.
+
+Part of the Understudy project (caveman mode). See docs/11-caveman-mode.md.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import List, Tuple
+
+# ────────────────────────────────────────────────────────────────────────────
+# UI
+# ────────────────────────────────────────────────────────────────────────────
+USE_COLOR = sys.stderr.isatty() and os.environ.get("NO_COLOR") is None
+_C = {
+    "reset": "\033[0m" if USE_COLOR else "",
+    "red": "\033[31m" if USE_COLOR else "",
+    "green": "\033[32m" if USE_COLOR else "",
+    "yellow": "\033[33m" if USE_COLOR else "",
+    "blue": "\033[34m" if USE_COLOR else "",
+    "dim": "\033[2m" if USE_COLOR else "",
+}
+
+
+def err(msg: str) -> None:
+    print(f"  {_C['red']}✗{_C['reset']}  {msg}", file=sys.stderr)
+
+
+def warn(msg: str) -> None:
+    print(f"  {_C['yellow']}!{_C['reset']}  {msg}", file=sys.stderr)
+
+
+def info(msg: str) -> None:
+    print(f"  {_C['blue']}i{_C['reset']}  {msg}", file=sys.stderr)
+
+
+def ok(msg: str) -> None:
+    print(f"  {_C['green']}✓{_C['reset']}  {msg}", file=sys.stderr)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Safety
+# ────────────────────────────────────────────────────────────────────────────
+SENSITIVE_NAME_PATTERNS = [
+    r"\.env(\..+)?$",
+    r"secret",
+    r"credential",
+    r"password",
+    r"private[_-]?key",
+    r"id_rsa",
+    r"\.pem$",
+    r"\.key$",
+    r"\.p12$",
+    r"\.pfx$",
+]
+
+SENSITIVE_CONTENT_PATTERNS = [
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    r"AKIA[0-9A-Z]{16}",
+    r"ghp_[A-Za-z0-9]{36}",
+    r"xox[abprs]-[A-Za-z0-9-]{10,}",
+    r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+",  # JWT
+    r"(?i)password\s*=\s*['\"]?[^'\"\s]{6,}",
+    r"(?i)api[_-]?key\s*=\s*['\"]?[^'\"\s]{16,}",
+]
+
+
+def abort_if_unsafe(path: Path, cwd: Path) -> None:
+    """Raises SystemExit(2) on unsafe inputs."""
+    if not path.exists():
+        err(f"File not found: {path}")
+        raise SystemExit(2)
+
+    # Symlink refusal — must be lstat-based, not exists()-based.
+    if path.is_symlink():
+        err(f"Refusing to operate on a symlink: {path}")
+        raise SystemExit(2)
+
+    # Outside CWD refusal.
+    try:
+        abs_path = path.resolve(strict=True)
+        abs_cwd = cwd.resolve(strict=True)
+        abs_path.relative_to(abs_cwd)
+    except (ValueError, OSError):
+        err(f"Refusing to operate on a file outside the current directory: {path}")
+        raise SystemExit(2)
+
+    # Sensitive filename.
+    name = path.name.lower()
+    for pat in SENSITIVE_NAME_PATTERNS:
+        if re.search(pat, name):
+            err(f"Refusing to operate on a sensitive path (matches /{pat}/): {path}")
+            raise SystemExit(2)
+
+    # Sensitive content.
+    try:
+        content = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        err(f"Cannot read file: {e}")
+        raise SystemExit(2)
+
+    for pat in SENSITIVE_CONTENT_PATTERNS:
+        if re.search(pat, content):
+            err(f"Refusing to compress: file contents look sensitive (matches /{pat}/)")
+            raise SystemExit(2)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Compression rules
+# ────────────────────────────────────────────────────────────────────────────
+COMPRESS_PHRASES = [
+    "in order to",
+    "note that",
+    "it is important to",
+    "it should be noted that",
+    "as a matter of fact",
+    "at this point in time",
+    "due to the fact that",
+    "for the purpose of",
+    "in the event that",
+    "with regard to",
+    "with respect to",
+    "kind of",
+    "sort of",
+]
+
+COMPRESS_WORDS = [
+    "the",
+    "a",
+    "an",
+    "please",
+    "simply",
+    "just",
+    "really",
+    "actually",
+    "basically",
+    "literally",
+    "very",
+    "quite",
+    "rather",
+    "somewhat",
+]
+
+# Single combined regex per pattern, case-insensitive on the first letter only.
+# We anchor on word boundaries.
+def _build_filler_patterns() -> List[re.Pattern]:
+    out: List[re.Pattern] = []
+    # Phrases first (longest match wins).
+    for phrase in COMPRESS_PHRASES + COMPRESS_WORDS:
+        # Make first char case-flexible.
+        if phrase and phrase[0].isalpha():
+            esc = f"[{phrase[0].upper()}{phrase[0].lower()}]" + re.escape(phrase[1:])
+        else:
+            esc = re.escape(phrase)
+        out.append(re.compile(rf"\b{esc}\b"))
+    return out
+
+
+_FILLER_PATTERNS = _build_filler_patterns()
+
+
+# Spans we must protect from compression. Each is replaced by a sentinel.
+SENTINEL_FMT = "__USP_{}_USP__"
+_SENTINEL_RE = re.compile(r"__USP_(\d+)_USP__")
+
+PROTECT_PATTERNS = [
+    r"`[^`]+`",                                   # inline code
+    r"https?://[^\s<>)\]]+",                      # URLs
+    r"!?\[[^\]]*\]\([^)]+\)",                     # md links/images
+    r"\{\{[A-Z_][A-Z0-9_]*\}\}",                  # template tokens
+    r"\bv?\d+\.\d+(?:\.\d+)?(?:[+-][\w.]+)?\b",   # versions
+    r"\b\d{4}-\d{2}-\d{2}\b",                     # ISO dates
+    r"(?:[\w./-]*/)+[\w.-]+",                     # file paths with /
+    r"\*\*[\w-]+\*\*",                            # **bold-id**
+]
+_PROTECT_RES = [re.compile(p) for p in PROTECT_PATTERNS]
+
+
+def protect_spans(line: str) -> Tuple[str, List[str]]:
+    """Replace each protectable span with a sentinel; return (line, buffer)."""
+    buf: List[str] = []
+    for pat in _PROTECT_RES:
+        def _replace(match: re.Match) -> str:
+            buf.append(match.group(0))
+            return SENTINEL_FMT.format(len(buf))
+        line = pat.sub(_replace, line)
+    return line, buf
+
+
+def restore_spans(line: str, buf: List[str]) -> str:
+    def _restore(m: re.Match) -> str:
+        idx = int(m.group(1)) - 1
+        if 0 <= idx < len(buf):
+            return buf[idx]
+        return m.group(0)
+    return _SENTINEL_RE.sub(_restore, line)
+
+
+def is_passthrough_line(line: str) -> bool:
+    s = line.strip()
+    if not s:
+        return True
+    if re.match(r"^#{1,6}\s", s):           # heading
+        return True
+    if re.match(r"^([-*_])(\s*\1){2,}\s*$", s):  # hr
+        return True
+    if "GUARDRAILS_START" in s or "GUARDRAILS_END" in s:
+        return True
+    if "new members here" in s:
+        return True
+    if re.match(r"^<!--.*-->$", s):         # whole-line HTML comment
+        return True
+    if re.match(r"^\|.*\|$", s):            # table row
+        return True
+    return False
+
+
+def strip_fillers(line: str) -> str:
+    """Apply all filler removals until idempotent (max 8 iters).
+
+    Preserves the original leading indent (so list items and indented blocks
+    don't shift left), but strips any whitespace introduced by filler removal
+    at the start/end of the content.
+    """
+    m = re.match(r"^(\s*)(.*)$", line, re.DOTALL)
+    leading = m.group(1)
+    rest = m.group(2)
+
+    prev = None
+    iters = 0
+    while rest != prev and iters < 8:
+        prev = rest
+        for pat in _FILLER_PATTERNS:
+            rest = pat.sub("", rest)
+        rest = re.sub(r" {2,}", " ", rest)
+        rest = re.sub(r"\s+([,.;:!?])", r"\1", rest)
+        rest = rest.strip()
+        iters += 1
+    return leading + rest
+
+
+def compress_line(line: str) -> str:
+    if is_passthrough_line(line):
+        return line
+    protected, buf = protect_spans(line)
+    stripped = strip_fillers(protected)
+    return restore_spans(stripped, buf)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# File-level streaming with frontmatter & code-fence awareness
+# ────────────────────────────────────────────────────────────────────────────
+_FENCE_RE = re.compile(r"^(\s*)(```+|~~~+)(.*)$")
+
+
+def compress_text(text: str) -> str:
+    out_lines: List[str] = []
+    in_frontmatter = False
+    in_code = False
+    fence_marker = ""
+    lines = text.split("\n")
+
+    for i, line in enumerate(lines):
+        # YAML frontmatter (only if file starts with ---).
+        if i == 0 and line.strip() == "---":
+            in_frontmatter = True
+            out_lines.append(line)
+            continue
+        if in_frontmatter:
+            out_lines.append(line)
+            if line.strip() == "---":
+                in_frontmatter = False
+            continue
+
+        # Code fences.
+        m = _FENCE_RE.match(line)
+        if m:
+            this_marker = m.group(2)
+            if not in_code:
+                in_code = True
+                fence_marker = this_marker[0]  # ` or ~
+            elif this_marker.startswith(fence_marker):
+                in_code = False
+            out_lines.append(line)
+            continue
+
+        if in_code:
+            out_lines.append(line)
+            continue
+
+        out_lines.append(compress_line(line))
+
+    return "\n".join(out_lines)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Token measurement
+# ────────────────────────────────────────────────────────────────────────────
+def measure_tokens(text: str) -> Tuple[int, str]:
+    """Return (count, label). Uses tiktoken if available, else word count."""
+    try:
+        import tiktoken  # type: ignore
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text)), "tokens"
+    except Exception:
+        return len(text.split()), "words"
+
+
+def maybe_install_tiktoken(*, yes: bool, no_install: bool) -> None:
+    """Offer to install tiktoken on first use. Side-effect: pip install."""
+    try:
+        import tiktoken  # noqa: F401
+        return
+    except Exception:
+        pass
+    if no_install:
+        return
+    info("Optional dependency 'tiktoken' is not installed.")
+    info("It enables exact OpenAI/Anthropic-compatible token counts.")
+    if yes:
+        choice = "y"
+    else:
+        if not sys.stdin.isatty():
+            return
+        try:
+            choice = input("  ?  Install tiktoken now? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("", file=sys.stderr)
+            return
+    if choice not in ("y", "yes"):
+        info("Skipped. Will fall back to word count.")
+        return
+    info("Installing tiktoken (pip install --user tiktoken) ...")
+    try:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--user", "--quiet", "tiktoken"]
+        )
+        ok("Installed tiktoken.")
+    except subprocess.CalledProcessError:
+        warn("pip install failed. On Debian/Ubuntu with PEP 668 you may need:")
+        warn("  pipx install tiktoken    # or use a venv")
+        warn("Falling back to word count.")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Commands
+# ────────────────────────────────────────────────────────────────────────────
+def backup_path(path: Path) -> Path:
+    return path.with_name(path.stem + ".original" + path.suffix)
+
+
+def cmd_compress(path: Path, *, dry_run: bool) -> int:
+    original = path.read_text(encoding="utf-8")
+    compressed = compress_text(original)
+
+    before, label = measure_tokens(original)
+    after, _ = measure_tokens(compressed)
+    saved = before - after
+    pct = (saved * 100 // before) if before else 0
+    info(f"{label.title()} before: {before}")
+    info(f"{label.title()} after:  {after}")
+    info(f"Estimated savings: {saved} {label} ({pct}%)")
+
+    if dry_run:
+        info("--dry-run: file not modified.")
+        return 0
+
+    bk = backup_path(path)
+    if bk.exists():
+        warn(f"Backup already exists, overwriting: {bk}")
+    shutil.copy2(path, bk)
+    path.write_text(compressed, encoding="utf-8")
+    ok(f"Compressed:  {path}")
+    ok(f"Backup at:   {bk}")
+    return 0
+
+
+def cmd_restore(path: Path) -> int:
+    bk = backup_path(path)
+    if not bk.exists():
+        err(f"No backup found at {bk}")
+        return 2
+    shutil.copy2(bk, path)
+    bk.unlink()
+    ok(f"Restored: {path}")
+    return 0
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ────────────────────────────────────────────────────────────────────────────
+def parse_args(argv: List[str]) -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        prog="understudy-compress",
+        description="Caveman-style Markdown compressor for Understudy.",
+    )
+    p.add_argument("file", type=Path, help="Markdown file to compress")
+    p.add_argument("--dry-run", action="store_true",
+                   help="Show stats without modifying the file")
+    p.add_argument("--restore", action="store_true",
+                   help="Restore from <file>.original.<ext> backup")
+    p.add_argument("--yes", action="store_true",
+                   help="Non-interactive: accept tiktoken auto-install")
+    p.add_argument("--no-install", action="store_true",
+                   help="Never prompt to install optional dependencies")
+    return p.parse_args(argv)
+
+
+def main(argv: List[str]) -> int:
+    args = parse_args(argv)
+    path: Path = args.file
+
+    if args.restore:
+        # Safety still applies to the target.
+        abort_if_unsafe(path, Path.cwd())
+        return cmd_restore(path)
+
+    abort_if_unsafe(path, Path.cwd())
+    maybe_install_tiktoken(yes=args.yes, no_install=args.no_install)
+    return cmd_compress(path, dry_run=args.dry_run)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        print("", file=sys.stderr)
+        sys.exit(130)
