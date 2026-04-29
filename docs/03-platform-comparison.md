@@ -17,6 +17,8 @@ Understudy (`understudy`, or `./wizard.sh` if you are using a manual clone).
 | Persistent cross-session memory | ✅ via `docs/*.md` | ✅ via `docs/*.md` | ✅ via `docs/*.md` | ✅ via `docs/*.md` |
 | Existing project integration | ✅ | ✅ | ✅ | ✅ |
 | Monorepo stack detection | ✅ | ✅ | ✅ | ✅ |
+| Caveman mode (token-efficient role) | ✅ opt-in | ✅ opt-in | ✅ opt-in | ✅ opt-in |
+| Caveman compress script | ✅ repo-level (Python) | ✅ repo-level (Python) | ✅ repo-level (Python) | ✅ repo-level (Python) |
 
 Legend: ✅ supported, ⚠️ partial/manual, ❌ not available.
 

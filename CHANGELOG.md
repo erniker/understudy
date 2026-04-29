@@ -7,6 +7,45 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-29
+
+### Added
+
+- **Caveman mode** — token-efficient AI collaboration, ported from
+  [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) and
+  adapted to Understudy's multi-platform model. Two surfaces:
+  - **Optional `caveman` role** (`roles/caveman.instructions.md`) deployed
+    to Copilot, Claude Code and Cursor. Opt-in via `./wizard.sh --caveman`
+    or `./wizard.sh --add-member caveman`. Three intensity levels: lite,
+    full (default), ultra. Preserves code, paths, URLs, GUARDRAILS markers,
+    ADRs and `docs/decisions.md` byte-identically.
+  - **`scripts/understudy-compress`** — Python 3.8+ Markdown compressor.
+    Stdlib only by default; optional `tiktoken` for exact token counts via
+    interactive prompt or `--yes`. `--dry-run` and `--restore` supported.
+    Backup at `<file>.original.md`. Hard safety gates: refuses symlinks,
+    files outside CWD, sensitive filenames (`.env`, `*secret*`,
+    `*credential*`, `*private_key*`, `id_rsa`, `*.pem`, `*.key`, `*.p12`,
+    `*.pfx`) and sensitive content (PEM blocks, AWS keys, GitHub PATs,
+    JWTs, Slack tokens, `password=`, `api_key=`).
+  - **`scripts/requirements.txt`** declaring optional `tiktoken` dep.
+  - 12 new bats tests for the role (`tests/unit/caveman_role.bats`) and
+    20 for the compress script (`tests/unit/compress.bats`).
+
+### Documentation
+
+- New chapter [Caveman Mode](docs/11-caveman-mode.md) with platform support
+  matrix, intensity levels, safety gates, deferred-features rationale and
+  honest disclaimer about output-only token effects.
+- Platform comparison matrix updated with two new rows (caveman role,
+  compress script) — supported on all four platforms.
+- Docs index updated to link chapter 11.
+
+### Notes
+
+- Hooks, statuslines, slash commands and the wenyan post-processor from
+  upstream are intentionally **not** ported. Rationale and revisit
+  conditions documented in chapter 11 and in repository memory.
+
 ## [0.5.5] - 2026-04-29
 
 ### Fixed
