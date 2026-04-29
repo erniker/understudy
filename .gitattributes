@@ -1,0 +1,27 @@
+# `git archive` configuration for the release tarball.
+#
+# .github/workflows/release.yml builds the published tarball with
+# `git archive`, which by default packs every tracked file. The entries
+# below opt-out the dev-only paths so they do NOT ship inside
+# understudy-vX.Y.Z.tar.gz.
+#
+# Tracked by issue #45. If you add a new top-level file or directory and
+# it is dev-only (tests, CI, contributor docs), add it here.
+#
+# IMPORTANT: every pattern below is anchored to the repository root with
+# a leading slash. Without it, gitattributes globs are unanchored and
+# would also match nested paths (e.g. `.github/` would also strip
+# `templates/.github/`, and on case-insensitive filesystems `SECURITY.md`
+# would also strip `templates/.../security.md`).
+
+# ── CI / contributor / test scaffolding (dev-only) ────────────────────
+/.github/            export-ignore
+/tests/              export-ignore
+/run_tests.sh        export-ignore
+/.gitattributes      export-ignore
+/.gitignore          export-ignore
+
+# ── Contributor / governance docs (not part of the runtime) ───────────
+/CONTRIBUTING.md     export-ignore
+/CODE_OF_CONDUCT.md  export-ignore
+/SECURITY.md         export-ignore

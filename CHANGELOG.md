@@ -35,6 +35,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- **Release tarball is now built with `git archive`** instead of an
+  explicit `tar -czf <list>`. The set of dev-only paths to omit lives
+  in `.gitattributes` (`export-ignore`), so adding a new top-level
+  runtime directory no longer requires a coordinated workflow change —
+  the tarball stays in sync with the repo tree automatically. This
+  closes the regression class that produced the v0.6.1 hotfix
+  (`scripts/` was missing from v0.6.0). Closes #45.
 - **Caveman roadmap is now discoverable**: the Deferred items in
   `docs/11-caveman-mode.md` § Not shipped are tracked as labelled
   (`caveman`) issues — hooks (#59), statusline (#60), and slash
