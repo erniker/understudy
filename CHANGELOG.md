@@ -7,23 +7,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
-### Documentation
-
-- Added an `Acknowledgments` section to `README.md` thanking
-  [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) for
-  inspiring caveman mode, and reinforced the upstream credit in the chapter
-  intro of [docs/11-caveman-mode.md](docs/11-caveman-mode.md).
-- `docs/02-quick-start.md`: new "Optional: caveman mode" subsection so the
-  feature is discoverable from the quick start, not only from the index.
-- `CONTRIBUTING.md`: added `caveman_role.bats` and `compress.bats` to the
-  test-location table and documented the opt-in `tests/evals/` harness.
-- `docs/11-caveman-mode.md`: marked the token evaluation harness as
-  **Shipped** in the "Not shipped" table (it now lives at `tests/evals/`),
-  and removed the dead reference to internal workspace memory.
-- `docs/README.md`: clarified that file names keep their historical numeric
-  prefix and added a sub-link from the chapter index to the evals harness.
-- Fixed a corrupted emoji in the `README.md` optional-roles table (the
-  `caveman` row now renders the dragon emoji correctly).
+## [0.7.0] - 2026-04-29
 
 ### Added
 
@@ -45,6 +29,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) for
   inspiring caveman mode, and reinforced the upstream credit in the chapter
   intro of [docs/11-caveman-mode.md](docs/11-caveman-mode.md).
+- `docs/02-quick-start.md`: new "Optional: caveman mode" subsection so the
+  feature is discoverable from the quick start, not only from the index.
+- `CONTRIBUTING.md`: added `caveman_role.bats` and `compress.bats` to the
+  test-location table and documented the opt-in `tests/evals/` harness.
+- `docs/11-caveman-mode.md`: marked the token evaluation harness as
+  **Shipped** in the "Not shipped" table (it now lives at `tests/evals/`),
+  and removed the dead reference to internal workspace memory.
+- `docs/README.md`: clarified that file names keep their historical numeric
+  prefix and added a sub-link from the chapter index to the evals harness.
+- Fixed a corrupted emoji in the `README.md` optional-roles table (the
+  `caveman` row now renders the dragon emoji correctly).
 
 ## [0.6.1] - 2026-04-29
 
