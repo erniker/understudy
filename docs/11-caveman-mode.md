@@ -3,7 +3,8 @@
 > *"Why use many token when few token do trick."* — `roles/caveman.instructions.md`
 
 Caveman mode is Understudy's take on token-efficient AI collaboration, inspired
-by [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman). It has
+by [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) — thanks
+to its author for open-sourcing the original idea and prompt patterns. It has
 two complementary surfaces:
 
 1. **The `caveman` role** — an opt-in team member that *makes agents speak*

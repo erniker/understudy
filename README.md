@@ -528,3 +528,12 @@ To report bugs or propose improvements use the [issue templates](https://github.
 To report security vulnerabilities, see the [security policy](SECURITY.md).
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md) as its code of conduct.
+
+## Acknowledgments
+
+- **Caveman mode** (the `caveman` role and the `understudy-compress` script)
+  is inspired by [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) —
+  thanks to its author for the original idea of token-efficient AI prose and for
+  open-sourcing the prompt patterns that informed our port. See
+  [docs/11-caveman-mode.md](docs/11-caveman-mode.md) for what we adapted and
+  what we intentionally did not ship.
