@@ -51,6 +51,79 @@ pipx install tiktoken
 The compress script ships its own optional-tiktoken consent flow; the evals
 harness does not prompt — it just uses what is on `sys.path`.
 
+## Regenerating `RESULTS.md` with real `cl100k_base` numbers
+
+The committed `RESULTS.md` should declare `Token method: cl100k_base`. There
+are two supported ways to regenerate it.
+
+### Route A — CI workflow (canonical)
+
+`.github/workflows/evals.yml` runs the harness on `ubuntu-latest` with
+`tiktoken` pre-installed and uploads the regenerated `RESULTS.md` as a
+build artifact. The maintainer commits it to the repo when the numbers
+change meaningfully.
+
+Triggers:
+
+- **Manual** (`workflow_dispatch`): Actions tab → *Evals (real tiktoken)*
+  → *Run workflow*. Optional input pins the Python version (default `3.12`).
+- **Weekly** (`schedule`): Mondays 06:00 UTC. Catches `tiktoken` wheel
+  regressions early.
+
+The job is **non-blocking** and **not a required PR check** — the harness
+is opt-in by design. The lightweight word-count smoke that runs on PRs
+touching the compressor lives in `evals-smoke.yml`.
+
+### Route B — Local personal machine
+
+Pick whichever Python toolchain matches your environment. Each recipe ends
+with `./tests/evals/run.sh` and produces a `RESULTS.md` labelled
+`Token method: cl100k_base`. Commit it from the repo root.
+
+#### `uv` (recommended; installs its own Python 3.12)
+
+```bash
+uv venv --python 3.12 .venv-evals
+# Bash / zsh:
+source .venv-evals/bin/activate
+# Windows PowerShell:
+# .venv-evals\Scripts\Activate.ps1
+uv pip install tiktoken
+./tests/evals/run.sh
+```
+
+#### Stock `python3.12` + `pip`
+
+```bash
+python3.12 -m venv .venv-evals
+# Bash / zsh:
+source .venv-evals/bin/activate
+# Windows PowerShell:
+# .venv-evals\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install tiktoken
+./tests/evals/run.sh
+```
+
+#### `pipx` (system-wide, no venv juggling)
+
+```bash
+pipx install tiktoken
+./tests/evals/run.sh
+```
+
+> **Corporate proxy?** Most TLS-inspecting proxies (e.g. Zscaler) return
+> 403 for `files.pythonhosted.org` and break `pip install tiktoken`. If
+> you hit that, fall back to **Route A** — the CI workflow has clean
+> network access — and skip the local install.
+
+> **Python 3.14?** As of this writing there is no `tiktoken` wheel for
+> CPython 3.14. Pin to 3.12 (or whichever the latest version with a
+> published wheel is) for the venv above.
+
+The repo `.gitignore` already covers `.venv*`, so the harness venv will
+not be committed by accident.
+
 ## Methodology notes
 
 ### What this harness measures
