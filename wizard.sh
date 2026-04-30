@@ -1468,7 +1468,7 @@ module_index_by_flag() {
 module_set_included() {
     local idx
     idx="$(module_index_by_name "$1")" || return 1
-    MODULE_INCLUDED[$idx]="$2"
+    MODULE_INCLUDED[idx]="$2"
 }
 
 # True when the module called "$1" is included.
@@ -2025,7 +2025,7 @@ main() {
                 # corresponding MODULE_INCLUDED entry; everything else falls
                 # through to the subcommand parser below.
                 if _mod_idx="$(module_index_by_flag "$1")"; then
-                    MODULE_INCLUDED[$_mod_idx]=true
+                    MODULE_INCLUDED[_mod_idx]=true
                 else
                     _args+=("$1")
                 fi
