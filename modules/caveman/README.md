@@ -11,11 +11,13 @@ an Understudy deployment. Inspired by
 | [`role.instructions.md`](role.instructions.md) | The `caveman` role — terse, token-efficient prose style. |
 | [`bin/understudy-compress`](bin/understudy-compress) | Python 3.8+ compressor that rewrites Markdown in place, preserving code/paths/URLs and creating a `.original.md` backup. |
 | [`bin/install-hooks`](bin/install-hooks) | Wires (or removes) caveman reinforcement hooks into a project — Claude Code real hooks, plus degraded reinforcement blocks for Copilot and Cursor. |
+| [`bin/install-commands`](bin/install-commands) | Wires (or removes) caveman slash commands (`/compress`, `/restore`) for Claude, Copilot/VS Code and Cursor. |
 | [`bin/requirements.txt`](bin/requirements.txt) | Optional `tiktoken` for accurate `cl100k_base` token measurements. |
 | [`hooks/`](hooks/) | Source assets installed by `install-hooks` (Claude `session-start.sh` / `user-prompt-submit.sh`, Copilot reinforcement block, Cursor `.mdc` rule). |
-| [`post-install.flags`](post-install.flags) | Declarative wizard hook so `./wizard.sh --caveman --caveman-hooks` runs `install-hooks` after deploy without editing `wizard.sh`. |
+| [`commands/`](commands/) | Source assets installed by `install-commands` (Claude `compress.md` / `restore.md`, Copilot `*.prompt.md`, Cursor `*.md`). |
+| [`post-install.flags`](post-install.flags) | Declarative wizard hooks so `./wizard.sh --caveman --caveman-hooks` / `--caveman-commands` run their installers after deploy without editing `wizard.sh`. |
 | [`evals/`](evals/) | Token-reduction evaluation harness (`run.sh` regenerates `RESULTS.md`). |
-| [`tests/`](tests/) | Bats coverage for the role, the compressor, the install-hooks installer and the wizard's `--caveman` / `--caveman-hooks` flags. |
+| [`tests/`](tests/) | Bats coverage for the role, the compressor, the installers and the wizard's `--caveman` / `--caveman-hooks` / `--caveman-commands` flags. |
 
 The user-facing chapter for caveman lives in
 [`docs/11-caveman-mode.md`](../../docs/11-caveman-mode.md) (kept at its
@@ -63,6 +65,39 @@ modules/caveman/bin/install-hooks uninstall
 
 Caveman-owned entries are tagged with `__caveman` in `settings.json` so
 the uninstall never disturbs hooks added by other tools.
+
+## How to enable the slash commands (issue #61)
+
+Each platform has its own grammar for slash commands, so the installer
+ships a platform-native file in the conventional location for each:
+
+```bash
+./wizard.sh --caveman --caveman-commands    # opt in at deploy time
+# or, on an existing deployment:
+modules/caveman/bin/install-commands install
+```
+
+| Platform | Where it lands | How to invoke |
+| --- | --- | --- |
+| Claude Code | `.claude/commands/compress.md` and `restore.md` | `/compress <path>` and `/restore <path>` |
+| GitHub Copilot / VS Code | `.github/prompts/compress.prompt.md` and `restore.prompt.md` | Copilot Chat → run prompt file |
+| Cursor | `.cursor/commands/compress.md` and `restore.md` | `/compress <path>` and `/restore <path>` |
+
+Both commands proxy through `modules/caveman/bin/understudy-compress` so
+the same safety contract applies (refuses to operate on files outside
+CWD, on `.env*`/secret-named files, on symlinks, and on content matching
+common credential patterns; always creates a `<file>.original.md`
+backup).
+
+To remove the commands:
+
+```bash
+modules/caveman/bin/install-commands uninstall
+```
+
+Each shipped file carries a `<!-- caveman:command -->` sentinel; the
+uninstaller only removes files that still carry it, so user-authored
+files in the same directory are never touched.
 
 ## How to remove the module entirely
 
