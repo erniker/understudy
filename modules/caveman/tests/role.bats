@@ -99,9 +99,9 @@ teardown() { teardown_tmp; }
   TECH_STACK="Python"
   DETECTED_STACK=""
   DETECTED_HAS_SHELL=false
-  # MODULE_INCLUDE was populated by source_wizard_functions; keep it default
-  # (caveman = false) so this asserts the opt-in default.
-  MODULE_INCLUDE[caveman]=false
+  # MODULE registry was populated by source_wizard_functions; explicitly
+  # set caveman to opt-out so this asserts the default-off contract.
+  module_set_included caveman false
 
   deploy_default_optional_roles
 
@@ -114,7 +114,7 @@ teardown() { teardown_tmp; }
   TECH_STACK="Python"
   DETECTED_STACK=""
   DETECTED_HAS_SHELL=false
-  MODULE_INCLUDE[caveman]=true
+  module_set_included caveman true
 
   deploy_default_optional_roles
 

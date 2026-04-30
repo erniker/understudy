@@ -72,16 +72,23 @@ DEPLOY_HERE=false        # --here: deploy in current directory using inferred va
 AUTO_CONFIRM=false       # --yes/-y: skip confirmation prompts when used with --here
 
 # Module registry — populated by discover_modules() from modules/<name>/module.yaml.
-# MODULE_FLAGS  : CLI flag (e.g. "--caveman") -> module name (e.g. "caveman")
-# MODULE_INCLUDE: module name -> "true" once the matching flag is parsed
-# MODULE_TITLE  : module name -> human-readable label for --help
-# MODULE_DESC   : module name -> one-line description for --help
-# `declare -gA` so the arrays remain global even when wizard.sh is sourced
-# from inside a function (e.g. tests/lib/helpers.bash::source_wizard_functions).
-declare -gA MODULE_FLAGS
-declare -gA MODULE_INCLUDE
-declare -gA MODULE_TITLE
-declare -gA MODULE_DESC
+#
+# Implemented as 5 parallel indexed arrays so the registry stays global even
+# when wizard.sh is sourced from inside a function (e.g. the bats test
+# helper). Plain `arr=()` at top level becomes global automatically; we
+# avoid `declare -A` because macOS ships bash 4.0/4.1 (no `declare -g`)
+# which would scope the arrays to the calling function instead.
+#
+#   MODULE_NAMES[i]    = module name (e.g. "caveman")
+#   MODULE_FLAGS_[i]   = CLI flag for that module (e.g. "--caveman")
+#   MODULE_INCLUDED[i] = "true" once the matching flag is parsed ("false" otherwise)
+#   MODULE_TITLES[i]   = human-readable label for --help
+#   MODULE_DESCS[i]    = one-line description for --help
+MODULE_NAMES=()
+MODULE_FLAGS_=()
+MODULE_INCLUDED=()
+MODULE_TITLES=()
+MODULE_DESCS=()
 
 # Colores
 RED='\033[0;31m'
@@ -1408,17 +1415,17 @@ deploy_gitignore() {
 
 # Discover opt-in modules under modules/<name>/module.yaml.
 #
-# For each manifest, register:
-#   MODULE_FLAGS[<flag>]    = <name>
-#   MODULE_INCLUDE[<name>]  = "false" (default; flipped by the arg parser)
-#   MODULE_TITLE[<name>]    = "<title>"
-#   MODULE_DESC[<name>]     = "<description>"
-#
 # The manifest is a flat YAML; we read only the four keys we care about with
 # awk so we do not require yq/python at deploy time.
 discover_modules() {
     [[ -d "$MODULES_DIR" ]] || return 0
     local manifest mname mflag mtitle mdesc
+    # Reset registry on each call (idempotent).
+    MODULE_NAMES=()
+    MODULE_FLAGS_=()
+    MODULE_INCLUDED=()
+    MODULE_TITLES=()
+    MODULE_DESCS=()
     for manifest in "$MODULES_DIR"/*/module.yaml; do
         [[ -f "$manifest" ]] || continue
         mname="$(awk -F': *'   '/^name: */    {gsub(/[" \r]/,"",$2); print $2; exit}' "$manifest")"
@@ -1431,11 +1438,44 @@ discover_modules() {
             continue
         fi
 
-        MODULE_FLAGS["$mflag"]="$mname"
-        MODULE_INCLUDE["$mname"]=false
-        MODULE_TITLE["$mname"]="${mtitle:-$mname}"
-        MODULE_DESC["$mname"]="${mdesc:-}"
+        MODULE_NAMES+=("$mname")
+        MODULE_FLAGS_+=("$mflag")
+        MODULE_INCLUDED+=("false")
+        MODULE_TITLES+=("${mtitle:-$mname}")
+        MODULE_DESCS+=("${mdesc:-}")
     done
+}
+
+# Lookup helpers around the parallel-arrays registry. They echo the index
+# (0-based) of the matching module on stdout and return 0 on hit, 1 on miss.
+module_index_by_name() {
+    local i
+    for i in "${!MODULE_NAMES[@]}"; do
+        [[ "${MODULE_NAMES[$i]}" == "$1" ]] && { printf '%s\n' "$i"; return 0; }
+    done
+    return 1
+}
+
+module_index_by_flag() {
+    local i
+    for i in "${!MODULE_FLAGS_[@]}"; do
+        [[ "${MODULE_FLAGS_[$i]}" == "$1" ]] && { printf '%s\n' "$i"; return 0; }
+    done
+    return 1
+}
+
+# Mark a module as included by name. Returns 1 if the module is unknown.
+module_set_included() {
+    local idx
+    idx="$(module_index_by_name "$1")" || return 1
+    MODULE_INCLUDED[$idx]="$2"
+}
+
+# True when the module called "$1" is included.
+module_is_included() {
+    local idx
+    idx="$(module_index_by_name "$1")" || return 1
+    [[ "${MODULE_INCLUDED[$idx]}" == "true" ]]
 }
 
 # Resolve the role source file for a given role name.
@@ -1556,11 +1596,12 @@ deploy_default_optional_roles() {
     # Replaces the previous hard-coded `if $INCLUDE_CAVEMAN` branch:
     # adding/removing modules/<name>/ now toggles availability without
     # touching this file.
-    local mod_name
-    for mod_name in "${!MODULE_INCLUDE[@]}"; do
-        if [[ "${MODULE_INCLUDE[$mod_name]}" == "true" ]]; then
+    local i
+    for i in "${!MODULE_NAMES[@]}"; do
+        if [[ "${MODULE_INCLUDED[$i]}" == "true" ]]; then
+            local mod_name="${MODULE_NAMES[$i]}"
             add_optional_role_to_project "$mod_name"
-            info "Opt-in module: ${mod_name} (${MODULE_DESC[$mod_name]:-${MODULE_TITLE[$mod_name]:-$mod_name}})"
+            info "Opt-in module: ${mod_name} (${MODULE_DESCS[$i]:-${MODULE_TITLES[$i]:-$mod_name}})"
         fi
     done
 }
@@ -1933,12 +1974,13 @@ show_help() {
 
     # Auto-list opt-in modules so adding modules/<name>/ surfaces in --help
     # without further edits.
-    if [[ ${#MODULE_FLAGS[@]} -gt 0 ]]; then
+    if [[ ${#MODULE_NAMES[@]} -gt 0 ]]; then
         echo "  Opt-in modules:"
-        local mflag mname desc
-        for mflag in "${!MODULE_FLAGS[@]}"; do
-            mname="${MODULE_FLAGS[$mflag]}"
-            desc="${MODULE_DESC[$mname]:-${MODULE_TITLE[$mname]:-$mname}}"
+        local i mflag mname desc
+        for i in "${!MODULE_NAMES[@]}"; do
+            mflag="${MODULE_FLAGS_[$i]}"
+            mname="${MODULE_NAMES[$i]}"
+            desc="${MODULE_DESCS[$i]:-${MODULE_TITLES[$i]:-$mname}}"
             printf "    ./wizard.sh %-13s %s\n" "$mflag" "$desc"
         done
         echo ""
@@ -1966,23 +2008,24 @@ show_help() {
 main() {
     check_for_updates "$@"
 
-    # Populate MODULE_FLAGS / MODULE_INCLUDE before arg parsing so module
-    # flags (e.g. --caveman) resolve dynamically.
+    # Populate the module registry before arg parsing so module flags
+    # (e.g. --caveman) resolve dynamically.
     discover_modules
 
     # Pre-parse flags that combine with the default deploy flow.
     # --here / --yes (-y) can appear in any order before/after each other.
     local _args=()
+    local _mod_idx
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --here)     DEPLOY_HERE=true ;;
             --yes|-y)   AUTO_CONFIRM=true ;;
             *)
                 # Module flags (registered via discover_modules) flip the
-                # corresponding MODULE_INCLUDE entry; everything else falls
+                # corresponding MODULE_INCLUDED entry; everything else falls
                 # through to the subcommand parser below.
-                if [[ -n "${MODULE_FLAGS[$1]:-}" ]]; then
-                    MODULE_INCLUDE["${MODULE_FLAGS[$1]}"]=true
+                if _mod_idx="$(module_index_by_flag "$1")"; then
+                    MODULE_INCLUDED[$_mod_idx]=true
                 else
                     _args+=("$1")
                 fi

@@ -57,7 +57,7 @@ source_wizard_functions() {
   # shellcheck source=../../wizard.sh
   source "$WIZARD"
 
-  # Populate the module registry so tests can flip MODULE_INCLUDE[<name>]
-  # exactly the way the production main() does.
+  # Populate the module registry so tests can flip module inclusion via
+  # `module_set_included <name> true|false` exactly the way main() does.
   discover_modules
 }
