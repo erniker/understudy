@@ -107,6 +107,46 @@ jobs:
           tar tzf "$archive" | sort
           echo "Total entries: $(tar tzf "$archive" | wc -l)"
 
+      - name: Smoke-test release tarball
+        run: |
+          archive="${{ steps.tarball.outputs.archive }}"
+          smoke=$(mktemp -d)
+
+          # Extract flat (matches install.sh: `tar xz --strip-components=0`).
+          tar -xzf "$archive" -C "$smoke"
+
+          # Required top-level entries — these are what install.sh expects.
+          required=(wizard.sh install.sh README.md CHANGELOG.md LICENSE understudy.yaml roles templates)
+          missing=0
+          for entry in "${required[@]}"; do
+            if [[ ! -e "$smoke/$entry" ]]; then
+              echo "::error::Release tarball is missing required entry: $entry"
+              missing=1
+            fi
+          done
+
+          # Dev-only paths must NOT ship in the tarball (export-ignore in .gitattributes).
+          forbidden=(.github tests run_tests.sh CONTRIBUTING.md)
+          for entry in "${forbidden[@]}"; do
+            if [[ -e "$smoke/$entry" ]]; then
+              echo "::error::Release tarball must not contain dev-only path: $entry"
+              missing=1
+            fi
+          done
+
+          if [[ $missing -ne 0 ]]; then
+            exit 1
+          fi
+
+          # The wizard must at minimum print --help cleanly from the extracted tree.
+          chmod +x "$smoke/wizard.sh"
+          if ! UNDERSTUDY_SKIP_UPDATE_CHECK=1 bash "$smoke/wizard.sh" --help >/dev/null; then
+            echo "::error::wizard.sh --help failed when run from the extracted tarball"
+            exit 1
+          fi
+
+          echo "Release tarball smoke test passed."
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
