@@ -7,6 +7,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **Caveman reinforcement hooks** (closes #59):
+  `modules/caveman/bin/install-hooks` wires terse-style reinforcement
+  into a project on opt-in. On Claude Code it installs real hooks via
+  `.claude/settings.json` (`SessionStart` reminder and, with
+  `--mode compress`, an opt-in `UserPromptSubmit` hook that runs
+  `understudy-compress` on paths listed in
+  `.caveman/auto-compress.paths` before each prompt). On GitHub Copilot
+  and Cursor — neither of which expose a pre-prompt hook API — the
+  installer drops a marker-delimited reinforcement block inside
+  `.github/copilot-instructions.md` and an always-applied
+  `.cursor/rules/00-caveman-active.mdc` rule respectively.
+  Caveman-owned entries are tagged with `__caveman` in `settings.json`
+  so reinstall is idempotent and uninstall never touches hooks added by
+  other tools (e.g. the existing guardrails `PreToolUse` hook).
+  The wizard exposes the new automation via
+  `./wizard.sh --caveman --caveman-hooks`; the flag is registered
+  declaratively from `modules/caveman/post-install.flags` so other
+  modules can ship the same kind of opt-in automation without editing
+  `wizard.sh`.
+
 ### Changed
 
 - **Modules layout**: caveman is now a self-contained module under

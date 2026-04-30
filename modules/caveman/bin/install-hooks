@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+# install-hooks — wire (or remove) caveman reinforcement hooks for the
+# active AI platforms in a project.
+#
+# This script never modifies content outside its target directory and
+# always uses marker-delimited blocks for text-based platforms so that
+# uninstall is a clean removal.
+#
+# USAGE
+#   modules/caveman/bin/install-hooks install   [options]
+#   modules/caveman/bin/install-hooks uninstall [options]
+#
+# OPTIONS
+#   --mode    remind|compress|both   What to wire up.
+#                                    - remind:   keep caveman style alive
+#                                                across sessions (safe).
+#                                    - compress: auto-run understudy-compress
+#                                                on configured paths before
+#                                                each prompt (Claude only).
+#                                    - both:     remind + compress.
+#                                    Default: remind.
+#   --target  PATH                   Project root to install into.
+#                                    Default: current directory.
+#   --platforms LIST                 Comma-separated subset of
+#                                    claude,copilot,cursor.
+#                                    Default: auto-detect from existing
+#                                    .claude/, .github/, .cursor/.
+#   --paths-file PATH                Path list for --mode=compress (one
+#                                    repo-relative or absolute path per
+#                                    line). Default: .caveman/auto-compress.paths
+#   -h, --help                       Show this help.
+#
+# PLATFORM SUPPORT
+#   - Claude Code: real hooks via .claude/settings.json
+#       remind   → SessionStart hook prints reinforcement.
+#       compress → UserPromptSubmit hook calls understudy-compress on the
+#                  paths file before the prompt reaches the model.
+#   - GitHub Copilot: no pre-prompt hook API. Caveman reinforcement is
+#       injected as a standing block inside
+#       .github/copilot-instructions.md between caveman:hooks markers.
+#   - Cursor: no pre-prompt hook API. Caveman reinforcement is dropped
+#       into .cursor/rules/00-caveman-active.mdc as an always-applied rule.
+#
+# IDEMPOTENCY
+#   Reinstalling overwrites the existing block in place; uninstalling
+#   removes the block (and the JSON entry) without touching the rest.
+#
+# EXIT CODES
+#   0  success
+#   1  usage error / target missing
+#   2  python3 missing while needed for JSON merge
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE_DIR="$(cd "${HERE}/.." && pwd)"
+HOOKS_SRC="${MODULE_DIR}/hooks"
+
+# Defaults
+ACTION=""
+MODE="remind"
+TARGET="$(pwd)"
+PLATFORMS=""
+PATHS_FILE=".caveman/auto-compress.paths"
+
+# ── Helpers ──────────────────────────────────────────────────────────
+die() { printf 'install-hooks: error: %s\n' "$*" >&2; exit 1; }
+note() { printf '[install-hooks] %s\n' "$*"; }
+
+usage() {
+    sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed -e 's/^# \{0,1\}//' -e '$d'
+}
+
+# Replace (or insert) a caveman:hooks-marked block inside a file. Creates
+# the file if missing. Idempotent: existing block is replaced in place.
+replace_marker_block() {
+    local target_file="$1" snippet_file="$2"
+    local start="<!-- caveman:hooks:start -->"
+    local end="<!-- caveman:hooks:end -->"
+    mkdir -p "$(dirname "$target_file")"
+    if [[ -f "$target_file" ]] && grep -qF "$start" "$target_file"; then
+        # Drop existing block, keep everything else.
+        awk -v s="$start" -v e="$end" '
+            $0 ~ s {inblock=1; next}
+            inblock && $0 ~ e {inblock=0; next}
+            !inblock {print}
+        ' "$target_file" > "${target_file}.tmp"
+        mv "${target_file}.tmp" "$target_file"
+    fi
+    {
+        if [[ -s "$target_file" ]]; then
+            cat "$target_file"
+            # Ensure separation between any prior content and the block.
+            tail -c1 "$target_file" | od -An -c | grep -q '\\n' || printf '\n'
+            printf '\n'
+        fi
+        cat "$snippet_file"
+    } > "${target_file}.tmp"
+    mv "${target_file}.tmp" "$target_file"
+}
+
+remove_marker_block() {
+    local target_file="$1"
+    local start="<!-- caveman:hooks:start -->"
+    [[ -f "$target_file" ]] || return 0
+    grep -qF "$start" "$target_file" || return 0
+    awk -v s="$start" -v e="<!-- caveman:hooks:end -->" '
+        $0 ~ s {inblock=1; next}
+        inblock && $0 ~ e {inblock=0; next}
+        !inblock {print}
+    ' "$target_file" > "${target_file}.tmp"
+    mv "${target_file}.tmp" "$target_file"
+}
+
+# JSON merge (or remove) the caveman entries inside .claude/settings.json.
+# We isolate this to a helper so the bash side stays readable.
+claude_settings_apply() {
+    local action="$1"          # install | uninstall
+    local mode="$2"            # remind | compress | both
+    local settings_path="$3"
+
+    command -v python3 >/dev/null 2>&1 \
+        || { printf 'install-hooks: error: python3 is required to update %s\n' "$settings_path" >&2; exit 2; }
+
+    mkdir -p "$(dirname "$settings_path")"
+    [[ -f "$settings_path" ]] || printf '{}\n' > "$settings_path"
+
+    SETTINGS_PATH="$settings_path" \
+    HOOKS_DIR="${TARGET}/.claude/hooks/caveman" \
+    ACTION="$action" \
+    MODE="$mode" \
+    python3 - <<'PY'
+import json, os, sys
+
+path = os.environ["SETTINGS_PATH"]
+hooks_dir = os.environ["HOOKS_DIR"]
+action = os.environ["ACTION"]
+mode = os.environ["MODE"]
+
+with open(path, "r", encoding="utf-8") as fh:
+    try:
+        data = json.load(fh)
+    except json.JSONDecodeError:
+        data = {}
+
+hooks = data.setdefault("hooks", {})
+
+# Build the entries we own. Marking them with __caveman lets us recognise
+# our own entries on uninstall without disturbing anything the user (or
+# another tool) added.
+def caveman_entry(script_relpath):
+    return {
+        "type": "command",
+        "command": script_relpath,
+        "__caveman": True,
+    }
+
+want = {}
+if action == "install":
+    if mode in ("remind", "both"):
+        want["SessionStart"] = caveman_entry(".claude/hooks/caveman/session-start.sh")
+    if mode in ("compress", "both"):
+        want["UserPromptSubmit"] = caveman_entry(".claude/hooks/caveman/user-prompt-submit.sh")
+
+# Drop any existing caveman-owned entries first so reinstall is clean.
+for event in ("SessionStart", "UserPromptSubmit"):
+    arr = hooks.get(event)
+    if not isinstance(arr, list):
+        continue
+    arr[:] = [e for e in arr if not (isinstance(e, dict) and e.get("__caveman"))]
+    if not arr:
+        del hooks[event]
+
+# Add the desired entries.
+for event, entry in want.items():
+    hooks.setdefault(event, []).append(entry)
+
+if not hooks:
+    data.pop("hooks", None)
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2, sort_keys=False)
+    fh.write("\n")
+PY
+}
+
+detect_platforms() {
+    local detected=""
+    [[ -d "${TARGET}/.claude"  ]] && detected="${detected:+${detected},}claude"
+    [[ -d "${TARGET}/.github"  ]] && detected="${detected:+${detected},}copilot"
+    [[ -d "${TARGET}/.cursor"  ]] && detected="${detected:+${detected},}cursor"
+    printf '%s' "$detected"
+}
+
+has_platform() { [[ ",${PLATFORMS}," == *",$1,"* ]]; }
+
+# ── Argument parsing ────────────────────────────────────────────────
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        install|uninstall)   ACTION="$1"; shift ;;
+        --mode)              MODE="${2:?--mode requires a value}"; shift 2 ;;
+        --target)            TARGET="${2:?--target requires a value}"; shift 2 ;;
+        --platforms)         PLATFORMS="${2:?--platforms requires a value}"; shift 2 ;;
+        --paths-file)        PATHS_FILE="${2:?--paths-file requires a value}"; shift 2 ;;
+        -h|--help)           usage; exit 0 ;;
+        *)                   die "unknown argument: $1" ;;
+    esac
+done
+
+[[ -n "$ACTION" ]]               || die "missing action (install|uninstall)"
+[[ -d "$TARGET" ]]               || die "target directory does not exist: $TARGET"
+case "$MODE" in
+    remind|compress|both) ;;
+    *) die "invalid --mode: $MODE (expected remind|compress|both)" ;;
+esac
+
+[[ -n "$PLATFORMS" ]] || PLATFORMS="$(detect_platforms)"
+[[ -n "$PLATFORMS" ]] || die "no AI platforms detected under $TARGET (need .claude, .github or .cursor)"
+
+TARGET="$(cd "$TARGET" && pwd)"
+
+# ── Claude ──────────────────────────────────────────────────────────
+if has_platform "claude"; then
+    settings="${TARGET}/.claude/settings.json"
+    hooks_dest="${TARGET}/.claude/hooks/caveman"
+    if [[ "$ACTION" == "install" ]]; then
+        mkdir -p "$hooks_dest"
+        if [[ "$MODE" == "remind" || "$MODE" == "both" ]]; then
+            install -m 0755 "${HOOKS_SRC}/claude/session-start.sh"     "${hooks_dest}/session-start.sh"
+        else
+            rm -f "${hooks_dest}/session-start.sh"
+        fi
+        if [[ "$MODE" == "compress" || "$MODE" == "both" ]]; then
+            install -m 0755 "${HOOKS_SRC}/claude/user-prompt-submit.sh" "${hooks_dest}/user-prompt-submit.sh"
+            mkdir -p "${TARGET}/$(dirname "$PATHS_FILE")"
+            if [[ ! -f "${TARGET}/${PATHS_FILE}" ]]; then
+                cat > "${TARGET}/${PATHS_FILE}" <<EOF
+# caveman auto-compress paths — one repo-relative or absolute path per line.
+# Lines starting with # are ignored. Created by install-hooks; safe to edit.
+EOF
+            fi
+        else
+            rm -f "${hooks_dest}/user-prompt-submit.sh"
+        fi
+        claude_settings_apply install "$MODE" "$settings"
+        note "Claude hooks installed under .claude/hooks/caveman/ (mode=${MODE})"
+    else
+        claude_settings_apply uninstall "$MODE" "$settings"
+        rm -f "${hooks_dest}/session-start.sh" "${hooks_dest}/user-prompt-submit.sh"
+        rmdir "$hooks_dest" 2>/dev/null || true
+        note "Claude hooks removed"
+    fi
+fi
+
+# ── Copilot (degraded: text injection) ─────────────────────────────
+if has_platform "copilot"; then
+    target_file="${TARGET}/.github/copilot-instructions.md"
+    if [[ "$ACTION" == "install" ]]; then
+        replace_marker_block "$target_file" "${HOOKS_SRC}/copilot/reinforcement.md"
+        note "Copilot reinforcement block written to .github/copilot-instructions.md"
+    else
+        remove_marker_block "$target_file"
+        note "Copilot reinforcement block removed"
+    fi
+fi
+
+# ── Cursor (degraded: always-applied rule) ─────────────────────────
+if has_platform "cursor"; then
+    target_file="${TARGET}/.cursor/rules/00-caveman-active.mdc"
+    if [[ "$ACTION" == "install" ]]; then
+        mkdir -p "$(dirname "$target_file")"
+        cp "${HOOKS_SRC}/cursor/reinforcement.mdc" "$target_file"
+        note "Cursor rule written to .cursor/rules/00-caveman-active.mdc"
+    else
+        rm -f "$target_file"
+        note "Cursor rule removed"
+    fi
+fi
+
+note "Done."
