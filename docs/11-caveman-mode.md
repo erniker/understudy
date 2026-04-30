@@ -175,7 +175,7 @@ port (yet). Each was evaluated and consciously deferred:
 
 | Feature | Status | Why deferred |
 | --- | --- | --- |
-| Pre/post-prompt **hooks** | Deferred ([#59](https://github.com/erniker/understudy/issues/59)) | Platform-specific; Claude Code is the only first-class target. Will land as `--with-hooks` in a future minor release. |
+| Pre/post-prompt **hooks** | **Shipped** ([#59](https://github.com/erniker/understudy/issues/59)) | See [Reinforcement hooks](#reinforcement-hooks-issue-59) below. Claude Code uses real hooks; Copilot and Cursor get a degraded equivalent. |
 | **Statusline** | Deferred ([#60](https://github.com/erniker/understudy/issues/60)) | Claude-only. Limited cross-platform value. |
 | **Slash commands** for compression | Deferred ([#61](https://github.com/erniker/understudy/issues/61)) | Each platform has its own command grammar; needs a separate design. |
 | **wenyan** (Classical Chinese post-processor) | Skipped | Out of scope for an English-language ops tool. |
@@ -184,6 +184,51 @@ port (yet). Each was evaluated and consciously deferred:
 The deferred items above are tracked as labelled (`caveman`) issues so
 they are discoverable in the issue tracker. They are open for
 discussion, not committed work.
+
+---
+
+## Reinforcement hooks (issue #59)
+
+The caveman role file is just a description, so without reinforcement the
+model drifts back to verbose prose after a few turns. The
+`modules/caveman/bin/install-hooks` installer pins the mode in place
+across sessions. It treats each AI platform separately because their
+hook surfaces are not equivalent:
+
+| Platform | Mechanism | What gets installed |
+| --- | --- | --- |
+| Claude Code | Real hooks via `.claude/settings.json` | A `SessionStart` hook (`--mode remind`, default) and/or a `UserPromptSubmit` hook (`--mode compress`) calling the compressor on paths listed in `.caveman/auto-compress.paths`. |
+| GitHub Copilot | No pre-prompt API → marker-delimited block | A reinforcement block inside `.github/copilot-instructions.md` between `<!-- caveman:hooks:start -->` and `<!-- caveman:hooks:end -->`. |
+| Cursor | No pre-prompt API → always-applied rule | `.cursor/rules/00-caveman-active.mdc` with `alwaysApply: true`. |
+
+Wire it up at deploy time:
+
+```bash
+./wizard.sh --caveman --caveman-hooks       # remind-only, safest default
+```
+
+Or against an existing deployment:
+
+```bash
+modules/caveman/bin/install-hooks install --mode remind
+modules/caveman/bin/install-hooks install --mode compress   # auto-compress, Claude only
+modules/caveman/bin/install-hooks install --mode both
+```
+
+`--mode compress` modifies repo files in place before each prompt; only
+enable it when the project is under version control and you are
+comfortable with the compressor's safety contract (see
+[Compress-script safety](#compress-script-safety) above).
+
+To remove every reinforcement asset:
+
+```bash
+modules/caveman/bin/install-hooks uninstall
+```
+
+Caveman-owned entries in `settings.json` are tagged with `__caveman`, so
+the uninstaller never touches hooks installed by other tools (for
+example the existing `PreToolUse` guardrails hook).
 
 ---
 

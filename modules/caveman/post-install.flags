@@ -1,0 +1,12 @@
+# post-install.flags — declarative wizard hooks for the caveman module.
+#
+# Format: <wizard-flag>\t<command-relative-to-module-dir>\t<one-line description>
+# Lines starting with # are ignored. Wizard discovers this file via
+# discover_modules() (see wizard.sh). When the user passes the flag on
+# the command line, wizard runs the command from the deployment's
+# target directory after the regular deploy finishes. The command MUST
+# be safe to run more than once (it will be on re-deploy).
+#
+# This file is the contract that lets contributors ship optional
+# automation alongside a module without editing wizard.sh.
+--caveman-hooks	bin/install-hooks install --mode remind --target {TARGET}	Install caveman reinforcement hooks (Claude SessionStart + Copilot/Cursor reminder).

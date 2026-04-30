@@ -90,6 +90,26 @@ MODULE_INCLUDED=()
 MODULE_TITLES=()
 MODULE_DESCS=()
 
+# Post-install registry — populated alongside the module registry.
+#
+# A module declares optional post-install actions in a sidecar file
+# `modules/<name>/post-install.flags` (tab-separated: flag, command,
+# description). When the user passes the flag, the wizard runs the
+# command (relative to the module dir) inside the deployment target
+# after the normal deploy finishes. The command may include the literal
+# token `{TARGET}` which is substituted with the absolute target path.
+#
+#   POSTINSTALL_MODULES[i] = owning module name
+#   POSTINSTALL_FLAGS[i]   = CLI flag (e.g. "--caveman-hooks")
+#   POSTINSTALL_CMDS[i]    = command line, relative to module directory
+#   POSTINSTALL_DESCS[i]   = one-line description for --help
+#   POSTINSTALL_REQUESTED[i] = "true" once the user passes the flag
+POSTINSTALL_MODULES=()
+POSTINSTALL_FLAGS=()
+POSTINSTALL_CMDS=()
+POSTINSTALL_DESCS=()
+POSTINSTALL_REQUESTED=()
+
 # Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -1443,6 +1463,25 @@ discover_modules() {
         MODULE_INCLUDED+=("false")
         MODULE_TITLES+=("${mtitle:-$mname}")
         MODULE_DESCS+=("${mdesc:-}")
+
+        # Optional post-install flags shipped by the module.
+        local post_file="${MODULES_DIR}/${mname}/post-install.flags"
+        if [[ -f "$post_file" ]]; then
+            local pflag pcmd pdesc
+            while IFS=$'\t' read -r pflag pcmd pdesc || [[ -n "$pflag" ]]; do
+                # Skip blanks and comments.
+                [[ -z "$pflag" || "$pflag" == \#* ]] && continue
+                if [[ -z "$pcmd" ]]; then
+                    warn "Module $mname: post-install line missing command: $pflag"
+                    continue
+                fi
+                POSTINSTALL_MODULES+=("$mname")
+                POSTINSTALL_FLAGS+=("$pflag")
+                POSTINSTALL_CMDS+=("$pcmd")
+                POSTINSTALL_DESCS+=("${pdesc:-}")
+                POSTINSTALL_REQUESTED+=("false")
+            done < "$post_file"
+        fi
     done
 }
 
@@ -1476,6 +1515,40 @@ module_is_included() {
     local idx
     idx="$(module_index_by_name "$1")" || return 1
     [[ "${MODULE_INCLUDED[$idx]}" == "true" ]]
+}
+
+# Look up a post-install entry by its CLI flag. Echoes the 0-based
+# index on stdout, returns 1 if not found.
+postinstall_index_by_flag() {
+    local i
+    for i in "${!POSTINSTALL_FLAGS[@]}"; do
+        [[ "${POSTINSTALL_FLAGS[$i]}" == "$1" ]] && { printf '%s\n' "$i"; return 0; }
+    done
+    return 1
+}
+
+# Run every requested post-install command from the deployment target.
+# Substitutes the literal token {TARGET} with the absolute target path.
+# Each command is invoked through bash so simple multi-word command
+# lines work without extra quoting in post-install.flags.
+run_postinstall_actions() {
+    local i mname cmd full_cmd module_dir
+    for i in "${!POSTINSTALL_FLAGS[@]}"; do
+        [[ "${POSTINSTALL_REQUESTED[$i]}" == "true" ]] || continue
+        # Only run post-install actions for modules that were actually
+        # included; otherwise we would wire hooks for assets that were
+        # never deployed.
+        mname="${POSTINSTALL_MODULES[$i]}"
+        if ! module_is_included "$mname"; then
+            warn "Skipping ${POSTINSTALL_FLAGS[$i]}: module '$mname' was not included (--$mname missing?)"
+            continue
+        fi
+        module_dir="${MODULES_DIR}/${mname}"
+        cmd="${POSTINSTALL_CMDS[$i]}"
+        full_cmd="${cmd//\{TARGET\}/$TARGET_DIR}"
+        info "Running post-install for $mname: ${POSTINSTALL_FLAGS[$i]}"
+        ( cd "$module_dir" && bash -c "$full_cmd" ) || warn "Post-install command failed: $full_cmd"
+    done
 }
 
 # Resolve the role source file for a given role name.
@@ -1841,6 +1914,11 @@ EOF
 # ─── Post-deploy ─────────────────────────────────────────────
 
 post_deploy() {
+    # Run any module-supplied post-install actions the user requested
+    # via flags from modules/<name>/post-install.flags. Done before the
+    # success banner so failures surface above it.
+    run_postinstall_actions
+
     echo ""
     echo -e "${GREEN}${BOLD}"
     if $INTEGRATION_MODE; then
@@ -1986,6 +2064,21 @@ show_help() {
         echo ""
     fi
 
+    # Auto-list module-supplied post-install flags. Each module declares
+    # them in modules/<name>/post-install.flags and discover_modules()
+    # registers them at startup, so contributors can ship new automation
+    # without editing this file.
+    if [[ ${#POSTINSTALL_FLAGS[@]} -gt 0 ]]; then
+        echo "  Module post-install flags (combine with the matching opt-in module):"
+        local j pflag pdesc
+        for j in "${!POSTINSTALL_FLAGS[@]}"; do
+            pflag="${POSTINSTALL_FLAGS[$j]}"
+            pdesc="${POSTINSTALL_DESCS[$j]:-(no description)}"
+            printf "    ./wizard.sh %-25s %s\n" "$pflag" "$pdesc"
+        done
+        echo ""
+    fi
+
     echo "  Supported platforms:"
     echo "    • GitHub Copilot CLI / VS Code"
     echo "    • Claude Code"
@@ -2015,17 +2108,20 @@ main() {
     # Pre-parse flags that combine with the default deploy flow.
     # --here / --yes (-y) can appear in any order before/after each other.
     local _args=()
-    local _mod_idx
+    local _mod_idx _post_idx
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --here)     DEPLOY_HERE=true ;;
             --yes|-y)   AUTO_CONFIRM=true ;;
             *)
                 # Module flags (registered via discover_modules) flip the
-                # corresponding MODULE_INCLUDED entry; everything else falls
+                # corresponding MODULE_INCLUDED entry. Module post-install
+                # flags flip POSTINSTALL_REQUESTED. Anything else falls
                 # through to the subcommand parser below.
                 if _mod_idx="$(module_index_by_flag "$1")"; then
                     MODULE_INCLUDED[_mod_idx]=true
+                elif _post_idx="$(postinstall_index_by_flag "$1")"; then
+                    POSTINSTALL_REQUESTED[_post_idx]=true
                 else
                     _args+=("$1")
                 fi
