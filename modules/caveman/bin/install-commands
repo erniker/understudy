@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# install-commands — wire (or remove) caveman slash commands for the
+# active AI platforms in a project.
+#
+# Each platform has its own slash-command grammar, so this installer
+# copies platform-native files into their conventional locations:
+#
+#   - Claude Code: .claude/commands/<name>.md
+#   - GitHub Copilot / VS Code: .github/prompts/<name>.prompt.md
+#   - Cursor: .cursor/commands/<name>.md
+#
+# All files include a "<!-- caveman:command -->" sentinel so uninstall
+# only removes files we own — files with the same name written by the
+# user or another tool are left alone.
+#
+# USAGE
+#   modules/caveman/bin/install-commands install   [options]
+#   modules/caveman/bin/install-commands uninstall [options]
+#
+# OPTIONS
+#   --target  PATH      Project root to install into. Default: cwd.
+#   --platforms LIST    Comma-separated subset of claude,copilot,cursor.
+#                       Default: auto-detect from existing .claude/,
+#                       .github/, .cursor/.
+#   -h, --help          Show this help.
+#
+# EXIT CODES
+#   0  success
+#   1  usage error / target missing
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE_DIR="$(cd "${HERE}/.." && pwd)"
+COMMANDS_SRC="${MODULE_DIR}/commands"
+SENTINEL='<!-- caveman:command'
+
+# Defaults
+ACTION=""
+TARGET="$(pwd)"
+PLATFORMS=""
+
+# Command names per platform. Filenames in the source tree.
+CLAUDE_CMDS=(compress.md restore.md)
+COPILOT_CMDS=(compress.prompt.md restore.prompt.md)
+CURSOR_CMDS=(compress.md restore.md)
+
+# ── Helpers ──────────────────────────────────────────────────────────
+die() { printf 'install-commands: error: %s\n' "$*" >&2; exit 1; }
+note() { printf '[install-commands] %s\n' "$*"; }
+
+usage() {
+    sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed -e 's/^# \{0,1\}//' -e '$d'
+}
+
+detect_platforms() {
+    local detected=""
+    [[ -d "${TARGET}/.claude"  ]] && detected="${detected:+${detected},}claude"
+    [[ -d "${TARGET}/.github"  ]] && detected="${detected:+${detected},}copilot"
+    [[ -d "${TARGET}/.cursor"  ]] && detected="${detected:+${detected},}cursor"
+    printf '%s' "$detected"
+}
+
+has_platform() { [[ ",${PLATFORMS}," == *",$1,"* ]]; }
+
+# Install one command file: copy from src to dst, creating the parent
+# directory. Always overwrite (idempotent).
+install_one() {
+    local src="$1" dst="$2"
+    [[ -f "$src" ]] || die "missing source command file: $src"
+    mkdir -p "$(dirname "$dst")"
+    cp "$src" "$dst"
+}
+
+# Remove one command file but only if it carries the caveman sentinel.
+# This protects user-authored files that happen to share the name.
+uninstall_one() {
+    local dst="$1"
+    [[ -f "$dst" ]] || return 0
+    if grep -qF "$SENTINEL" "$dst"; then
+        rm -f "$dst"
+    else
+        note "skipping $dst (no caveman sentinel — left untouched)"
+    fi
+}
+
+# ── Argument parsing ────────────────────────────────────────────────
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        install|uninstall)   ACTION="$1"; shift ;;
+        --target)            TARGET="${2:?--target requires a value}"; shift 2 ;;
+        --platforms)         PLATFORMS="${2:?--platforms requires a value}"; shift 2 ;;
+        -h|--help)           usage; exit 0 ;;
+        *)                   die "unknown argument: $1" ;;
+    esac
+done
+
+[[ -n "$ACTION" ]]               || die "missing action (install|uninstall)"
+[[ -d "$TARGET" ]]               || die "target directory does not exist: $TARGET"
+
+[[ -n "$PLATFORMS" ]] || PLATFORMS="$(detect_platforms)"
+[[ -n "$PLATFORMS" ]] || die "no AI platforms detected under $TARGET (need .claude, .github or .cursor)"
+
+TARGET="$(cd "$TARGET" && pwd)"
+
+# ── Claude ──────────────────────────────────────────────────────────
+if has_platform "claude"; then
+    dest_dir="${TARGET}/.claude/commands"
+    if [[ "$ACTION" == "install" ]]; then
+        for f in "${CLAUDE_CMDS[@]}"; do
+            install_one "${COMMANDS_SRC}/claude/${f}" "${dest_dir}/${f}"
+        done
+        note "Claude commands installed under .claude/commands/ (${CLAUDE_CMDS[*]})"
+    else
+        for f in "${CLAUDE_CMDS[@]}"; do
+            uninstall_one "${dest_dir}/${f}"
+        done
+        note "Claude commands removed"
+    fi
+fi
+
+# ── Copilot / VS Code ──────────────────────────────────────────────
+if has_platform "copilot"; then
+    dest_dir="${TARGET}/.github/prompts"
+    if [[ "$ACTION" == "install" ]]; then
+        for f in "${COPILOT_CMDS[@]}"; do
+            install_one "${COMMANDS_SRC}/copilot/${f}" "${dest_dir}/${f}"
+        done
+        note "Copilot prompts installed under .github/prompts/ (${COPILOT_CMDS[*]})"
+    else
+        for f in "${COPILOT_CMDS[@]}"; do
+            uninstall_one "${dest_dir}/${f}"
+        done
+        note "Copilot prompts removed"
+    fi
+fi
+
+# ── Cursor ──────────────────────────────────────────────────────────
+if has_platform "cursor"; then
+    dest_dir="${TARGET}/.cursor/commands"
+    if [[ "$ACTION" == "install" ]]; then
+        for f in "${CURSOR_CMDS[@]}"; do
+            install_one "${COMMANDS_SRC}/cursor/${f}" "${dest_dir}/${f}"
+        done
+        note "Cursor commands installed under .cursor/commands/ (${CURSOR_CMDS[*]})"
+    else
+        for f in "${CURSOR_CMDS[@]}"; do
+            uninstall_one "${dest_dir}/${f}"
+        done
+        note "Cursor commands removed"
+    fi
+fi
+
+note "Done."

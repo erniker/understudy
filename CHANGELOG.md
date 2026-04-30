@@ -9,6 +9,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- **Caveman slash commands** (closes #61):
+  `modules/caveman/bin/install-commands` ships a `/compress` and a
+  `/restore` slash command in each platform's native location:
+  `.claude/commands/*.md` for Claude Code,
+  `.github/prompts/*.prompt.md` for GitHub Copilot / VS Code, and
+  `.cursor/commands/*.md` for Cursor. Each shipped file carries a
+  `<!-- caveman:command -->` sentinel; uninstall only removes files that
+  still carry it, so a user who overrides one with their own version
+  will see their file preserved. The wizard exposes the new automation
+  via `./wizard.sh --caveman --caveman-commands`, registered
+  declaratively from `modules/caveman/post-install.flags`.
 - **Caveman reinforcement hooks** (closes #59):
   `modules/caveman/bin/install-hooks` wires terse-style reinforcement
   into a project on opt-in. On Claude Code it installs real hooks via

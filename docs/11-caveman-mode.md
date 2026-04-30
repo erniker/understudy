@@ -177,7 +177,7 @@ port (yet). Each was evaluated and consciously deferred:
 | --- | --- | --- |
 | Pre/post-prompt **hooks** | **Shipped** ([#59](https://github.com/erniker/understudy/issues/59)) | See [Reinforcement hooks](#reinforcement-hooks-issue-59) below. Claude Code uses real hooks; Copilot and Cursor get a degraded equivalent. |
 | **Statusline** | Deferred ([#60](https://github.com/erniker/understudy/issues/60)) | Claude-only. Limited cross-platform value. |
-| **Slash commands** for compression | Deferred ([#61](https://github.com/erniker/understudy/issues/61)) | Each platform has its own command grammar; needs a separate design. |
+| **Slash commands** for compression | **Shipped** ([#61](https://github.com/erniker/understudy/issues/61)) | See [Slash commands](#slash-commands-issue-61) below. Each platform gets a native file in its conventional location. |
 | **wenyan** (Classical Chinese post-processor) | Skipped | Out of scope for an English-language ops tool. |
 | **Token evaluation harness** | **Shipped** in [`modules/caveman/evals/`](../modules/caveman/evals/README.md) | Dogfood + 3-arm methodology (no-caveman / role / role+compress). Opt-in; not wired into `run_tests.sh`. |
 
@@ -229,6 +229,45 @@ modules/caveman/bin/install-hooks uninstall
 Caveman-owned entries in `settings.json` are tagged with `__caveman`, so
 the uninstaller never touches hooks installed by other tools (for
 example the existing `PreToolUse` guardrails hook).
+
+---
+
+## Slash commands (issue #61)
+
+The same compressor can be invoked from inside the AI client through a
+platform-native slash command. Each platform exposes commands its own
+way, so the installer drops a file in the conventional location for
+each:
+
+| Platform | Where it lands | How to invoke |
+| --- | --- | --- |
+| Claude Code | `.claude/commands/compress.md`, `restore.md` | `/compress <path>` and `/restore <path>` |
+| GitHub Copilot / VS Code | `.github/prompts/compress.prompt.md`, `restore.prompt.md` | Run the prompt file from Copilot Chat |
+| Cursor | `.cursor/commands/compress.md`, `restore.md` | `/compress <path>` and `/restore <path>` |
+
+Wire it up at deploy time:
+
+```bash
+./wizard.sh --caveman --caveman-commands
+```
+
+Or against an existing deployment:
+
+```bash
+modules/caveman/bin/install-commands install
+modules/caveman/bin/install-commands uninstall
+```
+
+Each shipped file carries a `<!-- caveman:command -->` sentinel.
+Uninstall only removes files that still carry it, so a user who
+overrides `compress.md` with their own version will see their file
+preserved on uninstall.
+
+The commands are thin wrappers around
+`modules/caveman/bin/understudy-compress`, so the same safety contract
+applies (refuses files outside CWD, `.env*`/secret-named files,
+symlinks, and content matching common credential patterns; always
+creates a `<file>.original.md` byte-identical backup).
 
 ---
 
