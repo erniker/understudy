@@ -9,6 +9,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- **Caveman compression-savings statusline** (closes #60):
+  `modules/caveman/bin/install-statusline` adds an opt-in Claude Code
+  statusline that walks every `*.original.md` backup left by the
+  compressor and reports cumulative byte savings as
+  `caveman: N files | -X bytes (-Y%)`. The statusline script is
+  read-only, exits 0 in every branch (so the line never disappears on
+  error), and skips backup files whose live counterpart was deleted.
+  Statusline is intentionally Claude-only because Copilot and Cursor do
+  not expose a statusline API. The `statusLine` entry in
+  `.claude/settings.json` is tagged with `__caveman: true` so uninstall
+  only clears the field if it is still owned by caveman. The wizard
+  exposes the new automation via
+  `./wizard.sh --caveman --caveman-statusline`, registered
+  declaratively from `modules/caveman/post-install.flags`.
 - **Caveman slash commands** (closes #61):
   `modules/caveman/bin/install-commands` ships a `/compress` and a
   `/restore` slash command in each platform's native location:

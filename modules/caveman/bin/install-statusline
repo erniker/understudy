@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# install-statusline — wire (or remove) the caveman statusline in
+# Claude Code's .claude/settings.json.
+#
+# Claude Code is the only platform that exposes a statusline API today,
+# so this installer is intentionally Claude-only. Copilot and Cursor
+# have no equivalent surface; if either gains one in the future, add a
+# branch here following the install-hooks / install-commands pattern.
+#
+# USAGE
+#   modules/caveman/bin/install-statusline install   [options]
+#   modules/caveman/bin/install-statusline uninstall [options]
+#
+# OPTIONS
+#   --target  PATH      Project root to install into. Default: cwd.
+#   -h, --help          Show this help.
+#
+# WHAT IT DOES
+#   install   - copies caveman-statusline.sh under
+#               .claude/statusline/caveman-statusline.sh (executable)
+#               and points settings.json's `statusLine` field at it,
+#               tagged with "__caveman": true so uninstall is precise.
+#   uninstall - removes the script and clears the `statusLine` field,
+#               but only if it carries the caveman marker. A statusline
+#               installed by another tool is left untouched.
+#
+# EXIT CODES
+#   0  success
+#   1  usage error / target missing
+#   2  python3 missing while needed for JSON merge
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE_DIR="$(cd "${HERE}/.." && pwd)"
+STATUSLINE_SRC="${MODULE_DIR}/statusline/caveman-statusline.sh"
+
+ACTION=""
+TARGET="$(pwd)"
+
+die() { printf 'install-statusline: error: %s\n' "$*" >&2; exit 1; }
+note() { printf '[install-statusline] %s\n' "$*"; }
+
+usage() {
+    sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed -e 's/^# \{0,1\}//' -e '$d'
+}
+
+# JSON merge / unmerge of the statusLine field. Mirrors the helper in
+# install-hooks: tag our entry with "__caveman" so uninstall only
+# removes what we own.
+claude_settings_apply() {
+    local action="$1" settings_path="$2"
+    command -v python3 >/dev/null 2>&1 \
+        || { printf 'install-statusline: error: python3 is required to update %s\n' "$settings_path" >&2; exit 2; }
+
+    mkdir -p "$(dirname "$settings_path")"
+    [[ -f "$settings_path" ]] || printf '{}\n' > "$settings_path"
+
+    SETTINGS_PATH="$settings_path" \
+    ACTION="$action" \
+    python3 - <<'PY'
+import json, os, sys
+
+path = os.environ["SETTINGS_PATH"]
+action = os.environ["ACTION"]
+
+with open(path, "r", encoding="utf-8") as fh:
+    try:
+        data = json.load(fh)
+    except json.JSONDecodeError:
+        data = {}
+
+existing = data.get("statusLine")
+
+if action == "install":
+    data["statusLine"] = {
+        "type": "command",
+        "command": ".claude/statusline/caveman-statusline.sh",
+        "__caveman": True,
+    }
+else:  # uninstall
+    if isinstance(existing, dict) and existing.get("__caveman"):
+        del data["statusLine"]
+    # Otherwise: leave it alone — not ours.
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2, sort_keys=False)
+    fh.write("\n")
+PY
+}
+
+# ── Argument parsing ────────────────────────────────────────────────
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        install|uninstall)   ACTION="$1"; shift ;;
+        --target)            TARGET="${2:?--target requires a value}"; shift 2 ;;
+        -h|--help)           usage; exit 0 ;;
+        *)                   die "unknown argument: $1" ;;
+    esac
+done
+
+[[ -n "$ACTION" ]]               || die "missing action (install|uninstall)"
+[[ -d "$TARGET" ]]               || die "target directory does not exist: $TARGET"
+
+TARGET="$(cd "$TARGET" && pwd)"
+[[ -d "${TARGET}/.claude" ]]     || die "no Claude Code deployment found under $TARGET (need .claude/)"
+
+settings="${TARGET}/.claude/settings.json"
+script_dest="${TARGET}/.claude/statusline/caveman-statusline.sh"
+
+if [[ "$ACTION" == "install" ]]; then
+    [[ -f "$STATUSLINE_SRC" ]] || die "missing source script: $STATUSLINE_SRC"
+    install -m 0755 -D "$STATUSLINE_SRC" "$script_dest"
+    claude_settings_apply install "$settings"
+    note "Claude statusline installed at .claude/statusline/caveman-statusline.sh"
+else
+    claude_settings_apply uninstall "$settings"
+    rm -f "$script_dest"
+    rmdir "${TARGET}/.claude/statusline" 2>/dev/null || true
+    note "Claude statusline removed"
+fi
+
+note "Done."

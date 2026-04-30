@@ -176,7 +176,7 @@ port (yet). Each was evaluated and consciously deferred:
 | Feature | Status | Why deferred |
 | --- | --- | --- |
 | Pre/post-prompt **hooks** | **Shipped** ([#59](https://github.com/erniker/understudy/issues/59)) | See [Reinforcement hooks](#reinforcement-hooks-issue-59) below. Claude Code uses real hooks; Copilot and Cursor get a degraded equivalent. |
-| **Statusline** | Deferred ([#60](https://github.com/erniker/understudy/issues/60)) | Claude-only. Limited cross-platform value. |
+| **Statusline** | **Shipped** ([#60](https://github.com/erniker/understudy/issues/60)) | See [Statusline](#statusline-issue-60-claude-only) below. Claude Code only — the other platforms have no statusline API. |
 | **Slash commands** for compression | **Shipped** ([#61](https://github.com/erniker/understudy/issues/61)) | See [Slash commands](#slash-commands-issue-61) below. Each platform gets a native file in its conventional location. |
 | **wenyan** (Classical Chinese post-processor) | Skipped | Out of scope for an English-language ops tool. |
 | **Token evaluation harness** | **Shipped** in [`modules/caveman/evals/`](../modules/caveman/evals/README.md) | Dogfood + 3-arm methodology (no-caveman / role / role+compress). Opt-in; not wired into `run_tests.sh`. |
@@ -268,6 +268,43 @@ The commands are thin wrappers around
 applies (refuses files outside CWD, `.env*`/secret-named files,
 symlinks, and content matching common credential patterns; always
 creates a `<file>.original.md` byte-identical backup).
+
+---
+
+## Statusline (issue #60, Claude only)
+
+Claude Code is the only platform that exposes a statusline API today,
+so this feature is intentionally Claude-only. The statusline reports
+cumulative compression savings across the workspace by walking every
+`*.original.md` backup left by the compressor and comparing its size
+against the live counterpart.
+
+Wire it up at deploy time:
+
+```bash
+./wizard.sh --caveman --caveman-statusline
+```
+
+Or against an existing deployment:
+
+```bash
+modules/caveman/bin/install-statusline install
+modules/caveman/bin/install-statusline uninstall
+```
+
+What you see in the Claude Code prompt area:
+
+```text
+caveman: ready                                  # no backups yet
+caveman: 3 files | -1234 bytes (-23%)           # cumulative savings
+```
+
+The script is read-only, exits 0 in every branch (so the statusline
+never disappears on error), and skips backup files whose live
+counterpart was deleted. The `statusLine` entry in
+`.claude/settings.json` is tagged with `__caveman: true`, so uninstall
+only clears the field if it is still owned by caveman — a statusline
+installed by another tool is left untouched.
 
 ---
 

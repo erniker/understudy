@@ -11,3 +11,4 @@
 # automation alongside a module without editing wizard.sh.
 --caveman-hooks	bin/install-hooks install --mode remind --target {TARGET}	Install caveman reinforcement hooks (Claude SessionStart + Copilot/Cursor reminder).
 --caveman-commands	bin/install-commands install --target {TARGET}	Install caveman slash commands: /compress and /restore for Claude, Copilot and Cursor.
+--caveman-statusline	bin/install-statusline install --target {TARGET}	Install caveman compression-savings statusline (Claude Code only).
