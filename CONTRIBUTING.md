@@ -400,7 +400,7 @@ gate on it cleanly:
 [[ -n "${UNDERSTUDY_NO_PYTHON:-}" ]] && skip "python3 not available"
 ```
 
-The opt-in `tests/evals/` harness has its own Python requirement and is
+The opt-in `modules/caveman/evals/` harness has its own Python requirement and is
 not driven by `run_tests.sh` — see the section below.
 
 ### Test layout
@@ -432,11 +432,25 @@ tests/
 │   └── guardrails_check.bats             # Hook blocks destructive commands (exit 2),
 │                                         # warns on secrets (exit 0), allows safe ops
 └── integration/
-    ├── deploy_all_platforms.bats         # Full wizard run: files created, placeholders
-    │                                     # replaced, integration mode preserves files
-    └── deploy_caveman.bats                # Full wizard run with --caveman: opt-in
-                                          # caveman role deploys to all 3 platforms
+    └── deploy_all_platforms.bats         # Full wizard run: files created, placeholders
+                                          # replaced, integration mode preserves files
+
+modules/
+└── caveman/                              # Self-contained optional module (issue #67).
+    ├── module.yaml                       # Manifest consumed by wizard.sh discovery.
+    ├── role.instructions.md              # Role file deployed when --caveman is set.
+    ├── bin/understudy-compress           # Compressor (Python) shipped with the module.
+    ├── tests/                            # Bats suites picked up by run_tests.sh modules.
+    │   ├── role.bats                     # Role file + wizard wiring (was unit/caveman_role.bats).
+    │   ├── compress.bats                 # Compressor rules + safety gates (was unit/compress.bats).
+    │   └── deploy.bats                   # End-to-end --caveman deploy (was integration/deploy_caveman.bats).
+    └── evals/                            # Opt-in token-reduction harness (not run by CI tests).
 ```
+
+> Adding a new optional feature? Drop a sibling under `modules/<name>/`
+> with the same shape (manifest + `role.instructions.md` + `tests/`) and
+> the wizard will discover it automatically. Removing one is a single
+> `rm -rf modules/<name>` plus tidy-up of CHANGELOG/README mentions.
 
 ### Anatomy of a test
 
@@ -479,20 +493,20 @@ Key conventions:
 | Update checker (`read_local_version`, `version_is_newer`) | `tests/unit/update_check.bats` |
 | Path normalization (`normalize_path`) | `tests/unit/normalize_path.bats` |
 | Git integration / `.gitignore` generation | `tests/unit/deploy_gitignore.bats` |
-| `caveman` role file or wizard wiring | `tests/unit/caveman_role.bats` (unit) and `tests/integration/deploy_caveman.bats` (end-to-end wizard run) |
-| `scripts/understudy-compress` (rules, safety gates, restore) | `tests/unit/compress.bats` |
+| `caveman` role file or wizard wiring | `modules/caveman/tests/role.bats` (unit) and `modules/caveman/tests/deploy.bats` (end-to-end wizard run) |
+| `modules/caveman/bin/understudy-compress` (rules, safety gates, restore) | `modules/caveman/tests/compress.bats` |
 
 ### Caveman evals harness (opt-in)
 
-The directory [`tests/evals/`](../tests/evals/README.md) ships a separate,
+The directory [`modules/caveman/evals/`](../modules/caveman/evals/README.md) ships a separate,
 opt-in measurement harness for [caveman mode](../docs/11-caveman-mode.md). It
 is **not** wired into `./run_tests.sh` and does not gate CI — it produces
-human-readable token-reduction numbers in `tests/evals/RESULTS.md`. Run it
+human-readable token-reduction numbers in `modules/caveman/evals/RESULTS.md`. Run it
 manually after changes to the role, the compress script, or the template
 fixtures it consumes:
 
 ```bash
-./tests/evals/run.sh        # regenerates tests/evals/RESULTS.md
+./modules/caveman/evals/run.sh        # regenerates modules/caveman/evals/RESULTS.md
 ```
 
 The harness uses `tiktoken` (cl100k_base) when available and falls back to

@@ -1,14 +1,14 @@
 #!/usr/bin/env bats
 # Tests for the caveman optional role.
 # Covers:
-#   - role file exists in roles/ catalog with the expected shape
+#   - role file exists in modules/caveman/ with the expected shape
 #   - add_optional_role_to_project "caveman" deploys to all 3 platforms
 #   - frontmatter shape per platform
 #   - team-roster.md row added
 #   - role is opt-in: NOT auto-deployed by deploy_default_optional_roles when
 #     INCLUDE_CAVEMAN=false (the default)
 
-load "../lib/helpers"
+load "../../../tests/lib/helpers"
 
 setup() {
   setup_tmp
@@ -34,19 +34,19 @@ teardown() { teardown_tmp; }
 
 # ── Catalog ───────────────────────────────────────────────────────────────────
 
-@test "caveman role file exists in roles/ catalog" {
-  [ -f "${UNDERSTUDY_ROOT}/roles/caveman.instructions.md" ]
+@test "caveman role file exists in modules/caveman/" {
+  [ -f "${UNDERSTUDY_ROOT}/modules/caveman/role.instructions.md" ]
 }
 
 @test "caveman role file declares its identity and motto" {
-  run grep -q "Caveman of the Understudy team" "${UNDERSTUDY_ROOT}/roles/caveman.instructions.md"
+  run grep -q "Caveman of the Understudy team" "${UNDERSTUDY_ROOT}/modules/caveman/role.instructions.md"
   [ "$status" -eq 0 ]
-  run grep -q "Why use many token when few token do trick" "${UNDERSTUDY_ROOT}/roles/caveman.instructions.md"
+  run grep -q "Why use many token when few token do trick" "${UNDERSTUDY_ROOT}/modules/caveman/role.instructions.md"
   [ "$status" -eq 0 ]
 }
 
 @test "caveman role file documents the three intensity levels" {
-  run grep -E "lite|full|ultra" "${UNDERSTUDY_ROOT}/roles/caveman.instructions.md"
+  run grep -E "lite|full|ultra" "${UNDERSTUDY_ROOT}/modules/caveman/role.instructions.md"
   [ "$status" -eq 0 ]
 }
 
@@ -99,7 +99,9 @@ teardown() { teardown_tmp; }
   TECH_STACK="Python"
   DETECTED_STACK=""
   DETECTED_HAS_SHELL=false
-  INCLUDE_CAVEMAN=false
+  # MODULE registry was populated by source_wizard_functions; explicitly
+  # set caveman to opt-out so this asserts the default-off contract.
+  module_set_included caveman false
 
   deploy_default_optional_roles
 
@@ -108,11 +110,11 @@ teardown() { teardown_tmp; }
   [ ! -f "${TARGET_DIR}/.cursor/agents/caveman.md" ]
 }
 
-@test "deploy_default_optional_roles includes caveman when INCLUDE_CAVEMAN=true" {
+@test "deploy_default_optional_roles includes caveman when its module flag is set" {
   TECH_STACK="Python"
   DETECTED_STACK=""
   DETECTED_HAS_SHELL=false
-  INCLUDE_CAVEMAN=true
+  module_set_included caveman true
 
   deploy_default_optional_roles
 

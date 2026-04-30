@@ -32,7 +32,7 @@ jobs:
         run: |
           chmod +x wizard.sh
           chmod +x templates/.claude/hooks/guardrails-check.sh
-          chmod +x scripts/understudy-compress
+          chmod +x modules/caveman/bin/understudy-compress
 
       - name: Verify Python is available
         run: python3 --version

@@ -27,6 +27,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
 ROLES_DIR="${SCRIPT_DIR}/roles"
+MODULES_DIR="${SCRIPT_DIR}/modules"
 DEFAULT_CONFIG="${SCRIPT_DIR}/understudy.yaml"
 UPDATE_REPO="erniker/understudy"
 UPDATE_API_URL="https://api.github.com/repos/${UPDATE_REPO}/releases/latest"
@@ -69,7 +70,25 @@ DETECTED_HAS_SHELL=false
 # CLI flags
 DEPLOY_HERE=false        # --here: deploy in current directory using inferred values
 AUTO_CONFIRM=false       # --yes/-y: skip confirmation prompts when used with --here
-INCLUDE_CAVEMAN=false    # --caveman: opt-in token-efficient communication overlay role
+
+# Module registry — populated by discover_modules() from modules/<name>/module.yaml.
+#
+# Implemented as 5 parallel indexed arrays so the registry stays global even
+# when wizard.sh is sourced from inside a function (e.g. the bats test
+# helper). Plain `arr=()` at top level becomes global automatically; we
+# avoid `declare -A` because macOS ships bash 4.0/4.1 (no `declare -g`)
+# which would scope the arrays to the calling function instead.
+#
+#   MODULE_NAMES[i]    = module name (e.g. "caveman")
+#   MODULE_FLAGS_[i]   = CLI flag for that module (e.g. "--caveman")
+#   MODULE_INCLUDED[i] = "true" once the matching flag is parsed ("false" otherwise)
+#   MODULE_TITLES[i]   = human-readable label for --help
+#   MODULE_DESCS[i]    = one-line description for --help
+MODULE_NAMES=()
+MODULE_FLAGS_=()
+MODULE_INCLUDED=()
+MODULE_TITLES=()
+MODULE_DESCS=()
 
 # Colores
 RED='\033[0;31m'
@@ -1394,12 +1413,97 @@ deploy_gitignore() {
 
 # ─── Optional roles automation ──────────────────────────────
 
+# Discover opt-in modules under modules/<name>/module.yaml.
+#
+# The manifest is a flat YAML; we read only the four keys we care about with
+# awk so we do not require yq/python at deploy time.
+discover_modules() {
+    [[ -d "$MODULES_DIR" ]] || return 0
+    local manifest mname mflag mtitle mdesc
+    # Reset registry on each call (idempotent).
+    MODULE_NAMES=()
+    MODULE_FLAGS_=()
+    MODULE_INCLUDED=()
+    MODULE_TITLES=()
+    MODULE_DESCS=()
+    for manifest in "$MODULES_DIR"/*/module.yaml; do
+        [[ -f "$manifest" ]] || continue
+        mname="$(awk -F': *'   '/^name: */    {gsub(/[" \r]/,"",$2); print $2; exit}' "$manifest")"
+        mflag="$(awk -F': *'   '/^flag: */    {gsub(/[" \r]/,"",$2); print $2; exit}' "$manifest")"
+        mtitle="$(awk -F': *'  '/^title: */   {sub(/^title: */,""); gsub(/^"|"$/,""); gsub(/\r/,""); print; exit}' "$manifest")"
+        mdesc="$(awk -F': *'   '/^description: */ {sub(/^description: */,""); gsub(/^"|"$/,""); gsub(/\r/,""); print; exit}' "$manifest")"
+
+        if [[ -z "$mname" || -z "$mflag" ]]; then
+            warn "Module manifest missing name/flag: $manifest"
+            continue
+        fi
+
+        MODULE_NAMES+=("$mname")
+        MODULE_FLAGS_+=("$mflag")
+        MODULE_INCLUDED+=("false")
+        MODULE_TITLES+=("${mtitle:-$mname}")
+        MODULE_DESCS+=("${mdesc:-}")
+    done
+}
+
+# Lookup helpers around the parallel-arrays registry. They echo the index
+# (0-based) of the matching module on stdout and return 0 on hit, 1 on miss.
+module_index_by_name() {
+    local i
+    for i in "${!MODULE_NAMES[@]}"; do
+        [[ "${MODULE_NAMES[$i]}" == "$1" ]] && { printf '%s\n' "$i"; return 0; }
+    done
+    return 1
+}
+
+module_index_by_flag() {
+    local i
+    for i in "${!MODULE_FLAGS_[@]}"; do
+        [[ "${MODULE_FLAGS_[$i]}" == "$1" ]] && { printf '%s\n' "$i"; return 0; }
+    done
+    return 1
+}
+
+# Mark a module as included by name. Returns 1 if the module is unknown.
+module_set_included() {
+    local idx
+    idx="$(module_index_by_name "$1")" || return 1
+    MODULE_INCLUDED[idx]="$2"
+}
+
+# True when the module called "$1" is included.
+module_is_included() {
+    local idx
+    idx="$(module_index_by_name "$1")" || return 1
+    [[ "${MODULE_INCLUDED[$idx]}" == "true" ]]
+}
+
+# Resolve the role source file for a given role name.
+#
+#   1. modules/<name>/role.instructions.md  (module-provided role)
+#   2. roles/<name>.instructions.md         (built-in optional role)
+#
+# Echoes the absolute path on success, returns 1 on miss.
+module_role_source() {
+    local role_name="$1"
+    local mod_src="${MODULES_DIR}/${role_name}/role.instructions.md"
+    local cat_src="${ROLES_DIR}/${role_name}.instructions.md"
+    if [[ -f "$mod_src" ]]; then
+        echo "$mod_src"
+        return 0
+    fi
+    if [[ -f "$cat_src" ]]; then
+        echo "$cat_src"
+        return 0
+    fi
+    return 1
+}
+
 add_optional_role_to_project() {
     local role_name="$1"
 
-    local src="${ROLES_DIR}/${role_name}.instructions.md"
-
-    if [[ ! -f "$src" ]]; then
+    local src
+    if ! src="$(module_role_source "$role_name")"; then
         warn "Optional role not found in catalog: ${role_name}"
         return
     fi
@@ -1488,11 +1592,18 @@ deploy_default_optional_roles() {
         info "Auto-selected optional role: shell-scripting"
     fi
 
-    # Opt-in caveman overlay (token-efficient communication style).
-    if $INCLUDE_CAVEMAN; then
-        add_optional_role_to_project "caveman"
-        info "Opt-in optional role: caveman (token-efficient communication)"
-    fi
+    # Opt-in modules (discovered from modules/<name>/module.yaml).
+    # Replaces the previous hard-coded `if $INCLUDE_CAVEMAN` branch:
+    # adding/removing modules/<name>/ now toggles availability without
+    # touching this file.
+    local i
+    for i in "${!MODULE_NAMES[@]}"; do
+        if [[ "${MODULE_INCLUDED[$i]}" == "true" ]]; then
+            local mod_name="${MODULE_NAMES[$i]}"
+            add_optional_role_to_project "$mod_name"
+            info "Opt-in module: ${mod_name} (${MODULE_DESCS[$i]:-${MODULE_TITLES[$i]:-$mod_name}})"
+        fi
+    done
 }
 
 # ─── Deployment orchestrator ───────────────────────────────
@@ -1856,11 +1967,25 @@ show_help() {
     echo "    ./wizard.sh                  Interactive Understudy deployment"
     echo "    ./wizard.sh --here           Deploy in current directory using inferred values"
     echo "    ./wizard.sh --here --yes     Same as --here, skip confirmation prompt"
-    echo "    ./wizard.sh --caveman        Include the caveman role (token-efficient overlay)"
     echo "    ./wizard.sh --add-member     Add a team member"
     echo "    ./wizard.sh --create-role    Create a new custom role"
     echo "    ./wizard.sh --help           Show this help"
     echo ""
+
+    # Auto-list opt-in modules so adding modules/<name>/ surfaces in --help
+    # without further edits.
+    if [[ ${#MODULE_NAMES[@]} -gt 0 ]]; then
+        echo "  Opt-in modules:"
+        local i mflag mname desc
+        for i in "${!MODULE_NAMES[@]}"; do
+            mflag="${MODULE_FLAGS_[$i]}"
+            mname="${MODULE_NAMES[$i]}"
+            desc="${MODULE_DESCS[$i]:-${MODULE_TITLES[$i]:-$mname}}"
+            printf "    ./wizard.sh %-13s %s\n" "$mflag" "$desc"
+        done
+        echo ""
+    fi
+
     echo "  Supported platforms:"
     echo "    • GitHub Copilot CLI / VS Code"
     echo "    • Claude Code"
@@ -1883,15 +2008,28 @@ show_help() {
 main() {
     check_for_updates "$@"
 
+    # Populate the module registry before arg parsing so module flags
+    # (e.g. --caveman) resolve dynamically.
+    discover_modules
+
     # Pre-parse flags that combine with the default deploy flow.
     # --here / --yes (-y) can appear in any order before/after each other.
     local _args=()
+    local _mod_idx
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --here)     DEPLOY_HERE=true ;;
             --yes|-y)   AUTO_CONFIRM=true ;;
-            --caveman)  INCLUDE_CAVEMAN=true ;;
-            *)          _args+=("$1") ;;
+            *)
+                # Module flags (registered via discover_modules) flip the
+                # corresponding MODULE_INCLUDED entry; everything else falls
+                # through to the subcommand parser below.
+                if _mod_idx="$(module_index_by_flag "$1")"; then
+                    MODULE_INCLUDED[_mod_idx]=true
+                else
+                    _args+=("$1")
+                fi
+                ;;
         esac
         shift
     done

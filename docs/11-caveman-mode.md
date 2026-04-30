@@ -1,6 +1,6 @@
 # 11. Caveman Mode
 
-> *"Why use many token when few token do trick."* — `roles/caveman.instructions.md`
+> *"Why use many token when few token do trick."* — `modules/caveman/role.instructions.md`
 
 Caveman mode is Understudy's take on token-efficient AI collaboration, inspired
 by [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) — thanks
@@ -20,7 +20,7 @@ post-processor from upstream are intentionally **not** ported — see
 
 ## 1. The `caveman` role
 
-`roles/caveman.instructions.md` is an optional role with the same shape as
+`modules/caveman/role.instructions.md` is an optional role with the same shape as
 `git-specialist` and `repo-documenter`. It instructs the model to:
 
 - Drop articles, fillers, and hedging phrases.
@@ -65,7 +65,7 @@ The role works identically on every platform Understudy supports.
 
 ## 2. The `understudy-compress` script
 
-`scripts/understudy-compress` rewrites a Markdown file in place, removing
+`modules/caveman/bin/understudy-compress` rewrites a Markdown file in place, removing
 filler words and high-frequency low-information phrases while preserving:
 
 - Fenced code blocks (` ``` ` and `~~~`)
@@ -95,16 +95,16 @@ machines.
 
 ```bash
 # Compress a doc (creates <file>.original.md backup, modifies in place)
-./scripts/understudy-compress docs/team-roster.md
+./modules/caveman/bin/understudy-compress docs/team-roster.md
 
 # Preview without writing
-./scripts/understudy-compress --dry-run docs/team-roster.md
+./modules/caveman/bin/understudy-compress --dry-run docs/team-roster.md
 
 # Restore from backup (deletes the .original.md)
-./scripts/understudy-compress --restore docs/team-roster.md
+./modules/caveman/bin/understudy-compress --restore docs/team-roster.md
 
 # Non-interactive (CI): never prompt
-./scripts/understudy-compress --no-install --yes docs/team-roster.md
+./modules/caveman/bin/understudy-compress --no-install --yes docs/team-roster.md
 ```
 
 ### Optional dependency: `tiktoken`
@@ -163,7 +163,7 @@ change occurs (max 8 iterations).
 
 Every successful compression writes `<file>.original.md` (byte-identical to
 the input). `--restore` restores from that backup byte-identically and
-removes the backup. The unit test suite (`tests/unit/compress.bats`)
+removes the backup. The unit test suite (`modules/caveman/tests/compress.bats`)
 asserts byte-identical round-trip.
 
 ---
@@ -179,7 +179,7 @@ port (yet). Each was evaluated and consciously deferred:
 | **Statusline** | Deferred ([#60](https://github.com/erniker/understudy/issues/60)) | Claude-only. Limited cross-platform value. |
 | **Slash commands** for compression | Deferred ([#61](https://github.com/erniker/understudy/issues/61)) | Each platform has its own command grammar; needs a separate design. |
 | **wenyan** (Classical Chinese post-processor) | Skipped | Out of scope for an English-language ops tool. |
-| **Token evaluation harness** | **Shipped** in [`tests/evals/`](../tests/evals/README.md) | Dogfood + 3-arm methodology (no-caveman / role / role+compress). Opt-in; not wired into `run_tests.sh`. |
+| **Token evaluation harness** | **Shipped** in [`modules/caveman/evals/`](../modules/caveman/evals/README.md) | Dogfood + 3-arm methodology (no-caveman / role / role+compress). Opt-in; not wired into `run_tests.sh`. |
 
 The deferred items above are tracked as labelled (`caveman`) issues so
 they are discoverable in the issue tracker. They are open for
@@ -203,8 +203,8 @@ actually uses, not on toy fixtures. Word count is a rough proxy.
 ## Related
 
 - Upstream: [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)
-- [Evals harness](../tests/evals/README.md) — reproducible token-reduction
-  numbers for this repo (run `./tests/evals/run.sh` to regenerate)
+- [Evals harness](../modules/caveman/evals/README.md) — reproducible token-reduction
+  numbers for this repo (run `./modules/caveman/evals/run.sh` to regenerate)
 - [Configuration reference](09-configuration.md) — adding optional roles
 - [Cross-Platform Workflows](08-cross-platform-workflows.md) — using
   `caveman` alongside other team members

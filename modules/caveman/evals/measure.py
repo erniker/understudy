@@ -42,7 +42,7 @@ def count_tokens(text: str) -> tuple[int, str]:
     if _ENC is not None:
         return len(_ENC.encode(text)), _METHOD
     # Word-count fallback. Matches the in-script fallback in
-    # scripts/understudy-compress so the two surfaces report comparable numbers.
+    # modules/caveman/bin/understudy-compress so the two surfaces report comparable numbers.
     return len(text.split()), _METHOD
 
 

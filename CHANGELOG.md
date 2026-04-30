@@ -7,6 +7,25 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- **Modules layout**: caveman is now a self-contained module under
+  `modules/caveman/` (closes #67). The compressor moved from
+  `scripts/understudy-compress` to
+  `modules/caveman/bin/understudy-compress`; the role file, bats tests
+  (`role.bats`, `compress.bats`, `deploy.bats`) and the evals harness
+  all live alongside under the same directory, together with a
+  `module.yaml` manifest. `wizard.sh` now discovers optional modules
+  dynamically by scanning `modules/*/module.yaml`, so adding or
+  removing an opt-in feature no longer requires edits scattered across
+  `wizard.sh`, `tests/`, `roles/` and `scripts/` — a single
+  `rm -rf modules/<name>` (plus tidy-up of CHANGELOG/README mentions)
+  is enough to drop a module. `install.sh` and the CI workflows
+  (`evals-smoke.yml`, `evals.yml`, `tests.yml`) were updated to the
+  new path. Users running the `understudy-compress` launcher installed
+  by `install.sh` are unaffected; only callers that referenced the
+  previous relative path inside the repo need to update it.
+
 ### Added
 
 - **Evals smoke workflow** (`.github/workflows/evals-smoke.yml`):

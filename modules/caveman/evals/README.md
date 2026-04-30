@@ -3,7 +3,7 @@
 A small, opt-in harness to defend the savings claim of [caveman mode](../../docs/11-caveman-mode.md)
 with reproducible numbers. Two halves:
 
-1. **Dogfood** — runs `scripts/understudy-compress` against every Markdown file
+1. **Dogfood** — runs `modules/caveman/bin/understudy-compress` against every Markdown file
    under `templates/docs/` and reports per-file token reduction.
 2. **Three-arm context measurement** — builds three input bundles for the same
    simulated task and counts tokens:
@@ -18,7 +18,7 @@ you can re-run them and diff the change.
 ## Run
 
 ```bash
-./tests/evals/run.sh
+./modules/caveman/evals/run.sh
 ```
 
 That orchestrator runs `dogfood.py` and `three_arms.py` and rewrites the
@@ -27,9 +27,9 @@ relevant blocks of `RESULTS.md`.
 You can also run either half on its own:
 
 ```bash
-python3 tests/evals/dogfood.py             # default: templates/docs
-python3 tests/evals/dogfood.py --targets docs/ templates/  # any tree
-python3 tests/evals/three_arms.py
+python3 modules/caveman/evals/dogfood.py             # default: templates/docs
+python3 modules/caveman/evals/dogfood.py --targets docs/ templates/  # any tree
+python3 modules/caveman/evals/three_arms.py
 ```
 
 ## Token measurement
@@ -77,7 +77,7 @@ touching the compressor lives in `evals-smoke.yml`.
 ### Route B — Local personal machine
 
 Pick whichever Python toolchain matches your environment. Each recipe ends
-with `./tests/evals/run.sh` and produces a `RESULTS.md` labelled
+with `./modules/caveman/evals/run.sh` and produces a `RESULTS.md` labelled
 `Token method: cl100k_base`. Commit it from the repo root.
 
 #### `uv` (recommended; installs its own Python 3.12)
@@ -89,7 +89,7 @@ source .venv-evals/bin/activate
 # Windows PowerShell:
 # .venv-evals\Scripts\Activate.ps1
 uv pip install tiktoken
-./tests/evals/run.sh
+./modules/caveman/evals/run.sh
 ```
 
 #### Stock `python3.12` + `pip`
@@ -102,14 +102,14 @@ source .venv-evals/bin/activate
 # .venv-evals\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install tiktoken
-./tests/evals/run.sh
+./modules/caveman/evals/run.sh
 ```
 
 #### `pipx` (system-wide, no venv juggling)
 
 ```bash
 pipx install tiktoken
-./tests/evals/run.sh
+./modules/caveman/evals/run.sh
 ```
 
 > **Corporate proxy?** Most TLS-inspecting proxies (e.g. Zscaler) return
@@ -159,7 +159,7 @@ template fixtures — your project's bundle will differ.
 ### Reproducibility
 
 Both Python scripts are stdlib-only by default; both shell out to
-`scripts/understudy-compress` for the actual compression so the harness
+`modules/caveman/bin/understudy-compress` for the actual compression so the harness
 exercises the **shipped** binary, not a parallel implementation. Re-run
-`./tests/evals/run.sh` whenever the role, the compress rules, or the
+`./modules/caveman/evals/run.sh` whenever the role, the compress rules, or the
 template fixtures change.

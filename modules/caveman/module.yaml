@@ -1,0 +1,28 @@
+# modules/caveman/module.yaml
+#
+# Manifest for the `caveman` opt-in module.
+# Discovered automatically by wizard.sh — adding/removing this directory
+# adds/removes the feature; no edits to wizard.sh required for that.
+#
+# Schema (all keys are flat / one level, parsed by wizard.sh's awk reader):
+#   name           — module identifier (matches the directory name)
+#   title          — human-readable label
+#   description    — one-line summary used in --help
+#   flag           — CLI opt-in flag exposed by the wizard (e.g. "--caveman")
+#   default        — "true" or "false" (whether the flag is on by default)
+#   role_file      — path (relative to this manifest) to the role's
+#                    .instructions.md, deployed by add_optional_role_to_project
+#   bin            — optional, relative path to a runtime helper script
+#                    that install.sh marks executable when present
+#   upstream       — attribution / provenance note
+#   status         — stable | experimental | deprecated
+
+name: caveman
+title: "Caveman mode"
+description: "Token-efficient communication overlay (terse role + Markdown compressor)."
+flag: --caveman
+default: false
+role_file: role.instructions.md
+bin: bin/understudy-compress
+upstream: "Inspired by JuliusBrussee/caveman (MIT)"
+status: stable

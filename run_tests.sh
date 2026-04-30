@@ -64,6 +64,19 @@ run_suite() {
   echo ""
 }
 
+# Discover per-module test suites under modules/<name>/tests/. Each module
+# ships its own bats coverage so that adding/removing modules/<name>/ does
+# not require edits to this runner.
+run_module_suites() {
+  local mod_dir
+  for mod_dir in "${SCRIPT_DIR}"/modules/*/tests; do
+    [[ -d "$mod_dir" ]] || continue
+    local mod_name
+    mod_name="$(basename "$(dirname "$mod_dir")")"
+    run_suite "Module tests (${mod_name})" "$mod_dir"
+  done
+}
+
 case "$SUITE" in
   unit)
     run_suite "Unit tests" "${TESTS_DIR}/unit/"
@@ -74,13 +87,17 @@ case "$SUITE" in
   integration)
     run_suite "Integration tests" "${TESTS_DIR}/integration/"
     ;;
+  modules)
+    run_module_suites
+    ;;
   all)
     run_suite "Unit tests"        "${TESTS_DIR}/unit/"
     run_suite "Hook tests"        "${TESTS_DIR}/hooks/"
     run_suite "Integration tests" "${TESTS_DIR}/integration/"
+    run_module_suites
     ;;
   *)
-    echo "Usage: $0 [unit|hooks|integration|all]"
+    echo "Usage: $0 [unit|hooks|integration|modules|all]"
     exit 1
     ;;
 esac

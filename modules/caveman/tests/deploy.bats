@@ -2,15 +2,15 @@
 # Integration tests for the opt-in caveman role deploy across all platforms.
 #
 # Mirrors the pattern of deploy_all_platforms.bats but adds --caveman to the
-# wizard invocation. The unit tests in tests/unit/caveman_role.bats already
-# exercise add_optional_role_to_project() and the INCLUDE_CAVEMAN gate
+# wizard invocation. The unit tests in modules/caveman/tests/role.bats already
+# exercise add_optional_role_to_project() and the MODULE_INCLUDE gate
 # directly; this file closes the end-to-end gap by running the full wizard
 # pipeline so a regression that breaks caveman deploy on, say, Cursor only
 # surfaces in CI.
 #
 # Tracked by issue #53.
 
-WIZARD="${BATS_TEST_DIRNAME}/../../wizard.sh"
+WIZARD="${BATS_TEST_DIRNAME}/../../../wizard.sh"
 
 setup() {
   TEST_TMP="$(mktemp -d)"
