@@ -12,12 +12,14 @@ an Understudy deployment. Inspired by
 | [`bin/understudy-compress`](bin/understudy-compress) | Python 3.8+ compressor that rewrites Markdown in place, preserving code/paths/URLs and creating a `.original.md` backup. |
 | [`bin/install-hooks`](bin/install-hooks) | Wires (or removes) caveman reinforcement hooks into a project — Claude Code real hooks, plus degraded reinforcement blocks for Copilot and Cursor. |
 | [`bin/install-commands`](bin/install-commands) | Wires (or removes) caveman slash commands (`/compress`, `/restore`) for Claude, Copilot/VS Code and Cursor. |
+| [`bin/install-statusline`](bin/install-statusline) | Wires (or removes) the Claude Code statusline that reports compression savings (Claude-only). |
 | [`bin/requirements.txt`](bin/requirements.txt) | Optional `tiktoken` for accurate `cl100k_base` token measurements. |
 | [`hooks/`](hooks/) | Source assets installed by `install-hooks` (Claude `session-start.sh` / `user-prompt-submit.sh`, Copilot reinforcement block, Cursor `.mdc` rule). |
 | [`commands/`](commands/) | Source assets installed by `install-commands` (Claude `compress.md` / `restore.md`, Copilot `*.prompt.md`, Cursor `*.md`). |
-| [`post-install.flags`](post-install.flags) | Declarative wizard hooks so `./wizard.sh --caveman --caveman-hooks` / `--caveman-commands` run their installers after deploy without editing `wizard.sh`. |
+| [`statusline/`](statusline/) | Source asset installed by `install-statusline` (`caveman-statusline.sh`). |
+| [`post-install.flags`](post-install.flags) | Declarative wizard hooks so `./wizard.sh --caveman --caveman-hooks` / `--caveman-commands` / `--caveman-statusline` run their installers after deploy without editing `wizard.sh`. |
 | [`evals/`](evals/) | Token-reduction evaluation harness (`run.sh` regenerates `RESULTS.md`). |
-| [`tests/`](tests/) | Bats coverage for the role, the compressor, the installers and the wizard's `--caveman` / `--caveman-hooks` / `--caveman-commands` flags. |
+| [`tests/`](tests/) | Bats coverage for the role, the compressor, the installers and the wizard's `--caveman` / `--caveman-hooks` / `--caveman-commands` / `--caveman-statusline` flags. |
 
 The user-facing chapter for caveman lives in
 [`docs/11-caveman-mode.md`](../../docs/11-caveman-mode.md) (kept at its
@@ -98,6 +100,38 @@ modules/caveman/bin/install-commands uninstall
 Each shipped file carries a `<!-- caveman:command -->` sentinel; the
 uninstaller only removes files that still carry it, so user-authored
 files in the same directory are never touched.
+
+## How to enable the statusline (issue #60, Claude Code only)
+
+Claude Code is the only platform that exposes a statusline API today,
+so this is intentionally Claude-only. The statusline reports cumulative
+compression savings across the workspace by walking every
+`*.original.md` backup left by the compressor and comparing its size
+against the live counterpart.
+
+```bash
+./wizard.sh --caveman --caveman-statusline    # opt in at deploy time
+# or, on an existing deployment:
+modules/caveman/bin/install-statusline install
+```
+
+What you see in the Claude Code prompt area:
+
+```text
+caveman: ready                                  # no backups yet
+caveman: 3 files | -1234 bytes (-23%)           # cumulative savings
+```
+
+To remove it:
+
+```bash
+modules/caveman/bin/install-statusline uninstall
+```
+
+The `statusLine` entry in `.claude/settings.json` is tagged with
+`__caveman: true`, so the uninstaller only clears the field if it is
+still owned by caveman — a statusline installed by another tool is left
+untouched.
 
 ## How to remove the module entirely
 
