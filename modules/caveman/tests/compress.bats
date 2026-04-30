@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
-# Tests for scripts/understudy-compress (Python implementation).
+# Tests for modules/caveman/bin/understudy-compress (Python implementation).
 
-load '../lib/helpers'
+load '../../../tests/lib/helpers'
 
 # Resolve a Python interpreter once per suite. CI installs python3 explicitly.
 if command -v python3 >/dev/null 2>&1; then
@@ -12,8 +12,8 @@ else
   PY=""
 fi
 
-COMPRESS_BIN="${BATS_TEST_DIRNAME}/../../scripts/understudy-compress"
-PROSE_FIXTURE="${BATS_TEST_DIRNAME}/../fixtures/compress/prose.md"
+COMPRESS_BIN="${BATS_TEST_DIRNAME}/../bin/understudy-compress"
+PROSE_FIXTURE="${BATS_TEST_DIRNAME}/../../../tests/fixtures/compress/prose.md"
 
 # Wrapper that always invokes the script via the resolved interpreter.
 SCRIPT() {

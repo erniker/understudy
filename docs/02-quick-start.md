@@ -127,12 +127,12 @@ For the prose Understudy itself generates, the bundled compress script can
 shrink Markdown in place (preserving code, paths, URLs and GUARDRAILS):
 
 ```bash
-scripts/understudy-compress docs/spec.md     # writes docs/spec.original.md backup
-scripts/understudy-compress --restore docs/spec.md
+modules/caveman/bin/understudy-compress docs/spec.md     # writes docs/spec.original.md backup
+modules/caveman/bin/understudy-compress --restore docs/spec.md
 ```
 
 Full rationale, intensity levels, safety gates and the
-[evals harness](../tests/evals/README.md) live in chapter 11.
+[evals harness](../modules/caveman/evals/README.md) live in chapter 11.
 
 ## Update Understudy
 

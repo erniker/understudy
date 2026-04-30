@@ -31,6 +31,7 @@ source_wizard_functions() {
   SCRIPT_DIR="$UNDERSTUDY_ROOT"
   TEMPLATES_DIR="${UNDERSTUDY_ROOT}/templates"
   ROLES_DIR="${UNDERSTUDY_ROOT}/roles"
+  MODULES_DIR="${UNDERSTUDY_ROOT}/modules"
   DEFAULT_CONFIG="${UNDERSTUDY_ROOT}/understudy.yaml"
 
   MODEL_ARCHITECT="claude-opus-4.6"
@@ -55,4 +56,8 @@ source_wizard_functions() {
   # Source only — no main() call
   # shellcheck source=../../wizard.sh
   source "$WIZARD"
+
+  # Populate the module registry so tests can flip MODULE_INCLUDE[<name>]
+  # exactly the way the production main() does.
+  discover_modules
 }

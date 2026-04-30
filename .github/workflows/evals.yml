@@ -1,6 +1,6 @@
 name: Evals (real tiktoken)
 
-# Regenerates tests/evals/RESULTS.md with real cl100k_base token counts
+# Regenerates modules/caveman/evals/RESULTS.md with real cl100k_base token counts
 # instead of the word-count fallback. Triggered manually by maintainers
 # (workflow_dispatch) or once a week (schedule). Uploads RESULTS.md as a
 # workflow artifact — a maintainer commits it to the repo when the numbers
@@ -47,16 +47,16 @@ jobs:
         run: python -c "import tiktoken; print('tiktoken', tiktoken.__version__)"
 
       - name: Make compressor and harness executable
-        run: chmod +x scripts/understudy-compress tests/evals/run.sh
+        run: chmod +x modules/caveman/bin/understudy-compress modules/caveman/evals/run.sh
 
       - name: Run evals harness with real tiktoken
-        run: ./tests/evals/run.sh
+        run: ./modules/caveman/evals/run.sh
 
       - name: Sanity-check that RESULTS.md uses cl100k_base
         run: |
-          if ! grep -q "cl100k_base" tests/evals/RESULTS.md; then
-            echo "::error::tests/evals/RESULTS.md does not declare cl100k_base — tiktoken did not pick up." >&2
-            head -40 tests/evals/RESULTS.md >&2 || true
+          if ! grep -q "cl100k_base" modules/caveman/evals/RESULTS.md; then
+            echo "::error::modules/caveman/evals/RESULTS.md does not declare cl100k_base — tiktoken did not pick up." >&2
+            head -40 modules/caveman/evals/RESULTS.md >&2 || true
             exit 1
           fi
 
@@ -70,7 +70,7 @@ jobs:
             echo '<details><summary>RESULTS.md (head)</summary>'
             echo
             echo '```markdown'
-            head -80 tests/evals/RESULTS.md
+            head -80 modules/caveman/evals/RESULTS.md
             echo '```'
             echo
             echo '</details>'
@@ -80,6 +80,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evals-RESULTS-${{ github.run_id }}
-          path: tests/evals/RESULTS.md
+          path: modules/caveman/evals/RESULTS.md
           if-no-files-found: error
           retention-days: 90

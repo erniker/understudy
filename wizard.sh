@@ -27,6 +27,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMPLATES_DIR="${SCRIPT_DIR}/templates"
 ROLES_DIR="${SCRIPT_DIR}/roles"
+MODULES_DIR="${SCRIPT_DIR}/modules"
 DEFAULT_CONFIG="${SCRIPT_DIR}/understudy.yaml"
 UPDATE_REPO="erniker/understudy"
 UPDATE_API_URL="https://api.github.com/repos/${UPDATE_REPO}/releases/latest"
@@ -69,7 +70,18 @@ DETECTED_HAS_SHELL=false
 # CLI flags
 DEPLOY_HERE=false        # --here: deploy in current directory using inferred values
 AUTO_CONFIRM=false       # --yes/-y: skip confirmation prompts when used with --here
-INCLUDE_CAVEMAN=false    # --caveman: opt-in token-efficient communication overlay role
+
+# Module registry — populated by discover_modules() from modules/<name>/module.yaml.
+# MODULE_FLAGS  : CLI flag (e.g. "--caveman") -> module name (e.g. "caveman")
+# MODULE_INCLUDE: module name -> "true" once the matching flag is parsed
+# MODULE_TITLE  : module name -> human-readable label for --help
+# MODULE_DESC   : module name -> one-line description for --help
+# `declare -gA` so the arrays remain global even when wizard.sh is sourced
+# from inside a function (e.g. tests/lib/helpers.bash::source_wizard_functions).
+declare -gA MODULE_FLAGS
+declare -gA MODULE_INCLUDE
+declare -gA MODULE_TITLE
+declare -gA MODULE_DESC
 
 # Colores
 RED='\033[0;31m'
@@ -1394,12 +1406,64 @@ deploy_gitignore() {
 
 # ─── Optional roles automation ──────────────────────────────
 
+# Discover opt-in modules under modules/<name>/module.yaml.
+#
+# For each manifest, register:
+#   MODULE_FLAGS[<flag>]    = <name>
+#   MODULE_INCLUDE[<name>]  = "false" (default; flipped by the arg parser)
+#   MODULE_TITLE[<name>]    = "<title>"
+#   MODULE_DESC[<name>]     = "<description>"
+#
+# The manifest is a flat YAML; we read only the four keys we care about with
+# awk so we do not require yq/python at deploy time.
+discover_modules() {
+    [[ -d "$MODULES_DIR" ]] || return 0
+    local manifest mname mflag mtitle mdesc
+    for manifest in "$MODULES_DIR"/*/module.yaml; do
+        [[ -f "$manifest" ]] || continue
+        mname="$(awk -F': *'   '/^name: */    {gsub(/[" \r]/,"",$2); print $2; exit}' "$manifest")"
+        mflag="$(awk -F': *'   '/^flag: */    {gsub(/[" \r]/,"",$2); print $2; exit}' "$manifest")"
+        mtitle="$(awk -F': *'  '/^title: */   {sub(/^title: */,""); gsub(/^"|"$/,""); gsub(/\r/,""); print; exit}' "$manifest")"
+        mdesc="$(awk -F': *'   '/^description: */ {sub(/^description: */,""); gsub(/^"|"$/,""); gsub(/\r/,""); print; exit}' "$manifest")"
+
+        if [[ -z "$mname" || -z "$mflag" ]]; then
+            warn "Module manifest missing name/flag: $manifest"
+            continue
+        fi
+
+        MODULE_FLAGS["$mflag"]="$mname"
+        MODULE_INCLUDE["$mname"]=false
+        MODULE_TITLE["$mname"]="${mtitle:-$mname}"
+        MODULE_DESC["$mname"]="${mdesc:-}"
+    done
+}
+
+# Resolve the role source file for a given role name.
+#
+#   1. modules/<name>/role.instructions.md  (module-provided role)
+#   2. roles/<name>.instructions.md         (built-in optional role)
+#
+# Echoes the absolute path on success, returns 1 on miss.
+module_role_source() {
+    local role_name="$1"
+    local mod_src="${MODULES_DIR}/${role_name}/role.instructions.md"
+    local cat_src="${ROLES_DIR}/${role_name}.instructions.md"
+    if [[ -f "$mod_src" ]]; then
+        echo "$mod_src"
+        return 0
+    fi
+    if [[ -f "$cat_src" ]]; then
+        echo "$cat_src"
+        return 0
+    fi
+    return 1
+}
+
 add_optional_role_to_project() {
     local role_name="$1"
 
-    local src="${ROLES_DIR}/${role_name}.instructions.md"
-
-    if [[ ! -f "$src" ]]; then
+    local src
+    if ! src="$(module_role_source "$role_name")"; then
         warn "Optional role not found in catalog: ${role_name}"
         return
     fi
@@ -1488,11 +1552,17 @@ deploy_default_optional_roles() {
         info "Auto-selected optional role: shell-scripting"
     fi
 
-    # Opt-in caveman overlay (token-efficient communication style).
-    if $INCLUDE_CAVEMAN; then
-        add_optional_role_to_project "caveman"
-        info "Opt-in optional role: caveman (token-efficient communication)"
-    fi
+    # Opt-in modules (discovered from modules/<name>/module.yaml).
+    # Replaces the previous hard-coded `if $INCLUDE_CAVEMAN` branch:
+    # adding/removing modules/<name>/ now toggles availability without
+    # touching this file.
+    local mod_name
+    for mod_name in "${!MODULE_INCLUDE[@]}"; do
+        if [[ "${MODULE_INCLUDE[$mod_name]}" == "true" ]]; then
+            add_optional_role_to_project "$mod_name"
+            info "Opt-in module: ${mod_name} (${MODULE_DESC[$mod_name]:-${MODULE_TITLE[$mod_name]:-$mod_name}})"
+        fi
+    done
 }
 
 # ─── Deployment orchestrator ───────────────────────────────
@@ -1856,11 +1926,24 @@ show_help() {
     echo "    ./wizard.sh                  Interactive Understudy deployment"
     echo "    ./wizard.sh --here           Deploy in current directory using inferred values"
     echo "    ./wizard.sh --here --yes     Same as --here, skip confirmation prompt"
-    echo "    ./wizard.sh --caveman        Include the caveman role (token-efficient overlay)"
     echo "    ./wizard.sh --add-member     Add a team member"
     echo "    ./wizard.sh --create-role    Create a new custom role"
     echo "    ./wizard.sh --help           Show this help"
     echo ""
+
+    # Auto-list opt-in modules so adding modules/<name>/ surfaces in --help
+    # without further edits.
+    if [[ ${#MODULE_FLAGS[@]} -gt 0 ]]; then
+        echo "  Opt-in modules:"
+        local mflag mname desc
+        for mflag in "${!MODULE_FLAGS[@]}"; do
+            mname="${MODULE_FLAGS[$mflag]}"
+            desc="${MODULE_DESC[$mname]:-${MODULE_TITLE[$mname]:-$mname}}"
+            printf "    ./wizard.sh %-13s %s\n" "$mflag" "$desc"
+        done
+        echo ""
+    fi
+
     echo "  Supported platforms:"
     echo "    • GitHub Copilot CLI / VS Code"
     echo "    • Claude Code"
@@ -1883,6 +1966,10 @@ show_help() {
 main() {
     check_for_updates "$@"
 
+    # Populate MODULE_FLAGS / MODULE_INCLUDE before arg parsing so module
+    # flags (e.g. --caveman) resolve dynamically.
+    discover_modules
+
     # Pre-parse flags that combine with the default deploy flow.
     # --here / --yes (-y) can appear in any order before/after each other.
     local _args=()
@@ -1890,8 +1977,16 @@ main() {
         case "$1" in
             --here)     DEPLOY_HERE=true ;;
             --yes|-y)   AUTO_CONFIRM=true ;;
-            --caveman)  INCLUDE_CAVEMAN=true ;;
-            *)          _args+=("$1") ;;
+            *)
+                # Module flags (registered via discover_modules) flip the
+                # corresponding MODULE_INCLUDE entry; everything else falls
+                # through to the subcommand parser below.
+                if [[ -n "${MODULE_FLAGS[$1]:-}" ]]; then
+                    MODULE_INCLUDE["${MODULE_FLAGS[$1]}"]=true
+                else
+                    _args+=("$1")
+                fi
+                ;;
         esac
         shift
     done
