@@ -122,11 +122,18 @@ globs: "src/components/**/*.tsx"
 
 It will auto-attach when you edit matching files.
 
+## Commands
+
+The wizard deploys commands under `.cursor/commands/`:
+
+| Command | Purpose |
+|---|---|
+| `understudy.md` | Explains understudy capabilities, available roles, commands and recommended workflow |
+
+Invoke them from Cursor's command palette or chat.
+
 ## Tips specific to Cursor
 
-- Cursor has no slash-command system — for repeatable flows, create rules
-  that describe the procedure (e.g. a "release checklist" rule the agent
-  reads).
 - You can combine agents: switch between architect → backend → security
   without losing the docs/ context.
 - `alwaysApply: true` is powerful but costs tokens — keep those rules

@@ -60,7 +60,7 @@ Guardrails are always active because they use `applyTo: "**"`.
 
 ## Prompt files
 
-The wizard deploys four ready-to-use prompts under `.github/prompts/`:
+The wizard deploys five ready-to-use prompts under `.github/prompts/`:
 
 | Prompt | Purpose |
 |---|---|
@@ -68,6 +68,7 @@ The wizard deploys four ready-to-use prompts under `.github/prompts/`:
 | `end-session.prompt.md` | Updates `session-log.md` with today's work, decisions and pending items |
 | `design-feature.prompt.md` | Runs the Architect's 8-step design process and writes an ADR |
 | `security-review.prompt.md` | Performs a focused security review of recent changes |
+| `understudy.prompt.md` | Explains understudy capabilities, available roles, commands and recommended workflow |
 
 In Copilot Chat, start typing `/` or the prompt name and VS Code will offer
 them as attachments. You can also right-click a prompt file and run it.

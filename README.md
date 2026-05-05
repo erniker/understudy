@@ -229,7 +229,8 @@ understudy/
 │   │       ├── start-session.prompt.md
 │   │       ├── end-session.prompt.md
 │   │       ├── design-feature.prompt.md
-│   │       └── security-review.prompt.md
+│   │       ├── security-review.prompt.md
+│   │       └── understudy.prompt.md
 │   ├── .claude/                 # Claude Code
 │   │   ├── agents/
 │   │   │   ├── architect.md, backend.md, frontend.md
@@ -237,6 +238,7 @@ understudy/
 │   │   ├── commands/
 │   │   │   ├── start-session.md, end-session.md
 │   │   │   ├── design-feature.md, security-review.md
+│   │   │   ├── understudy.md
 │   │   ├── hooks/
 │   │   │   └── guardrails-check.sh
 │   │   └── settings.json
@@ -244,6 +246,8 @@ understudy/
 │   │   ├── agents/
 │   │   │   ├── architect.md, backend.md, frontend.md
 │   │   │   ├── devops.md, security.md, qa-engineer.md
+│   │   ├── commands/
+│   │   │   └── understudy.md
 │   │   └── rules/
 │   │       ├── understudy-global.mdc
 │   │       └── guardrails.mdc
