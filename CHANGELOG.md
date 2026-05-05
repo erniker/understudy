@@ -7,6 +7,33 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **Caveman compression improvements** (#76):
+  - **Expanded filler lists**: `COMPRESS_WORDS` grew from 14 → 30 entries
+    (added `essentially`, `generally`, `certainly`, `obviously`, `surely`,
+    `clearly`, `indeed`, `moreover`, `furthermore`, `additionally`,
+    `however`, `therefore`, `meanwhile`, `consequently`, `nevertheless`,
+    `nonetheless`).
+  - **Smart replacements**: new `COMPRESS_REPLACEMENTS` list with 24
+    phrase → shorter-equivalent substitutions (e.g. "in order to" → "to",
+    "due to the fact that" → "because", "at this point in time" → "now").
+    Hedging phrases like "you should always", "make sure to", "remember to"
+    are removed entirely. Orphan punctuation cleanup after deletions.
+  - **Enhanced role instructions**: major rewrite of
+    `modules/caveman/role.instructions.md` (~75 → ~130 lines). New sections:
+    Persistence, Rules (structural pattern), Auto-clarity (when NOT to
+    compress). Ultra mode now lists specific abbreviations
+    (DB/auth/config/fn/impl/env/dep/repo). Each intensity level includes a
+    concrete example using the same React re-render scenario.
+  - **LLM mode** (`--llm` flag): optional semantic compression via Claude
+    CLI (~40–50% reduction). Validates output preserves headings, code
+    blocks, URLs, and inline code. Retry loop (max 2) with graceful
+    fallback to regex on any failure. Supports `--llm --dry-run`.
+  - Compression tests expanded from 20 → 31 (+7 regex, +4 LLM).
+  - Evals regenerated with `tiktoken-cl100k_base`: templates 0.9%, docs
+    2.4%, three-arm C vs A −35.9%.
+
 ## [0.8.1] - 2026-05-05
 
 ### Added

@@ -31,11 +31,15 @@ post-processor from upstream are intentionally **not** ported — see
 
 Three intensity hints you can ask for inline:
 
-| Intensity | Behavior |
-| --- | --- |
-| `lite`  | Trim filler and articles, keep full sentences. |
-| `full`  | Telegraphic prose. Default. |
-| `ultra` | Bullets only, no prose. Use sparingly — tradeoffs accuracy. |
+| Intensity | Behavior | Example (same React re-render question) |
+| --- | --- | --- |
+| `lite`  | Trim filler and articles, keep full sentences. | "Component re-renders because state changes in parent. Use `React.memo` to skip unchanged props." |
+| `full`  | Telegraphic prose. Default. | "Re-renders from parent state change. Wrap with `React.memo`, compare props." |
+| `ultra` | Bullets only, abbreviations (DB/auth/config/req/res/fn/impl/env/dep/repo). | "• Parent state Δ → child re-render\n• Fix: `React.memo` + shallow compare" |
+
+The role follows a structural pattern for every statement:
+`[thing] [action] [reason]. [next step].` — no filler, no hedging, no
+pleasantries.
 
 ### Enable it
 
@@ -105,7 +109,26 @@ machines.
 
 # Non-interactive (CI): never prompt
 ./modules/caveman/bin/understudy-compress --no-install --yes docs/team-roster.md
+
+# LLM mode — semantic compression via Claude CLI (~40-50% reduction)
+./modules/caveman/bin/understudy-compress --llm docs/team-roster.md
+
+# LLM mode preview
+./modules/caveman/bin/understudy-compress --llm --dry-run docs/team-roster.md
 ```
+
+### Two compression modes
+
+| Mode | Flag | Reduction | Requires |
+| --- | --- | --- | --- |
+| Regex (default) | _(none)_ | ~2–8% | Python ≥ 3.8 |
+| LLM | `--llm` | ~40–50% | `claude` CLI on PATH |
+
+Regex mode is deterministic and fast — it removes filler words and replaces
+verbose phrases with shorter equivalents. LLM mode sends the prose to Claude
+for semantic compression, validates the output (headings, code blocks, URLs,
+inline code must survive), retries up to twice, and falls back to regex on
+any failure.
 
 ### Optional dependency: `tiktoken`
 
@@ -153,11 +176,23 @@ It **never modifies** these regions:
 - Headings, horizontal rules, table rows, full-line HTML comments
 - Lines containing GUARDRAILS markers or `new members here`
 
-It **does compress** prose lines outside the above by removing 13 high-frequency
-phrases and 14 filler words (e.g. "in order to" → "to", "it is important to
-note that the" → "the", "just", "simply", "really", articles where unambiguous).
-The compressor runs idempotently — applying its substitutions until no further
-change occurs (max 8 iterations).
+It **does compress** prose lines outside the above in two phases:
+
+1. **Smart replacements** (24 entries) — verbose phrases are substituted with
+   shorter equivalents: "in order to" → "to", "due to the fact that" →
+   "because", "at this point in time" → "now", "in the event that" → "if",
+   "with regard to" → "about", "for the purpose of" → "for". Hedging phrases
+   like "you should always", "make sure to", "remember to" are removed
+   entirely.
+2. **Filler deletion** (30 words + 4 phrases) — articles (`the`, `a`, `an`),
+   padding words (`just`, `simply`, `really`, `basically`, `literally`,
+   `very`, `quite`, `rather`, `somewhat`, `essentially`), and connective
+   fluff (`moreover`, `furthermore`, `additionally`, `however`, `therefore`,
+   `meanwhile`, `consequently`, `nevertheless`, `nonetheless`, `indeed`).
+
+Orphan punctuation left by deletions (leading commas, double periods, etc.)
+is cleaned up automatically. The compressor runs idempotently — applying its
+substitutions until no further change occurs (max 8 iterations).
 
 ### Round-trip guarantee
 
