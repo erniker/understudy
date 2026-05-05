@@ -4,8 +4,18 @@ It is important to note that the wizard is just a simple shell script.
 
 Please simply run `wizard.sh --here` to deploy the project.
 
-In order to test compression, we have placed several phrases. Due to the fact
-that the script needs to remove fillers, this paragraph is intentionally verbose.
+In order to test compression, we have placed several phrases. Due to the fact that
+the script needs to remove fillers, this paragraph is intentionally verbose.
+
+You should always make sure to run the test suite before pushing any changes.
+Remember to check the logs, and it is also worth noting that coverage matters.
+
+However, furthermore it is recommended to use the linter. You could consider
+adding more tests. Additionally, the CI pipeline is essentially very reliable.
+
+At this point in time the deployment is done. With regard to the rollback plan,
+we should keep in mind that backups exist. In the event that something fails,
+the system will consequently roll back.
 
 Visit https://example.com/path/to/page for more details about the project, and
 note that the file at /etc/passwd should never actually be modified.
