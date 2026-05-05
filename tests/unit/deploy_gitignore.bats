@@ -94,6 +94,7 @@ teardown() { teardown_tmp; }
   PLATFORM_CURSOR=true
   deploy_gitignore
   grep -q ".cursor/agents/" "$TARGET_DIR/.gitignore"
+  grep -q ".cursor/commands/" "$TARGET_DIR/.gitignore"
   grep -q "understudy-global.mdc" "$TARGET_DIR/.gitignore"
   grep -q "guardrails.mdc" "$TARGET_DIR/.gitignore"
 }

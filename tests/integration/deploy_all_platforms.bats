@@ -88,13 +88,14 @@ run_wizard_noninteractive() {
   [ -f "$dir/qa.md" ]
 }
 
-@test "full deploy creates all 4 Claude Code commands" {
+@test "full deploy creates all 5 Claude Code commands" {
   run_wizard_noninteractive "myproject" "$TEST_TMP" "Y" "Y" "Y"
   local dir="$TEST_TMP/myproject/.claude/commands"
   [ -f "$dir/start-session.md" ]
   [ -f "$dir/end-session.md" ]
   [ -f "$dir/design-feature.md" ]
   [ -f "$dir/security-review.md" ]
+  [ -f "$dir/understudy.md" ]
 }
 
 @test "full deploy creates Claude Code settings.json" {
@@ -126,6 +127,11 @@ run_wizard_noninteractive() {
   [ -f "$TEST_TMP/myproject/.cursor/rules/guardrails.mdc" ]
 }
 
+@test "full deploy creates Cursor commands" {
+  run_wizard_noninteractive "myproject" "$TEST_TMP" "Y" "Y" "Y"
+  [ -f "$TEST_TMP/myproject/.cursor/commands/understudy.md" ]
+}
+
 @test "full deploy creates docs/ memory files" {
   run_wizard_noninteractive "myproject" "$TEST_TMP" "Y" "Y" "Y"
   local dir="$TEST_TMP/myproject/docs"
@@ -147,6 +153,7 @@ run_wizard_noninteractive() {
   [ -f "$dir/end-session.prompt.md" ]
   [ -f "$dir/design-feature.prompt.md" ]
   [ -f "$dir/security-review.prompt.md" ]
+  [ -f "$dir/understudy.prompt.md" ]
 }
 
 # ── Placeholder substitution in deployed files ────────────────────────────────

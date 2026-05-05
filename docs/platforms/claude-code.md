@@ -63,6 +63,7 @@ claude
 | `/project:end-session` | Update `docs/session-log.md` with today's work |
 | `/project:design-feature` | Architect-driven design with ADR |
 | `/project:security-review` | Focused security review of current changes |
+| `/project:understudy` | Explain understudy capabilities, roles, commands and workflow |
 
 Plus Claude's native commands: `/model`, `/compact`, `/agents` (list), etc.
 
@@ -111,7 +112,10 @@ editing the script.
 # 1) Load context
 /project:start-session
 
-# 2) Design
+# 2) Not sure what's available? Ask understudy
+/project:understudy
+
+# 3) Design
 /project:design-feature
 → Claude asks about the feature, proposes alternatives, adds an ADR.
 

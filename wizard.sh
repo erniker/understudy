@@ -464,6 +464,7 @@ validate_claude_templates() {
         ".claude/commands/end-session.md"
         ".claude/commands/design-feature.md"
         ".claude/commands/security-review.md"
+        ".claude/commands/understudy.md"
         ".claude/settings.json"
         ".claude/hooks/guardrails-check.sh"
     )
@@ -485,6 +486,7 @@ validate_cursor_templates() {
         ".cursor/agents/devops.md"
         ".cursor/agents/security.md"
         ".cursor/agents/qa-engineer.md"
+        ".cursor/commands/understudy.md"
         ".cursor/rules/understudy-global.mdc"
         ".cursor/rules/guardrails.mdc"
     )
@@ -1345,6 +1347,7 @@ deploy_cursor() {
     step "Deploying Cursor files"
 
     mkdir -p "${TARGET_DIR}/.cursor/agents"
+    mkdir -p "${TARGET_DIR}/.cursor/commands"
     mkdir -p "${TARGET_DIR}/.cursor/rules"
 
     # Global rules
@@ -1354,6 +1357,13 @@ deploy_cursor() {
     for agent_file in "${TEMPLATES_DIR}/.cursor/agents/"*.md; do
         if [[ -f "$agent_file" ]]; then
             deploy_file "$agent_file" "${TARGET_DIR}/.cursor/agents/$(basename "$agent_file")"
+        fi
+    done
+
+    # Commands
+    for cmd_file in "${TEMPLATES_DIR}/.cursor/commands/"*.md; do
+        if [[ -f "$cmd_file" ]]; then
+            deploy_file "$cmd_file" "${TARGET_DIR}/.cursor/commands/$(basename "$cmd_file")"
         fi
     done
 
@@ -1412,6 +1422,7 @@ deploy_gitignore() {
         if $PLATFORM_CURSOR; then
             {
                 printf '.cursor/agents/\n'
+                printf '.cursor/commands/\n'
                 printf '.cursor/rules/understudy-global.mdc\n'
                 printf '.cursor/rules/guardrails.mdc\n'
             } >> "$gitignore"
