@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-05
+
 ### Added
 
 - **Caveman compression improvements** (#76):
@@ -33,6 +35,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   - Compression tests expanded from 20 → 31 (+7 regex, +4 LLM).
   - Evals regenerated with `tiktoken-cl100k_base`: templates 0.9%, docs
     2.4%, three-arm C vs A −35.9%.
+- **Documentation update** (#77): updated `docs/11-caveman-mode.md` with
+  concrete intensity examples, two compression modes section (regex vs LLM),
+  and rewritten compression description (24 replacements + 30 filler words).
 
 ## [0.8.1] - 2026-05-05
 
