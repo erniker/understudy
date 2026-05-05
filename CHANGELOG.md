@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-05-05
+
+### Added
+
+- **`/understudy` slash command** (#74):
+  New built-in command across all three platforms that explains understudy
+  capabilities, available roles, commands, persistent memory files,
+  recommended workflow, and configuration options. Works as
+  `@workspace /understudy` in VS Code Copilot, `/project:understudy`
+  in Claude Code, and `/understudy` in Cursor. The wizard now also
+  deploys a `.cursor/commands/` directory (previously Cursor had no
+  commands support).
+
 ## [0.8.0] - 2026-04-30
 
 ### Added
