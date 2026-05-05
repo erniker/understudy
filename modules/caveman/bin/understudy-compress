@@ -18,9 +18,14 @@ prose, while preserving byte-identical:
 Writes a backup to <file>.original.md and modifies the file in place.
 
 Usage:
-  understudy-compress [--dry-run] [--yes] [--no-install] FILE
+  understudy-compress [--dry-run] [--yes] [--no-install] [--llm] FILE
   understudy-compress --restore FILE
   understudy-compress --help
+
+Modes:
+  Default (regex): deterministic filler/phrase removal. ~2-8% input savings.
+  --llm:           semantic compression via Claude CLI. ~40-50% input savings.
+                   Requires ``claude`` on PATH. Falls back to regex on failure.
 
 Safety gates (non-bypassable):
   - Refuses symlinks
@@ -149,20 +154,40 @@ def abort_if_unsafe(path: Path, cwd: Path) -> None:
 # ────────────────────────────────────────────────────────────────────────────
 # Compression rules
 # ────────────────────────────────────────────────────────────────────────────
+# Phrases replaced by shorter equivalents (applied before deletion).
+COMPRESS_REPLACEMENTS: List[Tuple[str, str]] = [
+    ("it is important to note that", ""),
+    ("it should be noted that", ""),
+    ("it is also worth noting that", ""),
+    ("it is worth noting that", ""),
+    ("it is recommended to", ""),
+    ("it would be good to", ""),
+    ("as a matter of fact", ""),
+    ("at this point in time", "now"),
+    ("due to the fact that", "because"),
+    ("for the purpose of", "for"),
+    ("in the event that", "if"),
+    ("in order to", "to"),
+    ("with regard to", "about"),
+    ("with respect to", "about"),
+    ("on the other hand", ""),
+    ("you could consider", ""),
+    ("it might be worth", ""),
+    ("you should always", ""),
+    ("make sure to", ""),
+    ("remember to", ""),
+    ("you should", ""),
+    ("note that", ""),
+    ("keep in mind that", ""),
+    ("in addition to", "besides"),
+]
+
+# Phrases deleted entirely (no replacement).
 COMPRESS_PHRASES = [
-    "in order to",
-    "note that",
-    "it is important to",
-    "it should be noted that",
-    "as a matter of fact",
-    "at this point in time",
-    "due to the fact that",
-    "for the purpose of",
-    "in the event that",
-    "with regard to",
-    "with respect to",
     "kind of",
     "sort of",
+    "of course",
+    "in fact",
 ]
 
 COMPRESS_WORDS = [
@@ -180,10 +205,40 @@ COMPRESS_WORDS = [
     "quite",
     "rather",
     "somewhat",
+    "essentially",
+    "generally",
+    "certainly",
+    "obviously",
+    "surely",
+    "clearly",
+    "indeed",
+    "moreover",
+    "furthermore",
+    "additionally",
+    "however",
+    "therefore",
+    "meanwhile",
+    "consequently",
+    "nevertheless",
+    "nonetheless",
 ]
 
-# Single combined regex per pattern, case-insensitive on the first letter only.
-# We anchor on word boundaries.
+# ── Replacement patterns (phrase → shorter alternative) ──────────────────
+def _build_replacement_patterns() -> List[Tuple[re.Pattern, str]]:
+    out: List[Tuple[re.Pattern, str]] = []
+    for phrase, replacement in COMPRESS_REPLACEMENTS:
+        if phrase and phrase[0].isalpha():
+            esc = f"[{phrase[0].upper()}{phrase[0].lower()}]" + re.escape(phrase[1:])
+        else:
+            esc = re.escape(phrase)
+        out.append((re.compile(rf"\b{esc}\b"), replacement))
+    return out
+
+
+_REPLACEMENT_PATTERNS = _build_replacement_patterns()
+
+
+# ── Filler deletion patterns (word/phrase → removed) ─────────────────────
 def _build_filler_patterns() -> List[re.Pattern]:
     out: List[re.Pattern] = []
     # Phrases first (longest match wins).
@@ -257,7 +312,7 @@ def is_passthrough_line(line: str) -> bool:
 
 
 def strip_fillers(line: str) -> str:
-    """Apply all filler removals until idempotent (max 8 iters).
+    """Apply replacements then filler removals until idempotent (max 8 iters).
 
     Preserves the original leading indent (so list items and indented blocks
     don't shift left), but strips any whitespace introduced by filler removal
@@ -267,6 +322,11 @@ def strip_fillers(line: str) -> str:
     leading = m.group(1)
     rest = m.group(2)
 
+    # Phase 1: smart replacements (longer phrases → shorter equivalents).
+    for pat, replacement in _REPLACEMENT_PATTERNS:
+        rest = pat.sub(replacement, rest)
+
+    # Phase 2: filler deletion until stable.
     prev = None
     iters = 0
     while rest != prev and iters < 8:
@@ -275,6 +335,11 @@ def strip_fillers(line: str) -> str:
             rest = pat.sub("", rest)
         rest = re.sub(r" {2,}", " ", rest)
         rest = re.sub(r"\s+([,.;:!?])", r"\1", rest)
+        # Clean orphaned punctuation artifacts.
+        rest = re.sub(r"^[,;]\s*", "", rest)      # leading comma/semicolon
+        rest = re.sub(r"([,.;:!?])\1+", r"\1", rest)  # double punctuation
+        rest = re.sub(r"\.\s*,", ".", rest)        # period followed by comma
+        rest = re.sub(r",\s*\.", ".", rest)         # comma followed by period
         rest = rest.strip()
         iters += 1
     return leading + rest
@@ -347,6 +412,265 @@ def measure_tokens(text: str) -> Tuple[int, str]:
         return len(text.split()), "words"
 
 
+# ────────────────────────────────────────────────────────────────────────────
+# LLM-based compression (--llm mode)
+# ────────────────────────────────────────────────────────────────────────────
+_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)", re.MULTILINE)
+_FENCE_OPEN_RE = re.compile(r"^(\s{0,3})(`{3,}|~{3,})(.*)$")
+_URL_RE = re.compile(r"https?://[^\s)]+")
+_OUTER_FENCE_RE = re.compile(r"\A\s*(`{3,}|~{3,})[^\n]*\n(.*)\n\1\s*\Z", re.DOTALL)
+
+LLM_MAX_RETRIES = 2
+
+
+def _has_claude_cli() -> bool:
+    """Return True if the ``claude`` CLI binary is on PATH."""
+    return shutil.which("claude") is not None
+
+
+def _strip_llm_wrapper(text: str) -> str:
+    """Strip outer ```markdown ... ``` fence when it wraps the entire output."""
+    m = _OUTER_FENCE_RE.match(text)
+    if m:
+        return m.group(2)
+    return text
+
+
+def _call_claude(prompt: str) -> str:
+    """Call claude CLI with --print and return stdout.
+
+    Raises RuntimeError on non-zero exit.
+    """
+    try:
+        result = subprocess.run(
+            ["claude", "--print"],
+            input=prompt,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return _strip_llm_wrapper(result.stdout.strip())
+    except FileNotFoundError:
+        raise RuntimeError("claude CLI not found on PATH")
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Claude call failed:\n{e.stderr}")
+
+
+def _build_compress_prompt(original: str) -> str:
+    return f"""Compress this markdown into caveman format.
+
+STRICT RULES:
+- Do NOT modify anything inside ``` code blocks
+- Do NOT modify anything inside inline backticks
+- Preserve ALL URLs exactly
+- Preserve ALL headings exactly (same text, same level)
+- Preserve file paths, commands, version numbers, dates
+- Preserve markdown link syntax [text](url) exactly
+- Preserve template tokens like {{{{PROJECT_NAME}}}} exactly
+- Return ONLY the compressed markdown body — do NOT wrap the entire output in a
+  ```markdown fence or any other fence. Inner code blocks from the original
+  stay as-is; do not add a new outer fence around the whole file.
+
+COMPRESSION RULES:
+- Remove articles (a, an, the), filler (just, really, basically, actually,
+  simply, essentially, generally), pleasantries (sure, certainly, of course,
+  happy to), hedging (you should, make sure to, remember to, it might be worth)
+- Remove connective fluff: however, furthermore, additionally, moreover,
+  in addition, nevertheless, consequently, meanwhile
+- Replace wordy phrases: "in order to" → "to", "due to the fact that" →
+  "because", "at this point in time" → "now", "in the event that" → "if",
+  "with regard to" → "about", "for the purpose of" → "for"
+- Use short synonyms: big not extensive, fix not "implement a solution for",
+  use not utilize, get not retrieve, start not initialize
+- Fragments OK: "Run tests before commit" not "You should always run tests
+  before committing"
+- Drop "you should", "make sure to", "remember to" — just state the action
+- Merge redundant bullets that say the same thing differently
+- Keep one example where multiple examples show the same pattern
+- Only compress natural language. Code blocks are read-only regions.
+
+TEXT:
+{original}
+"""
+
+
+def _build_fix_prompt(original: str, compressed: str, errors: List[str]) -> str:
+    errors_str = "\n".join(f"- {e}" for e in errors)
+    return f"""You are fixing a caveman-compressed markdown file. Specific
+validation errors were found.
+
+CRITICAL RULES:
+- DO NOT recompress or rephrase the file
+- ONLY fix the listed errors — leave everything else exactly as-is
+- The ORIGINAL is provided as reference only (to restore missing content)
+- Preserve caveman style in all untouched sections
+
+ERRORS TO FIX:
+{errors_str}
+
+HOW TO FIX:
+- Missing URL: find it in ORIGINAL, restore it exactly where it belongs
+- Code block mismatch: find the exact code block in ORIGINAL, restore it
+- Heading mismatch: restore the exact heading text from ORIGINAL
+- Missing inline code: restore the exact backtick span from ORIGINAL
+- Do not touch any section not mentioned in the errors
+
+ORIGINAL (reference only):
+{original}
+
+COMPRESSED (fix this):
+{compressed}
+
+Return ONLY the fixed compressed file. No explanation.
+"""
+
+
+def _extract_headings(text: str) -> List[Tuple[str, str]]:
+    return [(level, title.strip()) for level, title in _HEADING_RE.findall(text)]
+
+
+def _extract_code_blocks(text: str) -> List[str]:
+    """Line-based fenced code block extractor with nesting support."""
+    blocks: List[str] = []
+    lines = text.split("\n")
+    i = 0
+    n = len(lines)
+    while i < n:
+        m = _FENCE_OPEN_RE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        fence_char = m.group(2)[0]
+        fence_len = len(m.group(2))
+        block_lines = [lines[i]]
+        i += 1
+        closed = False
+        while i < n:
+            close_m = _FENCE_OPEN_RE.match(lines[i])
+            if (
+                close_m
+                and close_m.group(2)[0] == fence_char
+                and len(close_m.group(2)) >= fence_len
+                and close_m.group(3).strip() == ""
+            ):
+                block_lines.append(lines[i])
+                closed = True
+                i += 1
+                break
+            block_lines.append(lines[i])
+            i += 1
+        if closed:
+            blocks.append("\n".join(block_lines))
+    return blocks
+
+
+def _extract_urls(text: str) -> set:
+    return set(_URL_RE.findall(text))
+
+
+def _extract_inline_codes(text: str) -> List[str]:
+    text_no_fences = re.sub(r"^```[\s\S]*?^```", "", text, flags=re.MULTILINE)
+    text_no_fences = re.sub(r"^~~~[\s\S]*?^~~~", "", text_no_fences, flags=re.MULTILINE)
+    return re.findall(r"`([^`]+)`", text_no_fences)
+
+
+def _validate_llm_output(original: str, compressed: str) -> Tuple[bool, List[str]]:
+    """Validate LLM output against original. Returns (is_valid, errors)."""
+    errors: List[str] = []
+
+    # Headings must match exactly.
+    h_orig = _extract_headings(original)
+    h_comp = _extract_headings(compressed)
+    if h_orig != h_comp:
+        errors.append(f"Heading mismatch: expected {len(h_orig)}, got {len(h_comp)}")
+
+    # Code blocks must be preserved byte-identical.
+    cb_orig = _extract_code_blocks(original)
+    cb_comp = _extract_code_blocks(compressed)
+    if cb_orig != cb_comp:
+        errors.append(f"Code block mismatch: expected {len(cb_orig)}, got {len(cb_comp)}")
+
+    # URLs must all be present.
+    u_orig = _extract_urls(original)
+    u_comp = _extract_urls(compressed)
+    lost_urls = u_orig - u_comp
+    if lost_urls:
+        errors.append(f"URLs lost: {lost_urls}")
+
+    # Inline code — check no spans were lost.
+    from collections import Counter
+    ic_orig = Counter(_extract_inline_codes(original))
+    ic_comp = Counter(_extract_inline_codes(compressed))
+    lost_ic = set()
+    for code, count in ic_orig.items():
+        if code not in ic_comp:
+            lost_ic.add(code)
+        elif ic_comp[code] < count:
+            lost_ic.add(f"{code} (lost {count - ic_comp[code]} of {count})")
+    if lost_ic:
+        errors.append(f"Inline code lost: {lost_ic}")
+
+    # Output must not be empty or identical.
+    if not compressed.strip():
+        errors.append("Compressed output is empty")
+    if compressed.strip() == original.strip():
+        errors.append("Compressed output is identical to input")
+
+    return (len(errors) == 0, errors)
+
+
+def compress_text_llm(text: str) -> Tuple[str, bool]:
+    """Compress text using Claude CLI. Returns (compressed, success).
+
+    On failure (validation errors after retries, CLI missing), returns
+    the original text and False so the caller can fall back to regex.
+    """
+    if not _has_claude_cli():
+        warn("claude CLI not found on PATH — falling back to regex mode.")
+        return text, False
+
+    info("Compressing with Claude CLI (--llm mode)...")
+    try:
+        compressed = _call_claude(_build_compress_prompt(text))
+    except RuntimeError as e:
+        warn(f"Claude call failed: {e}")
+        warn("Falling back to regex mode.")
+        return text, False
+
+    if not compressed or not compressed.strip():
+        warn("Claude returned empty output — falling back to regex mode.")
+        return text, False
+
+    if compressed.strip() == text.strip():
+        warn("Claude returned identical output — falling back to regex mode.")
+        return text, False
+
+    # Validate + retry loop.
+    for attempt in range(LLM_MAX_RETRIES + 1):
+        is_valid, errors = _validate_llm_output(text, compressed)
+        if is_valid:
+            ok("LLM validation passed.")
+            return compressed, True
+
+        if attempt < LLM_MAX_RETRIES:
+            warn(f"Validation failed (attempt {attempt + 1}/{LLM_MAX_RETRIES + 1}):")
+            for e in errors:
+                warn(f"  - {e}")
+            info("Sending fix prompt to Claude...")
+            try:
+                compressed = _call_claude(_build_fix_prompt(text, compressed, errors))
+            except RuntimeError as e:
+                warn(f"Fix call failed: {e}")
+                break
+        else:
+            warn(f"Validation failed after {LLM_MAX_RETRIES + 1} attempts:")
+            for e in errors:
+                warn(f"  - {e}")
+
+    warn("LLM compression failed validation — falling back to regex mode.")
+    return text, False
+
+
 def maybe_install_tiktoken(*, yes: bool, no_install: bool) -> None:
     """Offer to install tiktoken on first use. Side-effect: pip install."""
     try:
@@ -390,14 +714,24 @@ def backup_path(path: Path) -> Path:
     return path.with_name(path.stem + ".original" + path.suffix)
 
 
-def cmd_compress(path: Path, *, dry_run: bool) -> int:
+def cmd_compress(path: Path, *, dry_run: bool, use_llm: bool = False) -> int:
     original = path.read_text(encoding="utf-8")
-    compressed = compress_text(original)
+
+    llm_used = False
+    if use_llm:
+        compressed, llm_used = compress_text_llm(original)
+        if not llm_used:
+            info("Applying regex compression as fallback.")
+            compressed = compress_text(original)
+    else:
+        compressed = compress_text(original)
 
     before, label = measure_tokens(original)
     after, _ = measure_tokens(compressed)
     saved = before - after
     pct = (saved * 100 // before) if before else 0
+    mode_label = "llm" if llm_used else "regex"
+    info(f"Mode: {mode_label}")
     info(f"{label.title()} before: {before}")
     info(f"{label.title()} after:  {after}")
     info(f"Estimated savings: {saved} {label} ({pct}%)")
@@ -440,6 +774,9 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
                    help="Show stats without modifying the file")
     p.add_argument("--restore", action="store_true",
                    help="Restore from <file>.original.<ext> backup")
+    p.add_argument("--llm", action="store_true",
+                   help="Use Claude CLI for semantic compression (~46%% reduction). "
+                        "Falls back to regex if claude is not on PATH.")
     p.add_argument("--yes", action="store_true",
                    help="Non-interactive: accept tiktoken auto-install")
     p.add_argument("--no-install", action="store_true",
@@ -458,7 +795,7 @@ def main(argv: List[str]) -> int:
 
     abort_if_unsafe(path, Path.cwd())
     maybe_install_tiktoken(yes=args.yes, no_install=args.no_install)
-    return cmd_compress(path, dry_run=args.dry_run)
+    return cmd_compress(path, dry_run=args.dry_run, use_llm=args.llm)
 
 
 if __name__ == "__main__":

@@ -203,3 +203,96 @@ teardown() {
   [ "$status" -eq 0 ]
   ! grep -qi 'It is important to note that' prose.md
 }
+
+@test "compress: replaces 'due to the fact that' with 'because'" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'due to the fact that' prose.md
+  grep -qi 'because' prose.md
+}
+
+@test "compress: replaces 'in order to' with 'to'" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'in order to' prose.md
+}
+
+@test "compress: removes hedging phrases (you should, make sure to)" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'you should always' prose.md
+  ! grep -qi 'make sure to' prose.md
+  ! grep -qi 'remember to' prose.md
+}
+
+@test "compress: removes new filler words (however, furthermore, additionally)" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'furthermore' prose.md
+  ! grep -qi 'additionally' prose.md
+  ! grep -qi 'essentially' prose.md
+  ! grep -qi 'consequently' prose.md
+}
+
+@test "compress: replaces 'at this point in time' with 'now'" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'at this point in time' prose.md
+}
+
+@test "compress: replaces 'in the event that' with 'if'" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'in the event that' prose.md
+}
+
+@test "compress: replaces 'with regard to' with 'about'" {
+  cd "$TEST_TMP"
+  run SCRIPT prose.md
+  [ "$status" -eq 0 ]
+  ! grep -qi 'with regard to' prose.md
+}
+
+# ── LLM mode tests ──────────────────────────────────────────────────────────
+
+@test "compress: --llm flag is accepted by help" {
+  run SCRIPT --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"--llm"* ]]
+}
+
+@test "compress: --llm falls back to regex when claude CLI is not on PATH" {
+  cd "$TEST_TMP"
+  # Ensure claude is not available by removing it from PATH but keep python
+  PY_DIR="$(dirname "$(command -v "$PY")")"
+  export PATH="$PY_DIR:/usr/bin:/bin"
+  run SCRIPT --llm prose.md
+  [ "$status" -eq 0 ]
+  # Should still compress (regex fallback)
+  [[ "$output" == *"regex"* ]] || [[ "$output" == *"falling back"* ]] || [[ "$output" == *"Mode: regex"* ]]
+}
+
+@test "compress: --llm --dry-run does not modify the file" {
+  cd "$TEST_TMP"
+  cp prose.md snapshot.md
+  run SCRIPT --llm --dry-run prose.md
+  [ "$status" -eq 0 ]
+  diff -q prose.md snapshot.md
+  [ ! -f prose.original.md ]
+}
+
+@test "compress: --llm preserves code blocks on regex fallback" {
+  cd "$TEST_TMP"
+  PY_DIR="$(dirname "$(command -v "$PY")")"
+  export PATH="$PY_DIR:/usr/bin:/bin"
+  run SCRIPT --llm prose.md
+  [ "$status" -eq 0 ]
+  grep -q 'echo "the a an please simply"' prose.md
+  grep -q '# this fenced block must remain byte-identical' prose.md
+}
