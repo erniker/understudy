@@ -475,12 +475,20 @@ Understudy works on **all four platforms** — choose one or all during deployme
 | Team definition | ✅ AGENTS.md | ✅ AGENTS.md | ✅ `.claude/agents/` | ✅ `.cursor/agents/` |
 | File protection | N/A | N/A | ✅ `settings.json` deny | N/A |
 | Security hooks | N/A | N/A | ✅ `.claude/hooks/` | N/A |
+| Caveman role | ✅ opt-in | ✅ opt-in | ✅ opt-in | ✅ opt-in |
+| Caveman compress | ✅ repo-level | ✅ repo-level | ✅ repo-level | ✅ repo-level |
+| Caveman `/compress` `/restore` | N/A | ✅ `.github/prompts/` | ✅ `.claude/commands/` | ✅ `.cursor/commands/` |
+| Caveman hooks (reinforcement) | N/A | ⚠️ Marker block | ✅ Real hooks | ⚠️ Always-apply rule |
+| Caveman statusline | N/A | N/A | ✅ Claude only | N/A |
 
 ### In VS Code
 - Instructions are applied **automatically** based on the file you're editing
   (thanks to the `applyTo` frontmatter in each `.instructions.md`)
 - Prompts in `.github/prompts/` are available as reusable prompts
 - Use "Start Session" and "End Session" prompts for the context flow
+- **Caveman**: role via `.github/instructions/caveman.instructions.md`, slash commands
+  via `.github/prompts/compress.prompt.md` and `restore.prompt.md`, reinforcement
+  via marker block in `copilot-instructions.md`
 
 ### In Claude Code
 - `CLAUDE.md` is loaded automatically when you open the project
@@ -488,12 +496,18 @@ Understudy works on **all four platforms** — choose one or all during deployme
 - Commands are in `.claude/commands/` — use them with `/project:name`
 - The guardrails hook blocks destructive operations automatically
 - `settings.json` protects sensitive files (.env, keys, secrets)
+- **Caveman**: role via `.claude/agents/caveman.md`, `/compress` and `/restore`
+  commands, real `SessionStart` / `UserPromptSubmit` hooks, statusline showing
+  cumulative compression savings
 
 ### In Cursor
 - Global rules (`.cursor/rules/`) are applied **automatically** in every session
 - Agents are in `.cursor/agents/` — invoke them from the Agent panel
 - Guardrails are in `.cursor/rules/guardrails.mdc` — always active
 - Each agent has its model configured in the frontmatter (`auto`, `fast`, or a specific model)
+- **Caveman**: role via `.cursor/agents/caveman.md`, `/compress` and `/restore`
+  commands via `.cursor/commands/`, reinforcement via
+  `.cursor/rules/00-caveman-active.mdc` (alwaysApply)
 
 ### Files by platform
 
@@ -504,6 +518,10 @@ Understudy works on **all four platforms** — choose one or all during deployme
 .github/instructions/guardrails.instructions.md → Always active (applyTo: "**")
 .github/prompts/*.prompt.md            → Invocable from Copilot Chat
 AGENTS.md                              → Read as context
+# Caveman (opt-in)
+.github/instructions/caveman.instructions.md → Role (applyTo: "**")
+.github/prompts/compress.prompt.md     → /compress slash command
+.github/prompts/restore.prompt.md      → /restore slash command
 ```
 
 **Claude Code:**
@@ -513,6 +531,11 @@ CLAUDE.md                              → Always active (includes critical guar
 .claude/commands/*.md                  → Commands (/project:name)
 .claude/settings.json                  → Permissions and hooks
 .claude/hooks/guardrails-check.sh      → Hook PreToolUse
+# Caveman (opt-in)
+.claude/agents/caveman.md              → Caveman role agent
+.claude/commands/compress.md           → /compress command
+.claude/commands/restore.md            → /restore command
+settings.json → SessionStart + UserPromptSubmit hooks, statusLine
 ```
 
 **Cursor:**
@@ -520,6 +543,11 @@ CLAUDE.md                              → Always active (includes critical guar
 .cursor/agents/*.md                    → Agents by role (with frontmatter)
 .cursor/rules/understudy-global.mdc        → Global rules (always active)
 .cursor/rules/guardrails.mdc          → Guardrails (always active)
+# Caveman (opt-in)
+.cursor/agents/caveman.md             → Caveman role agent
+.cursor/commands/compress.md           → /compress command
+.cursor/commands/restore.md            → /restore command
+.cursor/rules/00-caveman-active.mdc    → Reinforcement (alwaysApply)
 ```
 
 ## Contributing
