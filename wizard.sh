@@ -15,9 +15,12 @@
 #   - docs/ → spec, decisions, session log templates
 #
 #   Usage:
-#     ./wizard.sh                    → Interactive deployment
-#     ./wizard.sh --add-member       → Add a team member
-#     ./wizard.sh --help             → Help
+#     understudy                     → Interactive deployment
+#     understudy --here              → Deploy using inferred values
+#     understudy --here --yes        → Same as --here, skip confirmation
+#     understudy --add-member        → Add a team member
+#     understudy --create-role       → Create a new custom role
+#     understudy --help              → Show help
 #
 # ═══════════════════════════════════════════════════════════════
 
@@ -2053,12 +2056,13 @@ post_deploy() {
 show_help() {
     banner
     echo "  Usage:"
-    echo "    ./wizard.sh                  Interactive Understudy deployment"
-    echo "    ./wizard.sh --here           Deploy in current directory using inferred values"
-    echo "    ./wizard.sh --here --yes     Same as --here, skip confirmation prompt"
-    echo "    ./wizard.sh --add-member     Add a team member"
-    echo "    ./wizard.sh --create-role    Create a new custom role"
-    echo "    ./wizard.sh --help           Show this help"
+    echo "    understudy                   Interactive Understudy deployment"
+    echo "    understudy --here            Deploy in current directory using inferred values"
+    echo "    understudy --here --yes      Same as --here, skip confirmation prompt"
+    echo "    understudy --here -y         Short form of --yes"
+    echo "    understudy --add-member      Add a team member"
+    echo "    understudy --create-role     Create a new custom role"
+    echo "    understudy --help            Show this help"
     echo ""
 
     # Auto-list opt-in modules so adding modules/<name>/ surfaces in --help
@@ -2070,7 +2074,7 @@ show_help() {
             mflag="${MODULE_FLAGS_[$i]}"
             mname="${MODULE_NAMES[$i]}"
             desc="${MODULE_DESCS[$i]:-${MODULE_TITLES[$i]:-$mname}}"
-            printf "    ./wizard.sh %-13s %s\n" "$mflag" "$desc"
+            printf "    understudy %-14s %s\n" "$mflag" "$desc"
         done
         echo ""
     fi
@@ -2085,7 +2089,7 @@ show_help() {
         for j in "${!POSTINSTALL_FLAGS[@]}"; do
             pflag="${POSTINSTALL_FLAGS[$j]}"
             pdesc="${POSTINSTALL_DESCS[$j]:-(no description)}"
-            printf "    ./wizard.sh %-25s %s\n" "$pflag" "$pdesc"
+            printf "    understudy %-25s %s\n" "$pflag" "$pdesc"
         done
         echo ""
     fi
