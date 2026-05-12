@@ -24,6 +24,14 @@ restructuring.
    - [Evals harness](../modules/caveman/evals/README.md) — reproducible token-reduction numbers
 10. [Troubleshooting and FAQ](11-troubleshooting.md)
 
+### 📖 Tutorials (hands-on walkthroughs)
+
+- [Tutorials index](tutorials/README.md)
+  - [GitHub Copilot CLI tutorial](tutorials/copilot-cli-tutorial.md)
+  - [VS Code Copilot tutorial](tutorials/vscode-copilot-tutorial.md)
+  - [Claude Code tutorial](tutorials/claude-code-tutorial.md)
+  - [Cursor tutorial](tutorials/cursor-tutorial.md)
+
 > File names use numeric prefixes for stable ordering. The gap at 06-07 is
 > reserved for future chapters; the index above is the recommended reading
 > order.
@@ -32,6 +40,7 @@ restructuring.
 
 - First time here? Read [Introduction](01-introduction.md) → [Quick Start](02-quick-start.md).
 - Looking for a feature on your tool? Jump to the platform page.
+- Want a guided walkthrough? Start with the [tutorials](tutorials/README.md).
 - Comparing tools? See the [capability matrix](03-platform-comparison.md).
 
 ## Related
