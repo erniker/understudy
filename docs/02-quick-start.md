@@ -116,7 +116,7 @@ available in every future deployment.
 ## Optional: caveman mode (token-efficient)
 
 If you want shorter, denser AI replies and a smaller context bill, opt into
-[caveman mode](11-caveman-mode.md):
+[caveman mode](10-caveman-mode.md):
 
 ```bash
 understudy --caveman          # add the caveman role at deploy time
@@ -132,7 +132,20 @@ modules/caveman/bin/understudy-compress --restore docs/spec.md
 ```
 
 Full rationale, intensity levels, safety gates and the
-[evals harness](../modules/caveman/evals/README.md) live in chapter 11.
+[evals harness](../modules/caveman/evals/README.md) live in
+[chapter 10](10-caveman-mode.md).
+
+## Uninstall
+
+To remove Understudy from your system:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --uninstall
+```
+
+This removes `~/.understudy/` and the `understudy` launcher. It does **not**
+touch files deployed inside your projects — those are yours to keep or remove
+manually.
 
 ## Update Understudy
 

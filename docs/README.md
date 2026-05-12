@@ -9,21 +9,24 @@ restructuring.
 1. [Introduction and Core Concepts](01-introduction.md)
 2. [Quick Start](02-quick-start.md)
 3. [Platform Capability Matrix](03-platform-comparison.md)
-4. Platforms
+4. [Guardrails](04-guardrails.md)
+5. [Roles & Spec-Driven Development](05-roles-and-workflow.md)
+6. Platforms
    - [GitHub Copilot CLI](platforms/copilot-cli.md)
    - [VS Code Copilot](platforms/vscode-copilot.md)
    - [Claude Code](platforms/claude-code.md)
    - [Cursor](platforms/cursor.md)
-5. [Cross-Platform Workflows](08-cross-platform-workflows.md)
-6. [Configuration Reference (`understudy.yaml`)](09-configuration.md)
+7. [Cross-Platform Workflows](08-cross-platform-workflows.md)
+8. [Configuration Reference (`understudy.yaml`)](09-configuration.md)
    - [Local-only mode](09-configuration.md#local-only-mode) — keep AI config out of git
-7. [Troubleshooting and FAQ](10-troubleshooting.md)
-8. [Caveman Mode (token-efficient role + compress script)](11-caveman-mode.md)
-   - [Evals harness](../tests/evals/README.md) — reproducible token-reduction numbers
+   - [Module system](09-configuration.md#module-system) — opt-in modules like caveman
+9. [Caveman Mode (token-efficient role + compress script)](10-caveman-mode.md)
+   - [Evals harness](../modules/caveman/evals/README.md) — reproducible token-reduction numbers
+10. [Troubleshooting and FAQ](11-troubleshooting.md)
 
-> File names keep their historical numeric prefix (`08-`, `09-`, `10-`,
-> `11-`) for stable external links; the index above is the recommended
-> reading order.
+> File names use numeric prefixes for stable ordering. The gap at 06-07 is
+> reserved for future chapters; the index above is the recommended reading
+> order.
 
 ## How to read this
 

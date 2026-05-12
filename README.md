@@ -265,6 +265,16 @@ understudy/
 │   ├── shell-scripting.instructions.md
 │   ├── tech-writer.instructions.md
 │   └── sre.instructions.md
+├── modules/                     # 🧩 Opt-in modules
+│   └── caveman/                 # Token-efficient communication
+│       ├── module.yaml          # Module manifest (auto-discovered)
+│       ├── role.instructions.md  # Caveman role definition
+│       ├── bin/                 # understudy-compress, install-hooks, etc.
+│       ├── commands/            # Slash command templates per platform
+│       ├── hooks/               # Reinforcement hook templates
+│       ├── statusline/          # Claude Code statusline script
+│       ├── evals/               # Token-reduction evaluation harness
+│       └── tests/               # Module-specific bats tests
 ├── tests/                       # 🧪 bats test suite
 │   ├── unit/                    # config_read, detect, deploy_file, guardrails
 │   ├── hooks/                   # guardrails-check.sh tests
@@ -276,6 +286,8 @@ understudy/
     ├── 01-introduction.md
     ├── 02-quick-start.md
     ├── 03-platform-comparison.md
+    ├── 04-guardrails.md
+    ├── 05-roles-and-workflow.md
     ├── platforms/
     │   ├── copilot-cli.md
     │   ├── vscode-copilot.md
@@ -283,7 +295,8 @@ understudy/
     │   └── cursor.md
     ├── 08-cross-platform-workflows.md
     ├── 09-configuration.md
-    └── 10-troubleshooting.md
+    ├── 10-caveman-mode.md
+    └── 11-troubleshooting.md
 ```
 
 ## Documentation
@@ -296,13 +309,16 @@ published as a static site without restructuring.
 | [Introduction and Core Concepts](docs/01-introduction.md) | Mental model, agents, spec-driven development, persistent memory, guardrails, roles catalog, generated files |
 | [Quick Start](docs/02-quick-start.md) | Install, first session, extending the team |
 | [Platform Capability Matrix](docs/03-platform-comparison.md) | What each tool supports out of the box |
+| [Guardrails](docs/04-guardrails.md) | 8 categories, deployment modes, enforcement per platform, customization |
+| [Roles & Spec-Driven Development](docs/05-roles-and-workflow.md) | Role system, `applyTo`, spec lifecycle, session protocol, ADRs, sub-agents |
 | [GitHub Copilot CLI](docs/platforms/copilot-cli.md) | Setup, commands, full feature flow, sub-agents, tips |
 | [VS Code Copilot](docs/platforms/vscode-copilot.md) | `applyTo` globs, prompt files, start → work → end flow |
 | [Claude Code](docs/platforms/claude-code.md) | Agents, slash commands, deny list, PreToolUse hook, adding commands |
 | [Cursor](docs/platforms/cursor.md) | Rules (MDC), agent panel, creating your own rules |
 | [Cross-Platform Workflows](docs/08-cross-platform-workflows.md) | Mixed setups and the shared session protocol |
 | [Configuration Reference](docs/09-configuration.md) | Full `understudy.yaml` reference |
-| [Troubleshooting and FAQ](docs/10-troubleshooting.md) | Common issues, model choice, reporting bugs |
+| [Caveman Mode](docs/10-caveman-mode.md) | Token-efficient role, compress script, hooks, statusline, evals |
+| [Troubleshooting and FAQ](docs/11-troubleshooting.md) | Common issues, model choice, reporting bugs |
 
 ## Wizard Commands
 
@@ -404,7 +420,7 @@ The `roles/` folder is the **official optional roles catalog** for the system. T
 
 | Role | When to use it |
 |---|---|
-| 🐉 **caveman** | Token-efficient prose. Drops fillers; keeps code/paths/URLs. Opt-in via `--caveman`. See [Caveman Mode](docs/11-caveman-mode.md). |
+| 🐉 **caveman** | Token-efficient prose. Drops fillers; keeps code/paths/URLs. Opt-in via `--caveman`. See [Caveman Mode](docs/10-caveman-mode.md). |
 | 📊 **data-engineer** | ETL/ELT pipelines, data warehouses, streaming, data governance |
 | 🌿 **git-specialist** | Git workflows, branch policies, PR hygiene, release discipline |
 | 📱 **mobile-engineer** | iOS/Android apps, React Native, Flutter |
@@ -567,5 +583,5 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md) as its code 
   is inspired by [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) —
   thanks to its author for the original idea of token-efficient AI prose and for
   open-sourcing the prompt patterns that informed our port. See
-  [docs/11-caveman-mode.md](docs/11-caveman-mode.md) for what we adapted and
+  [docs/10-caveman-mode.md](docs/10-caveman-mode.md) for what we adapted and
   what we intentionally did not ship.

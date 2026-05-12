@@ -1,4 +1,4 @@
-# 11. Caveman Mode
+# 10. Caveman Mode
 
 > *"Why use many token when few token do trick."* — `modules/caveman/role.instructions.md`
 
@@ -364,3 +364,7 @@ actually uses, not on toy fixtures. Word count is a rough proxy.
 - [Configuration reference](09-configuration.md) — adding optional roles
 - [Cross-Platform Workflows](08-cross-platform-workflows.md) — using
   `caveman` alongside other team members
+
+---
+
+Next: [Troubleshooting and FAQ](11-troubleshooting.md)

@@ -1,6 +1,6 @@
 # Caveman evals harness
 
-A small, opt-in harness to defend the savings claim of [caveman mode](../../docs/11-caveman-mode.md)
+A small, opt-in harness to defend the savings claim of [caveman mode](../../docs/10-caveman-mode.md)
 with reproducible numbers. Two halves:
 
 1. **Dogfood** — runs `modules/caveman/bin/understudy-compress` against every Markdown file
