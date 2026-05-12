@@ -7,6 +7,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-05-12
+
+### Fixed
+
+- `--help` output and header comment now show `understudy` instead of
+  `./wizard.sh` (#83).
+- Header comment updated to list all CLI options (`--here`, `--here --yes`,
+  `--add-member`, `--create-role`, `--help`).
+
 ## [0.9.0] - 2026-05-05
 
 ### Added
