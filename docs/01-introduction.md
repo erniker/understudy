@@ -113,6 +113,7 @@ your-project/
 │   └── settings.json             # Permissions + hook wiring
 └── .cursor/
     ├── agents/                   # Role agents (Agent panel)
+    ├── commands/                  # Commands (e.g. understudy.md)
     └── rules/                    # Global rules + guardrails (always-on)
 ```
 

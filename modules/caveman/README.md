@@ -22,7 +22,7 @@ an Understudy deployment. Inspired by
 | [`tests/`](tests/) | Bats coverage for the role, the compressor, the installers and the wizard's `--caveman` / `--caveman-hooks` / `--caveman-commands` / `--caveman-statusline` flags. |
 
 The user-facing chapter for caveman lives in
-[`docs/11-caveman-mode.md`](../../docs/11-caveman-mode.md) (kept at its
+[`docs/10-caveman-mode.md`](../../docs/10-caveman-mode.md) (kept at its
 historical path so existing external links keep working).
 
 ## How to enable it
@@ -144,7 +144,7 @@ rm -rf modules/caveman
 
 Then update:
 
-- `docs/11-caveman-mode.md` (delete or mark as removed)
+- `docs/10-caveman-mode.md` (delete or mark as removed)
 - `README.md` and `CHANGELOG.md` (note the removal)
 
 That's it. There are no orphan references inside `wizard.sh`,

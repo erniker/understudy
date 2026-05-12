@@ -40,7 +40,7 @@ Token measurement:
   - Optional: prompts to install tiktoken on first run; --no-install skips
     the prompt, --yes accepts non-interactively.
 
-Part of the Understudy project (caveman mode). See docs/11-caveman-mode.md.
+Part of the Understudy project (caveman mode). See docs/10-caveman-mode.md.
 """
 
 from __future__ import annotations

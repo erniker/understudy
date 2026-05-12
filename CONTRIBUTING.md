@@ -499,7 +499,7 @@ Key conventions:
 ### Caveman evals harness (opt-in)
 
 The directory [`modules/caveman/evals/`](../modules/caveman/evals/README.md) ships a separate,
-opt-in measurement harness for [caveman mode](../docs/11-caveman-mode.md). It
+opt-in measurement harness for [caveman mode](../docs/10-caveman-mode.md). It
 is **not** wired into `./run_tests.sh` and does not gate CI — it produces
 human-readable token-reduction numbers in `modules/caveman/evals/RESULTS.md`. Run it
 manually after changes to the role, the compress script, or the template

@@ -132,6 +132,20 @@ The wizard deploys commands under `.cursor/commands/`:
 
 Invoke them from Cursor's command palette or chat.
 
+### Caveman commands (opt-in)
+
+If you deploy with `--caveman --caveman-commands`, two additional commands
+are installed:
+
+| Command | Purpose |
+|---|---|
+| `compress.md` | Compress a Markdown file using the caveman compressor |
+| `restore.md` | Restore a compressed file from its `.original.md` backup |
+
+They live in `.cursor/commands/` and wrap
+`modules/caveman/bin/understudy-compress` with the same safety contract
+(refuses symlinks, files outside CWD, sensitive filenames and content).
+
 ## Tips specific to Cursor
 
 - You can combine agents: switch between architect → backend → security

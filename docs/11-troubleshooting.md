@@ -1,4 +1,4 @@
-# 10. Troubleshooting and FAQ
+# 11. Troubleshooting and FAQ
 
 ## I don't want AI config files in my git repo
 
@@ -135,6 +135,98 @@ Security).
 Use the repo's
 [issue templates](https://github.com/erniker/understudy/issues/new/choose).
 Security issues: see [SECURITY.md](../SECURITY.md).
+
+## Can I use `--here` with modules like `--caveman`?
+
+Yes, flags combine freely:
+
+```bash
+understudy --here --caveman                          # infer + caveman role
+understudy --here --yes --caveman --caveman-hooks    # fully unattended with hooks
+```
+
+The order does not matter. Module flags (`--caveman`, `--caveman-hooks`,
+`--caveman-commands`, `--caveman-statusline`) are independent of `--here` /
+`--yes`.
+
+## Windows: the wizard fails or shows garbled output
+
+Understudy requires a **bash-compatible shell**. On Windows, use one of:
+
+- **Git Bash** (installed with Git for Windows) — recommended
+- **WSL** (Windows Subsystem for Linux)
+- **MSYS2** or **Cygwin**
+
+PowerShell and `cmd.exe` are **not supported** for running the wizard
+directly. However, once deployed, the AI tools (Copilot, Claude, Cursor)
+work normally regardless of your shell.
+
+## `understudy-compress` says "python3 not found"
+
+The compress script requires Python ≥ 3.8. Install it:
+
+- **Windows**: `winget install Python.Python.3.13` or `scoop install python`
+- **macOS**: `brew install python3` (or use the system Python)
+- **Linux**: `sudo apt install python3` / `sudo dnf install python3`
+
+The compress script is the only part of Understudy that requires Python —
+the wizard and all configuration are pure bash.
+
+## I created a role with `--create-role` but it's not in my project
+
+`--create-role` saves the role to the `roles/` catalog inside the
+Understudy installation (`~/.understudy/roles/`). To add it to an
+existing project:
+
+```bash
+understudy --add-member
+# → Select the role from the menu
+```
+
+Alternatively, re-run the wizard and the role will be available for
+selection.
+
+## How do I remove a platform I no longer use?
+
+The wizard does not delete platform files when you set `platforms.X: false`.
+To remove a platform's files, delete them manually:
+
+```bash
+# Remove Copilot files
+rm -f AGENTS.md .github/copilot-instructions.md
+rm -rf .github/instructions .github/prompts
+
+# Remove Claude Code files
+rm -f CLAUDE.md
+rm -rf .claude
+
+# Remove Cursor files
+rm -rf .cursor/agents .cursor/commands
+rm -f .cursor/rules/understudy-global.mdc .cursor/rules/guardrails.mdc
+```
+
+## The team-roster.md has duplicate entries
+
+This can happen if you re-run the wizard or `--add-member` multiple times.
+The wizard checks for duplicates by role name, but edge cases exist. Edit
+`docs/team-roster.md` manually to remove the duplicates — the file is plain
+Markdown.
+
+## Can multiple developers use Understudy on the same repo?
+
+Yes. Two common setups:
+
+1. **Shared config (default)** — all Understudy files are committed.
+   Everyone uses the same agents, guardrails and context files. Session
+   logs are shared, so the team sees what each person did.
+
+2. **Local-only config** (`git.local_config: true`) — each developer has
+   their own AI configuration. Useful when not everyone uses the same AI
+   tool or when AI config is considered private.
+
+   In this mode, `docs/spec.md`, `docs/decisions.md` and
+   `docs/session-log.md` can still be committed (`git.local_memory: false`)
+   so the team shares context even if agents are private.
 
 ---
 
