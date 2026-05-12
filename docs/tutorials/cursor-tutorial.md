@@ -1,41 +1,111 @@
 # Tutorial: Cursor — Full Feature Walkthrough
 
-> A hands-on guide that walks you through **every feature** Understudy
-> provides for Cursor, using the same TaskFlow project from the previous
-> tutorials.
+> A complete, self-contained guide that walks you step by step through
+> **every feature** Understudy provides for Cursor.
+> You do not need to read any other tutorial before this one.
 
-## Prerequisites
+---
 
-- Cursor installed.
-- Understudy installed.
+## What you will learn
 
-If starting fresh:
+By the end of this tutorial you will have used:
+
+- Rules (MDC format) — 4 types: always-apply, glob-based, agent-requested, manual
+- Agent panel — visual agent switching
+- Model in frontmatter — per-agent model assignment
+- Commands — slash commands in chat
+- Guardrails — always-active safety rules
+- Custom rules — create your own auto-attached rules
+- Custom agents — add new roles
+- Custom commands — create your own workflows
+- Session protocol — persistent memory across sessions
+- `--add-member` / `--create-role` — extend the team
+- Caveman mode — compress/restore, reinforcement rule
+
+---
+
+## What you need before starting
+
+| Requirement | How to get it |
+|---|---|
+| Cursor | [cursor.com](https://cursor.com) |
+| `bash` ≥ 4 | Comes with Linux/macOS. On Windows use Git Bash or WSL |
+| `git` | Any recent version |
+
+---
+
+## Step 1 — Install Understudy
+
+Open a terminal and run:
 
 ```bash
-mkdir taskflow && cd taskflow && git init
-understudy          # select "Cursor" platform
-cursor .            # open the project
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+This downloads the latest release, installs it to `~/.understudy/` and adds
+the `understudy` command to your PATH.
+
+Close and re-open your terminal (or `source ~/.bashrc`) so the command is
+available.
+
+Verify:
+
+```bash
+understudy --help
 ```
 
 ---
 
-## What makes Cursor unique?
+## Step 2 — Create the example project
 
-Cursor uses two complementary systems that differ from other platforms:
+We will build **TaskFlow** — a simple task management REST API. The project
+is intentionally simple so you can focus on learning the AI workflow.
 
-| Concept | What it means |
-|---|---|
-| **Rules** (`.mdc` files) | Global instructions, always active or auto-attached by glob |
-| **Agents** (`.md` files) | Role-based personas invoked from the Agent panel |
-| **Commands** | Slash commands invoked from chat |
-| **Model in frontmatter** | Each agent auto-selects its model (`auto`, `fast`, specific) |
-| **Glob-based auto-attach** | Rules load when you edit matching files (like VS Code's `applyTo`) |
+```bash
+mkdir taskflow
+cd taskflow
+git init
+```
 
 ---
 
-## Part 1 — Understanding the generated files
+## Step 3 — Deploy Understudy into the project
 
-After running `understudy`, your project has:
+Run the wizard:
+
+```bash
+understudy
+```
+
+The wizard asks 9 questions. Answer like this:
+
+| # | Question | What to enter |
+|---|---|---|
+| 1 | Project name | `taskflow` |
+| 2 | Short description | `Task management REST API` |
+| 3 | Project manager | Your name |
+| 4 | Tech stack | `Node.js + Express + PostgreSQL + Docker` |
+| 5 | Repository URL | `https://github.com/you/taskflow` (or leave blank) |
+| 6 | Guardrails mode | `split` (press Enter for default) |
+| 7 | Platforms | Select **Cursor** |
+| 8 | Git: commit files? | `y` |
+| 9 | Git: local-only config? | `n` |
+
+> **Shortcut:** `understudy --here` auto-infers all values from your repo.
+
+---
+
+## Step 4 — Open the project in Cursor
+
+```bash
+cursor .
+```
+
+---
+
+## Step 5 — Verify the generated files
+
+In the Cursor file explorer you should see:
 
 ```
 .cursor/
@@ -45,22 +115,48 @@ After running `understudy`, your project has:
 ├── agents/
 │   ├── architect.md
 │   ├── backend.md
-│   ├── frontend.md
 │   ├── devops.md
-│   ├── security.md
-│   ├── qa-engineer.md
+│   ├── frontend.md
 │   ├── git-specialist.md           ← Auto-deployed
-│   └── repo-documenter.md          ← Auto-deployed
+│   ├── qa-engineer.md
+│   ├── repo-documenter.md          ← Auto-deployed
+│   └── security.md
 └── commands/
     └── understudy.md               ← /understudy command
 docs/
-├── spec.md
 ├── decisions.md
 ├── session-log.md
+├── spec.md
 └── team-roster.md
 ```
 
-### 1.1 Feature: Rules (MDC format)
+### What each file does
+
+| File/folder | Purpose | Loaded automatically? |
+|---|---|---|
+| `.cursor/rules/understudy-global.mdc` | Global project instructions. Always in context. | ✅ Yes, always |
+| `.cursor/rules/guardrails.mdc` | Full guardrails (8 categories). Always in context. | ✅ Yes, always |
+| `.cursor/agents/<role>.md` | Agent definition (name, description, model). | ❌ When selected in Agent panel |
+| `.cursor/commands/<name>.md` | Slash commands. | ❌ When you type `/<name>` |
+| `docs/*.md` | Persistent memory (spec, decisions, session log). | ❌ You ask or create commands |
+
+---
+
+## Step 6 — Feature: Rules (MDC format)
+
+Cursor rules use **MDC** — Markdown files with YAML frontmatter, extension
+`.mdc`, stored in `.cursor/rules/`.
+
+### 6.1 The 4 types of rules
+
+| Type | Frontmatter | When loaded | Token cost |
+|---|---|---|---|
+| **Always-apply** | `alwaysApply: true` | Every session, unconditionally | Constant |
+| **Auto-attached** | `globs: "src/**/*.ts"` | When you edit a matching file | Per-file |
+| **Agent-requested** | `description:` only | Cursor decides based on context | On-demand |
+| **Manual** | Empty frontmatter | Only if you reference it | On-demand |
+
+### 6.2 Always-apply rules
 
 Open `.cursor/rules/understudy-global.mdc`:
 
@@ -76,10 +172,10 @@ alwaysApply: true
 # ...
 ```
 
-Key: `alwaysApply: true` means this rule is loaded in **every single
+`alwaysApply: true` means this rule is loaded in **every single
 conversation** without you doing anything.
 
-### 1.2 Feature: Guardrails rule
+### 6.3 Guardrails rule
 
 Open `.cursor/rules/guardrails.mdc`:
 
@@ -90,16 +186,40 @@ alwaysApply: true
 ---
 
 # 🛡️ Guardrails
-## 1. Security
-- Never hardcode secrets...
-## 2. Scope
-- Respect file ownership...
+## 1. Security — No secrets, no bypass...
+## 2. Scope — Each agent owns specific files...
 ...
 ```
 
 Also `alwaysApply: true` — guardrails are always in context.
 
-### 1.3 Feature: Agent files
+---
+
+## Step 7 — Feature: Agent panel
+
+### 7.1 Open the Agent panel
+
+In Cursor, open the **Agent panel** (right sidebar or command palette).
+You'll see all agents from `.cursor/agents/`:
+
+```
+Available agents:
+  architect    — Solutions Architect
+  backend      — Backend Developer
+  frontend     — Frontend Developer
+  devops       — DevOps Engineer
+  security     — Security Expert
+  qa-engineer  — QA Engineer
+  git-specialist
+  repo-documenter
+```
+
+### 7.2 Select an agent
+
+Click **architect** in the Agent panel. The chat now uses the Architect's
+personality, expertise and model.
+
+### 7.3 Agent file format
 
 Open `.cursor/agents/architect.md`:
 
@@ -117,45 +237,211 @@ You are the Solutions Architect...
 
 ## Expertise
 - System design, APIs, databases...
+
+## How you work
+1. Read docs/spec.md...
+2. Propose 2-3 alternatives...
+3. Recommend one...
+4. Document in docs/decisions.md...
 ```
 
-The `model` field controls which model Cursor uses when this agent is
-active. Options:
+The `model` field controls which model Cursor uses:
 - `auto` — Cursor's default model
-- `fast` — fastest available model
+- `fast` — fastest available
 - `claude-opus-4` — specific model (if available)
 
 ---
 
-## Part 2 — The four types of rules
+## Step 8 — Start a session
 
-### 2.1 Always-apply rules
+Cursor doesn't have a built-in `/start-session` like the prompt files in
+VS Code. But you can easily create one (we'll do that in Step 16).
 
-```yaml
----
-alwaysApply: true
----
+For now, manually ask in chat:
+
+```
+Read docs/session-log.md, docs/spec.md, docs/decisions.md and
+docs/team-roster.md. Summarize the current state and suggest next steps.
 ```
 
-Loaded unconditionally. Used for:
-- Global project instructions (`understudy-global.mdc`)
-- Guardrails (`guardrails.mdc`)
+Since this is a new project, Cursor reports empty docs and suggests
+writing a spec first.
 
-**Cost:** Consumes tokens every session. Keep them concise.
-
-### 2.2 Auto-attached rules (glob-based)
-
-```yaml
 ---
-description: "React component standards"
-globs: "src/components/**/*.tsx,src/components/**/*.css"
----
+
+## Step 9 — Design with the Architect agent
+
+### 9.1 Select the Architect
+
+Agent panel → click **architect**.
+
+### 9.2 Write the spec
+
+```
+I need a REST API for task management. Features:
+- User registration and login (JWT)
+- CRUD tasks (title, description, status, due date)
+- Assign tasks to users
+- Filter by status, assignee, due date
+- PostgreSQL database, Docker deployment
+
+Write a formal spec in docs/spec.md with:
+- Functional requirements (numbered)
+- Non-functional requirements (performance, security)
+- Constraints
+- Acceptance criteria
 ```
 
-Loaded only when you edit files matching the glob pattern. This is
-Cursor's equivalent of VS Code's `applyTo`.
+### 9.3 Design the architecture
 
-**Exercise — Create an auto-attached rule:**
+```
+Propose 2-3 architectural alternatives for this API.
+Evaluate trade-offs: complexity, scalability, DX.
+Recommend one and document it as ADR-0001 in docs/decisions.md.
+Use the standard ADR format: Title, Status, Context, Options,
+Decision, Consequences.
+```
+
+---
+
+## Step 10 — Security review
+
+### 10.1 Switch to Security
+
+Agent panel → click **security**.
+
+### 10.2 Run the review
+
+```
+Review the architecture in docs/decisions.md ADR-0001.
+Produce a threat model covering:
+- JWT auth flows (lifetime, refresh tokens)
+- Input validation surface
+- SQL injection risks
+- Authorization (user X can't access user Y's tasks)
+- Secrets management
+Add security requirements to docs/spec.md.
+```
+
+---
+
+## Step 11 — Implement with the Backend agent
+
+### 11.1 Switch to Backend
+
+Agent panel → click **backend**.
+
+### 11.2 Implement
+
+```
+Implement TaskFlow following ADR-0001 and security requirements.
+Set up:
+- Express project structure (src/controllers, src/services, src/middleware)
+- Database schema with Prisma
+- Auth endpoints: POST /register, POST /login, POST /refresh
+- Task CRUD: GET/POST/PUT/DELETE /tasks
+- Auth middleware protecting /tasks routes
+- Input validation with Zod
+- Error handling middleware
+- Dockerfile + docker-compose.yml
+- .env.example (no real secrets)
+```
+
+### 11.3 Switch agents mid-session
+
+You can switch freely without losing context:
+
+Agent panel → click **devops**:
+
+```
+Add a GitHub Actions workflow:
+- Lint, unit tests, integration tests (PostgreSQL service)
+- Build and push Docker image to GHCR
+```
+
+Agent panel → click **qa-engineer**:
+
+```
+Write tests for TaskFlow:
+1. Unit tests for auth service
+2. Unit tests for task CRUD
+3. Integration tests (supertest)
+4. Edge cases: expired tokens, invalid input, unauthorized access
+Use Jest.
+```
+
+---
+
+## Step 12 — Guardrails in action
+
+Guardrails are always active because `guardrails.mdc` uses
+`alwaysApply: true`. There are 8 categories:
+
+| # | Category | What it protects |
+|---|---|---|
+| 1 | Security | No secrets in code, mandatory input validation |
+| 2 | Scope | Each agent owns specific files |
+| 3 | Process | Spec-first (no code without spec) |
+| 4 | Destructive | No bulk deletes without PM confirmation |
+| 5 | Data/PII | No real data, synthetic only |
+| 6 | Quality | Self-review, tests, proper naming |
+| 7 | Environments | dev → staging → prod promotion order |
+| 8 | Documentation | ADRs required, session-log updated |
+
+### 12.1 Exercise: Security guardrail
+
+Select the **backend** agent and ask:
+
+```
+Store the JWT secret directly in the code as a string constant.
+```
+
+Cursor refuses:
+
+> 🛡️ Guardrail: Security — No secrets in code. I'll use
+> `process.env.JWT_SECRET` and add it to `.env.example`.
+
+### 12.2 Exercise: Process guardrail
+
+```
+Add a WebSocket chat feature. Just code it, skip the design.
+```
+
+Cursor pushes back:
+
+> 🛡️ Guardrail: Process — Spec-first. Update docs/spec.md first,
+> create an ADR, then implement.
+
+### 12.3 Exercise: Destructive guardrail
+
+```
+Delete the entire tests/ directory and all migration files.
+```
+
+Cursor flags:
+
+> ⚠️ Guardrail: Destructive — requires PM confirmation before bulk deletes.
+
+### 12.4 Exercise: Scope guardrail
+
+Select the **frontend** agent:
+
+```
+Modify the database migration to add a new column.
+```
+
+Frontend defers:
+
+> 🛡️ Scope: Database migrations are Backend's responsibility.
+
+---
+
+## Step 13 — Feature: Create auto-attached rules
+
+This is where Cursor shines. You can create rules that automatically load
+when you edit files matching a glob pattern.
+
+### 13.1 Backend coding standards
 
 Create `.cursor/rules/backend-standards.mdc`:
 
@@ -168,120 +454,89 @@ globs: "src/services/**/*.ts,src/controllers/**/*.ts"
 - Use dependency injection (constructor parameters)
 - All public methods must have JSDoc
 - Error handling: throw typed AppError, never raw Error
-- Database queries: always use parameterized statements
+- Database queries: always parameterized
 - Input validation: Zod schemas at the controller boundary
 ```
 
-Now when you open any file in `src/services/` or `src/controllers/`, this
-rule activates automatically.
+Now when you open any file in `src/services/`, this rule activates.
 
-### 2.3 Agent-requested rules
+### 13.2 Testing standards
 
-```yaml
----
-description: "Database migration conventions"
----
-```
-
-No `alwaysApply`, no `globs` — just a description. Cursor reads the
-description and **decides** whether to apply the rule based on your
-current conversation context.
-
-### 2.4 Manual rules
+Create `.cursor/rules/testing-standards.mdc`:
 
 ```yaml
 ---
----
-```
-
-Neither auto-applied nor auto-attached. Only loaded if you explicitly
-reference the rule in chat.
-
-### 2.5 Summary table
-
-| Rule type | Frontmatter | When loaded | Token cost |
-|---|---|---|---|
-| Always | `alwaysApply: true` | Every session | Constant |
-| Auto-attached | `globs: "pattern"` | Matching file open | Per-file |
-| Agent-requested | `description:` only | Cursor decides | On-demand |
-| Manual | Empty frontmatter | You reference it | On-demand |
-
+description: "Testing standards for TaskFlow"
+globs: "tests/**/*.ts,**/*.test.ts,**/*.spec.ts"
 ---
 
-## Part 3 — Using the Agent panel
-
-### 3.1 Feature: Agent panel
-
-In Cursor, open the **Agent panel** (usually in the right sidebar or via
-the command palette). You'll see all agents from `.cursor/agents/`:
-
-```
-Available agents:
-  architect    — Solutions Architect
-  backend      — Backend Developer
-  frontend     — Frontend Developer
-  devops       — DevOps Engineer
-  security     — Security Expert
-  qa-engineer  — QA Engineer
-  git-specialist
-  repo-documenter
+- Framework: Jest + Supertest
+- Arrange-Act-Assert pattern
+- Mock external services (database, email)
+- Naming: describe('<module>') → it('should <behavior>')
+- Coverage target: 80% lines, 90% branches for critical paths
 ```
 
-### 3.2 Select an agent
+### 13.3 API conventions
 
-Click **architect** in the Agent panel. The chat now uses the Architect's
-personality, expertise and model.
+Create `.cursor/rules/api-conventions.mdc`:
 
-```text
-You: Design a REST API for task management. Users can create, read,
-     update and delete tasks. Tasks have: title, description, status
-     (todo/in-progress/done), due date, assignee.
-     Write the spec in docs/spec.md and an ADR in docs/decisions.md.
+```yaml
+---
+description: "REST API conventions for TaskFlow"
+globs: "src/controllers/**/*.ts,src/routes/**/*.ts"
+---
+
+- All endpoints return { data, error, meta } envelope
+- HTTP codes: 200, 201, 400, 401, 403, 404, 500
+- Pagination: ?page=1&limit=20 → meta has total, pages
+- Dates in ISO 8601 (UTC)
 ```
 
-The Architect:
-1. Asks clarifying questions about scale, auth, etc.
-2. Proposes 2-3 alternatives
-3. Recommends one
-4. Writes spec + ADR
+### 13.4 Excluding patterns
 
-### 3.3 Switch agents mid-session
+Use `!` to exclude:
 
-Click **security** in the Agent panel:
-
-```text
-You: Review ADR-0001 in docs/decisions.md. Threat model the JWT auth
-     flow and suggest hardening measures.
+```yaml
+globs: "src/**/*.ts,!src/**/*.test.ts"
 ```
 
-Click **backend**:
-
-```text
-You: Implement the task API following ADR-0001. Set up Express + Prisma +
-     Zod validation. Include auth middleware.
-```
-
-You can switch agents freely — the conversation context is preserved.
-Each agent uses its configured model automatically.
+This applies to all `.ts` files **except** tests.
 
 ---
 
-## Part 4 — Commands
+## Step 14 — How rules stack
 
-### 4.1 Feature: `/understudy` command
+When you edit a file, Cursor combines all matching rules:
 
-```text
-You: /understudy
+```
+Active context = always-apply rules + matching glob rules + active agent
 ```
 
-Cursor explains all available agents, rules, the recommended workflow and
-how to use the system. Good for onboarding.
+For example, editing `src/services/auth.ts` with the Backend agent:
 
-### 4.2 Creating custom commands
+1. `understudy-global.mdc` loads (always-apply)
+2. `guardrails.mdc` loads (always-apply)
+3. `backend-standards.mdc` loads (glob matches `src/services/**`)
+4. Backend agent persona loads (from Agent panel)
 
-Add a file to `.cursor/commands/`:
+All 4 are active simultaneously → precise, context-aware responses.
 
-**`.cursor/commands/start-session.md`:**
+---
+
+## Step 15 — Feature: Commands
+
+### 15.1 Built-in command
+
+```
+/understudy
+```
+
+Cursor explains all agents, rules, workflow and how to use them.
+
+### 15.2 Create a start-session command
+
+Create `.cursor/commands/start-session.md`:
 
 ```markdown
 Read docs/session-log.md, docs/spec.md, docs/decisions.md and
@@ -292,7 +547,9 @@ docs/team-roster.md. Summarize:
 - Suggested next steps
 ```
 
-**`.cursor/commands/end-session.md`:**
+### 15.3 Create an end-session command
+
+Create `.cursor/commands/end-session.md`:
 
 ```markdown
 Update docs/session-log.md with a new entry for today:
@@ -302,14 +559,7 @@ Update docs/session-log.md with a new entry for today:
 - Blockers (if any)
 ```
 
-Now you can use:
-
-```text
-You: /start-session
-You: /end-session
-```
-
-### 4.3 More useful custom commands
+### 15.4 More useful commands
 
 **`.cursor/commands/design-feature.md`:**
 
@@ -336,247 +586,54 @@ Act as the Security agent. Review all recent changes for:
 Report findings with severity (Critical/High/Medium/Low).
 ```
 
----
+Now you can use:
 
-## Part 5 — Guardrails in action
-
-### 5.1 Always-active protection
-
-Since `guardrails.mdc` uses `alwaysApply: true`, the guardrails are
-enforced in every single conversation, regardless of which agent is active.
-
-### 5.2 Exercise: Security guardrail
-
-Select the **backend** agent and ask:
-
-```text
-You: Store the JWT secret directly in the code:
-     const JWT_SECRET = "<REDACTED>"
 ```
-
-Cursor refuses:
-
-> 🛡️ Guardrail violation: Security — "No secrets in code". The JWT
-> secret must come from an environment variable. I'll use
-> `process.env.JWT_SECRET` and add it to `.env.example`.
-
-### 5.3 Exercise: Process guardrail
-
-```text
-You: Add a WebSocket real-time feature. Just code it, skip the design.
-```
-
-Cursor pushes back:
-
-> 🛡️ Guardrail: Process — "Spec-first". Real-time communication is a
-> significant architectural decision. I should:
-> 1. Update docs/spec.md
-> 2. Create an ADR evaluating WebSocket vs SSE vs polling
-> 3. Get Security review (new attack surface: WebSocket hijacking)
->
-> Shall I start with the design?
-
-### 5.4 Exercise: Destructive guardrail
-
-```text
-You: Delete the entire tests/ directory and the migrations/ folder.
-```
-
-Cursor flags:
-
-> 🛡️ Guardrail: Destructive operations — requires PM confirmation.
-> This would delete all tests and database migrations. Are you sure?
-> Alternative: I can archive them or create a clean branch.
-
-### 5.5 Exercise: Scope guardrail
-
-Select the **frontend** agent:
-
-```text
-You: Modify the database migration to add a new column.
-```
-
-The Frontend agent defers:
-
-> 🛡️ Scope: Database migrations are the Backend agent's responsibility.
-> I can describe what data the frontend needs (e.g., a `theme` field
-> for user preferences), and the backend agent can implement the
-> migration.
-
----
-
-## Part 6 — Creating custom rules
-
-### 6.1 Project-specific coding standards
-
-Create `.cursor/rules/api-conventions.mdc`:
-
-```yaml
----
-description: "REST API conventions for TaskFlow"
-globs: "src/controllers/**/*.ts,src/routes/**/*.ts"
----
-
-# API Conventions
-
-- All endpoints return `{ data, error, meta }` envelope
-- HTTP status codes: 200 (ok), 201 (created), 400 (validation),
-  401 (unauthenticated), 403 (forbidden), 404 (not found), 500 (server)
-- Pagination: `?page=1&limit=20` → meta includes `total`, `pages`
-- Sorting: `?sort=created_at&order=desc`
-- Filtering: `?status=active&assignee=user-123`
-- All dates in ISO 8601 (UTC)
-- Idempotency key header for POST/PUT: `X-Idempotency-Key`
-```
-
-This activates only when editing controller or route files.
-
-### 6.2 Testing standards
-
-Create `.cursor/rules/testing-standards.mdc`:
-
-```yaml
----
-description: "Testing standards for TaskFlow"
-globs: "tests/**/*.ts,**/*.test.ts,**/*.spec.ts"
----
-
-# Testing Standards
-
-- Framework: Jest + Supertest
-- Arrange-Act-Assert pattern
-- One assertion per test (prefer)
-- Mock external services (database, email, etc.)
-- Integration tests use a test database (docker-compose.test.yml)
-- Naming: `describe('<module>') → it('should <behavior>')`
-- Coverage target: 80% lines, 90% branches for critical paths
-```
-
-### 6.3 Documentation standards
-
-Create `.cursor/rules/docs-standards.mdc`:
-
-```yaml
----
-description: "Documentation standards"
-globs: "docs/**/*.md,README.md"
----
-
-# Documentation Standards
-
-- ADRs follow: Title, Status, Context, Options, Decision, Consequences
-- Session log entries: date, completed, decisions, next steps, blockers
-- Spec sections: overview, requirements (functional + NFR), constraints,
-  acceptance criteria, out of scope
-- Use Mermaid for diagrams
-- Keep language concise — no filler prose
+/start-session
+/end-session
+/design-feature
+/security-review
 ```
 
 ---
 
-## Part 7 — Caveman mode (optional)
+## Step 16 — End the session
 
-### 7.1 Enable caveman
-
-```bash
-understudy --caveman --caveman-commands
+```
+/end-session
 ```
 
-This deploys:
-- `.cursor/agents/caveman.md` — the caveman role agent
-- `.cursor/commands/compress.md` — `/compress` command
-- `.cursor/commands/restore.md` — `/restore` command
-- `.cursor/rules/00-caveman-active.mdc` — reinforcement rule (`alwaysApply`)
+(Or if you haven't created the command yet, ask manually.)
 
-### 7.2 Feature: Reinforcement rule
+Cursor updates `docs/session-log.md`:
 
-Open `.cursor/rules/00-caveman-active.mdc`:
+```markdown
+## Session — 2026-05-12
 
-```yaml
----
-description: "Caveman mode active — use token-efficient style"
-alwaysApply: true
----
+### Completed
+- Wrote spec (docs/spec.md)
+- Designed architecture (ADR-0001)
+- Implemented auth + task CRUD
+- Docker setup
+- Tests (unit + integration)
+- Security review passed
+- Created custom rules (backend, testing, API)
 
-Respond in caveman style: drop filler words, articles, unnecessary prose.
-Keep all code, paths, URLs, technical terms intact. Prioritize clarity
-over politeness.
+### Decisions
+- ADR-0001: Express + Prisma (type safety, DX)
+
+### Next steps
+- Notification system
+- CI/CD pipeline
+- Frontend
+
+### Blockers
+- None
 ```
-
-Because `alwaysApply: true`, this is active in **every** conversation —
-Cursor always responds concisely.
-
-### 7.3 Feature: `/compress` command
-
-```text
-You: /compress docs/decisions.md
-```
-
-Compresses the file in-place (with backup). Token savings: 30-50%.
-
-### 7.4 Feature: `/restore` command
-
-```text
-You: /restore docs/decisions.md
-```
-
-Restores from `.original.md` backup.
-
-### 7.5 Caveman in practice
-
-**Without caveman:**
-> I'll implement the authentication middleware. This middleware will
-> extract the JWT token from the Authorization header, verify it using
-> the secret key from the environment variables, and attach the decoded
-> user payload to the request object for use in downstream handlers.
-
-**With caveman:**
-> Implementing auth middleware → extracts JWT from `Authorization` header,
-> verifies with `process.env.JWT_SECRET`, attaches decoded user to `req.user`.
-
-Same technical accuracy, 40% fewer tokens.
 
 ---
 
-## Part 8 — Advanced patterns
-
-### 8.1 Combining rules and agents
-
-The power of Cursor is that rules and agents stack:
-
-```
-Active context = always-apply rules + matching glob rules + active agent
-```
-
-So when you select the **backend** agent and open `src/services/auth.ts`:
-
-1. `understudy-global.mdc` loads (always)
-2. `guardrails.mdc` loads (always)
-3. `backend-standards.mdc` loads (glob matches `src/services/**`)
-4. `api-conventions.mdc` loads (if in `src/controllers/`)
-5. Backend agent personality loads (from agent panel)
-
-This gives incredibly precise, context-aware responses.
-
-### 8.2 Model strategy
-
-Configure models strategically in agent frontmatter:
-
-```yaml
-# architect.md — needs deep reasoning
-model: claude-opus-4
-
-# backend.md — good balance
-model: auto
-
-# frontend.md — good balance
-model: auto
-
-# qa-engineer.md — fast iteration on tests
-model: fast
-```
-
-### 8.3 Adding new agents
+## Step 17 — Feature: Create custom agents
 
 Create `.cursor/agents/tech-lead.md`:
 
@@ -590,7 +647,7 @@ model: auto
 # Tech Lead
 
 ## Identity
-You are the Tech Lead. You review code, enforce standards and mentor the team.
+You are the Tech Lead. You review code, enforce standards and mentor.
 
 ## How you work
 1. Review code for correctness, performance and maintainability
@@ -601,38 +658,108 @@ You are the Tech Lead. You review code, enforce standards and mentor the team.
 
 It appears in the Agent panel immediately.
 
-### 8.4 Multi-file glob patterns
+---
+
+## Step 18 — Model strategy
+
+Configure models strategically in agent frontmatter:
 
 ```yaml
-globs: "src/**/*.ts,!src/**/*.test.ts,!src/**/*.spec.ts"
+# architect.md — needs deep reasoning
+model: claude-opus-4
+
+# backend.md — good balance
+model: auto
+
+# qa-engineer.md — fast iteration
+model: fast
 ```
 
-The `!` prefix excludes patterns. This rule applies to all TypeScript
-source files **except** tests.
+---
+
+## Step 19 — Feature: `--add-member` — Extend the team
+
+```bash
+# In the terminal:
+understudy --add-member
+```
+
+Select from the catalog (data-engineer, ml-engineer, sre, tech-writer…).
+The role is deployed to `.cursor/agents/` automatically.
 
 ---
 
-## Part 9 — Cursor vs other platforms
+## Step 20 — Feature: `--create-role` — Create a custom role
 
-| Feature | Cursor | Claude Code | VS Code | Copilot CLI |
-|---|---|---|---|---|
-| Auto-applied global rules | ✅ `alwaysApply` | ✅ CLAUDE.md | ✅ copilot-instructions | ✅ Same |
-| Glob-based rule loading | ✅ `.mdc` globs | ❌ | ✅ `applyTo` | ❌ |
-| Agent panel | ✅ Visual | ❌ (by name in chat) | ❌ | `/agent` |
-| Per-agent model | ✅ Frontmatter | ✅ Frontmatter | ❌ | ❌ |
-| Commands | ✅ `.cursor/commands/` | ✅ `.claude/commands/` | ✅ `.github/prompts/` | ❌ |
-| File protection (deny) | ❌ | ✅ settings.json | ❌ | ❌ |
-| PreToolUse hook | ❌ | ✅ guardrails-check.sh | ❌ | ❌ |
-| Sub-agents (parallel) | ❌ | ❌ | ❌ | ✅ |
-| Caveman reinforcement | ✅ alwaysApply rule | ✅ Real hooks | ⚠️ Marker block | ❌ |
-| Caveman statusline | ❌ | ✅ Claude only | ❌ | ❌ |
+```bash
+understudy --create-role
+```
 
-**Cursor's strengths:** Visual agent panel, flexible rule system (4 types),
-glob-based auto-attach, clean MDC format.
+The wizard asks for: name, title, description, expertise, motto.
+Saved in `roles/` for all future projects.
 
 ---
 
-## Quick reference card
+## Step 21 — Caveman mode (optional)
+
+### 21.1 Enable it
+
+```bash
+understudy --caveman --caveman-commands
+```
+
+This deploys:
+- `.cursor/agents/caveman.md` — caveman role agent
+- `.cursor/commands/compress.md` — `/compress` command
+- `.cursor/commands/restore.md` — `/restore` command
+- `.cursor/rules/00-caveman-active.mdc` — reinforcement rule
+
+### 21.2 Feature: Reinforcement rule
+
+Open `.cursor/rules/00-caveman-active.mdc`:
+
+```yaml
+---
+description: "Caveman mode active — use token-efficient style"
+alwaysApply: true
+---
+
+Respond in caveman style: drop filler words, articles, unnecessary
+prose. Keep all code, paths, URLs, technical terms intact.
+```
+
+Because `alwaysApply: true`, this is active in **every** conversation.
+
+### 21.3 Feature: `/compress`
+
+```
+/compress docs/decisions.md
+```
+
+Compresses the file in-place (with backup). Saves 30-50% tokens.
+
+### 21.4 Feature: `/restore`
+
+```
+/restore docs/decisions.md
+```
+
+Restores from `.original.md` backup.
+
+### 21.5 See the difference
+
+**Normal:**
+> I'll create a new Express middleware function that validates the JWT
+> token from the Authorization header and attaches the decoded user
+> payload to the request object for use in downstream handlers.
+
+**Caveman:**
+> Creating JWT middleware → validates `Authorization` header, attaches
+> decoded user to `req.user`.
+
+---
+
+## Complete reference
 
 | Feature | How to use |
 |---|---|
@@ -645,51 +772,63 @@ glob-based auto-attach, clean MDC format.
 | Create command | Add `.md` to `.cursor/commands/` |
 | Guardrails | Always active (no action needed) |
 | Model per agent | `model:` field in agent frontmatter |
+| Exclude from glob | Use `!pattern` prefix |
 | Caveman compress | `/compress` command |
 | Caveman restore | `/restore` command |
-| Exclude from glob | Use `!pattern` prefix |
+| Add team member | `understudy --add-member` (terminal) |
+| Create new role | `understudy --create-role` (terminal) |
 
 ---
 
 ## Exercise: Full workflow
 
-Try this complete workflow in Cursor:
+Try this complete workflow:
 
-```text
-1. /start-session (custom command — see Part 4.2)
+```
+1. /start-session
 
 2. Agent panel → architect
    "Design a password reset flow. Write ADR-0003."
 
 3. Agent panel → security
-   "Review ADR-0003. What are the risks? Add mitigations."
+   "Review ADR-0003. What are the risks?"
 
 4. Agent panel → backend
-   "Implement the password reset: endpoint, email token, expiry."
+   "Implement password reset: endpoint, email token, expiry."
 
 5. Agent panel → qa-engineer
    "Write tests: valid reset, expired token, invalid email, rate limiting."
 
 6. Agent panel → devops
-   "Add the SMTP config to docker-compose and CI secrets."
+   "Add SMTP config to docker-compose and CI secrets."
 
-7. /end-session (custom command)
+7. /end-session
 ```
 
-Each step uses the right agent with the right model, and the always-apply
-rules (guardrails + global) stay active throughout.
+---
+
+## Tips
+
+- Rules and agents stack: always-apply + glob + agent = precise context.
+- `alwaysApply: true` costs tokens every session — keep those rules tight.
+- You can switch agents freely mid-session. Context is preserved.
+- Create commands for anything you repeat (start/end session, reviews…).
+- Cursor doesn't have deny lists or hooks like Claude Code — guardrails
+  are enforced via the always-apply `guardrails.mdc` rule only.
 
 ---
 
-## Next steps
+## Troubleshooting
 
-- Read [Cross-Platform Workflows](../08-cross-platform-workflows.md) to
-  combine Cursor with Claude Code or VS Code.
-- See [Configuration Reference](../09-configuration.md) for model and
-  guardrails customization.
-- Try [Caveman Mode](../10-caveman-mode.md) for deep details on the
-  compression system.
+| Problem | Solution |
+|---|---|
+| Agent not in panel | Verify `.md` file in `.cursor/agents/` |
+| Rule not loading | Check frontmatter: `alwaysApply` or `globs` set? |
+| Wrong rule active | Verify glob pattern matches your file path |
+| Command not found | Check `.md` file in `.cursor/commands/` |
+| Guardrails not enforced | Verify `guardrails.mdc` has `alwaysApply: true` |
+| `understudy` not found | Re-open terminal or `source ~/.bashrc` |
 
 ---
 
-[← Claude Code tutorial](claude-code-tutorial.md) · [Back to tutorials index](README.md)
+[Back to tutorials index](README.md)

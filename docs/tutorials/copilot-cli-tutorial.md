@@ -1,116 +1,178 @@
 # Tutorial: GitHub Copilot CLI — Full Feature Walkthrough
 
-> A hands-on guide that walks you through **every feature** Understudy
-> provides for Copilot CLI, using a real-world example project.
-
-## The example project: TaskFlow API
-
-Throughout this tutorial you will build **TaskFlow** — a task management REST
-API with user authentication. This is intentionally simple so you can focus
-on learning the AI workflow, not the domain.
-
-**Stack:** Node.js + Express + PostgreSQL  
-**Goal:** A CRUD API for tasks with user auth, deployed with Docker.
+> A complete, self-contained guide that walks you step by step through
+> **every feature** Understudy provides for GitHub Copilot CLI.
+> You do not need to read any other tutorial before this one.
 
 ---
 
-## Part 1 — Setup and deployment
+## What you will learn
 
-### 1.1 Create the project folder
+By the end of this tutorial you will have used:
+
+- `/agent` — switch between AI personas (Architect, Backend, Security…)
+- `/instructions` — load detailed role instructions into context
+- `/model` — pick the best model for the task
+- `/compact` — compress the conversation to save tokens
+- `/diff` — review pending file changes
+- `/context` — see token usage and loaded files
+- Sub-agents — split work across parallel agents
+- Guardrails — see how the AI refuses unsafe operations
+- Session protocol — persistent memory across sessions
+- `--add-member` / `--create-role` — extend the team
+- Caveman mode — token-efficient responses
+
+---
+
+## What you need before starting
+
+| Requirement | How to get it |
+|---|---|
+| A GitHub Copilot subscription | [github.com/features/copilot](https://github.com/features/copilot) |
+| The `copilot` CLI | `gh extension install github/gh-copilot` or standalone binary |
+| `bash` ≥ 4 | Comes with Linux/macOS. On Windows use Git Bash or WSL |
+| `git` | Any recent version |
+
+---
+
+## Step 1 — Install Understudy
+
+Open a terminal and run:
 
 ```bash
-mkdir taskflow && cd taskflow
+curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
+```
+
+This downloads the latest release, installs it to `~/.understudy/` and adds
+the `understudy` command to your PATH.
+
+Close and re-open your terminal (or `source ~/.bashrc`) so the command is
+available.
+
+Verify:
+
+```bash
+understudy --help
+```
+
+You should see the usage information.
+
+---
+
+## Step 2 — Create the example project
+
+We will build **TaskFlow** — a simple task management REST API. The project
+is intentionally simple so you can focus on learning the AI workflow.
+
+```bash
+mkdir taskflow
+cd taskflow
 git init
 ```
 
-### 1.2 Deploy Understudy
+---
+
+## Step 3 — Deploy Understudy into the project
+
+Run the wizard:
 
 ```bash
 understudy
 ```
 
-The wizard asks 9 questions. Answer like this for the tutorial:
+The wizard asks 9 questions. Answer like this:
 
-| # | Question | Answer |
+| # | Question | What to enter |
 |---|---|---|
 | 1 | Project name | `taskflow` |
 | 2 | Short description | `Task management REST API` |
 | 3 | Project manager | Your name |
 | 4 | Tech stack | `Node.js + Express + PostgreSQL + Docker` |
-| 5 | Repository URL | `https://github.com/you/taskflow` |
-| 6 | Guardrails mode | `split` (recommended) |
-| 7 | Platforms | `Copilot` |
+| 5 | Repository URL | `https://github.com/you/taskflow` (or leave blank) |
+| 6 | Guardrails mode | `split` (press Enter for default) |
+| 7 | Platforms | Select **Copilot** only |
 | 8 | Git: commit files? | `y` |
 | 9 | Git: local-only config? | `n` |
 
-> **Shortcut:** If you already have a repo with a `package.json` and a
-> remote configured, use `understudy --here` to auto-infer all values.
-
-### 1.3 Verify the generated files
-
-```bash
-ls -la
-```
-
-You should see:
-
-```
-AGENTS.md                                 ← Team definition
-.github/copilot-instructions.md           ← Global instructions (always active)
-.github/instructions/
-    architect.instructions.md
-    backend.instructions.md
-    frontend.instructions.md
-    devops.instructions.md
-    security.instructions.md
-    qa-engineer.instructions.md
-    guardrails.instructions.md            ← Full guardrails (always active)
-    git-specialist.instructions.md        ← Auto-deployed
-    repo-documenter.instructions.md       ← Auto-deployed
-.github/prompts/
-    start-session.prompt.md
-    end-session.prompt.md
-    design-feature.prompt.md
-    security-review.prompt.md
-    understudy.prompt.md
-docs/
-    spec.md
-    decisions.md
-    session-log.md
-    team-roster.md
-```
-
-> **What each file does:**
->
-> - `AGENTS.md` — Copilot reads this automatically. It defines the agents
->   you can select with `/agent`.
-> - `.github/copilot-instructions.md` — Loaded automatically in every
->   conversation. Contains project context + critical guardrails.
-> - `.github/instructions/*.instructions.md` — Detailed per-role
->   instructions. Toggled with `/instructions`.
-> - `docs/*.md` — Persistent memory. The AI reads/writes these to maintain
->   context across sessions.
+> **Shortcut:** If you already have a repo with a `package.json` and a git
+> remote, you can use `understudy --here` to auto-infer all values instead
+> of answering questions.
 
 ---
 
-## Part 2 — Starting your first session
+## Step 4 — Verify the generated files
 
-### 2.1 Open Copilot CLI
+```bash
+find . -type f | sort
+```
+
+You should see these files:
+
+```
+./AGENTS.md
+./.github/copilot-instructions.md
+./.github/instructions/architect.instructions.md
+./.github/instructions/backend.instructions.md
+./.github/instructions/devops.instructions.md
+./.github/instructions/frontend.instructions.md
+./.github/instructions/git-specialist.instructions.md
+./.github/instructions/guardrails.instructions.md
+./.github/instructions/qa-engineer.instructions.md
+./.github/instructions/repo-documenter.instructions.md
+./.github/instructions/security.instructions.md
+./.github/prompts/design-feature.prompt.md
+./.github/prompts/end-session.prompt.md
+./.github/prompts/security-review.prompt.md
+./.github/prompts/start-session.prompt.md
+./.github/prompts/understudy.prompt.md
+./docs/decisions.md
+./docs/session-log.md
+./docs/spec.md
+./docs/team-roster.md
+```
+
+### What each file does
+
+| File/folder | Purpose | Loaded automatically? |
+|---|---|---|
+| `AGENTS.md` | Defines the team — names, roles, rules. Copilot reads it to know which agents exist. | ✅ Yes |
+| `.github/copilot-instructions.md` | Global project instructions + critical guardrails. Always in context. | ✅ Yes |
+| `.github/instructions/<role>.instructions.md` | Detailed instructions for each role (personality, expertise, standards). | ❌ On demand (`/instructions`) |
+| `.github/instructions/guardrails.instructions.md` | Full guardrails (8 categories). | ❌ On demand (`/instructions`) |
+| `.github/prompts/*.prompt.md` | Reusable prompts (only available in VS Code, not in CLI). | N/A in CLI |
+| `docs/spec.md` | Project specification. The AI reads/writes it. | ❌ You ask for it |
+| `docs/decisions.md` | Architecture Decision Records (ADRs). | ❌ You ask for it |
+| `docs/session-log.md` | Session history — what happened, what's pending. | ❌ You ask for it |
+| `docs/team-roster.md` | Team members and contact info. | ❌ You ask for it |
+
+---
+
+## Step 5 — Open Copilot CLI
 
 ```bash
 copilot
 ```
 
-Copilot loads `AGENTS.md` and `.github/copilot-instructions.md` automatically.
-You'll notice it already knows your project name, stack and team rules.
+Copilot starts and automatically loads:
+- `AGENTS.md` — it knows which agents exist
+- `.github/copilot-instructions.md` — project context + critical guardrails
 
-### 2.2 Feature: `/agent` — See available agents
+You'll notice it already knows your project name, stack and team rules
+without you telling it anything.
 
-```text
-You: /agent
+---
+
+## Step 6 — Feature: `/agent` — List and switch agents
+
+### 6.1 List available agents
+
+Type:
+
+```
+/agent
 ```
 
-Copilot shows the list of agents from `AGENTS.md`:
+Copilot shows the team from `AGENTS.md`:
 
 ```
 Available agents:
@@ -122,318 +184,416 @@ Available agents:
   • QA           — QA Engineer
 ```
 
-### 2.3 Feature: Start a session (reading context)
+### 6.2 Switch to an agent
 
-```text
-You: Read docs/session-log.md, docs/spec.md and docs/decisions.md.
-     Summarize the current state of the project and suggest next steps.
+```
+/agent Architect
 ```
 
-Since the project is new, the agent will tell you the docs are empty and
-suggest writing a spec first. This is exactly what Understudy's
-**spec-first** rule enforces.
+Copilot adopts the Architect persona. From now on, it thinks like a
+solutions architect: system design, trade-offs, ADRs, Mermaid diagrams.
+
+### 6.3 What changes when you switch agents
+
+| Before `/agent` | After `/agent Architect` |
+|---|---|
+| General assistant | System designer |
+| No specific expertise | APIs, databases, cloud, DDD, CQRS |
+| No output format | Produces ADRs, Mermaid diagrams, alternatives tables |
+| No handoff awareness | Knows to consult Security, deliver to Backend |
 
 ---
 
-## Part 3 — Designing with the Architect
+## Step 7 — Feature: `/instructions` — Load role details
 
-### 3.1 Feature: `/agent Architect` — Switch agent
+The agent definition in `AGENTS.md` gives the personality. But the full
+expertise, working process and checklists are in the instruction files.
 
-```text
-You: /agent Architect
+```
+/instructions
 ```
 
-Copilot adopts the Architect's personality: system design, trade-offs, ADRs.
+You'll see a list of available instruction files:
 
-### 3.2 Feature: `/instructions` — Load detailed role instructions
-
-```text
-You: /instructions
+```
+1) architect.instructions.md
+2) backend.instructions.md
+3) devops.instructions.md
+4) frontend.instructions.md
+5) guardrails.instructions.md
+6) qa-engineer.instructions.md
+7) security.instructions.md
+...
 ```
 
-Select `architect.instructions.md`. This loads the Architect's full
-expertise list, working process and output standards into context.
+Select `architect.instructions.md`. This loads ~200 lines of detailed
+instructions into context: the Architect's full expertise list, step-by-step
+working process, output standards, and team interaction rules.
 
-### 3.3 Feature: `/model` — Choose the right model
-
-```text
-You: /model
-```
-
-Select **Claude Opus** (or the most capable model available). The Architect
-benefits from deeper reasoning for system design.
-
-> **Rule of thumb from `understudy.yaml`:**
-> - Architect / Security → Opus (complex reasoning)
-> - Backend / Frontend → Sonnet (good speed/quality balance)
-> - Quick tasks → Haiku (fast and cheap)
-
-### 3.4 Write the spec
-
-```text
-You: I need a REST API for task management. Features:
-     - User registration and login (JWT)
-     - CRUD tasks (title, description, status, due date)
-     - Assign tasks to users
-     - Filter by status, assignee, due date
-     - PostgreSQL database
-     - Docker for deployment
-
-     Write this as a formal spec in docs/spec.md following the team's
-     spec format.
-```
-
-The Architect writes `docs/spec.md` with requirements, constraints, NFRs
-and acceptance criteria.
-
-### 3.5 Design the architecture (ADR)
-
-```text
-You: Propose 2-3 architectural alternatives for this API.
-     Evaluate trade-offs (complexity, scalability, team familiarity).
-     Recommend one and document it as ADR-0001 in docs/decisions.md.
-```
-
-The Architect produces:
-- Alternative A: Express + Sequelize ORM
-- Alternative B: Express + raw SQL (pg)
-- Alternative C: Fastify + Prisma
-
-It recommends one, writes `docs/decisions.md` with the ADR in the standard
-format: Title, Status, Context, Options, Decision, Consequences.
+> **Tip:** You can load multiple instruction files. For example, load both
+> `architect.instructions.md` and `guardrails.instructions.md`.
 
 ---
 
-## Part 4 — Security review
+## Step 8 — Feature: `/model` — Choose the right model
 
-### 4.1 Switch to Security agent
+```
+/model
+```
 
-```text
-You: /agent Security
-You: /instructions
+Select the model best suited for the current task:
+
+| Task type | Recommended model | Why |
+|---|---|---|
+| Architecture design | Claude Opus / GPT-4o | Complex reasoning, trade-offs |
+| Security review | Claude Opus | Deep analysis, threat modeling |
+| Code implementation | Claude Sonnet / GPT-4o-mini | Good speed/quality balance |
+| Quick fixes, formatting | Claude Haiku | Fast and cheap |
+
+For the Architect, select **Claude Opus** (or the most powerful available).
+
+> These model recommendations come from `understudy.yaml`. You can
+> customize them per project.
+
+---
+
+## Step 9 — Session protocol: Start a session
+
+The session protocol gives the AI persistent memory across sessions.
+At the start of every work session, ask it to read the context files:
+
+```
+Read docs/session-log.md, docs/spec.md and docs/decisions.md.
+Summarize the current state of the project and suggest next steps.
+```
+
+Since this is a brand new project, the agent will report:
+- `docs/spec.md` is empty → needs requirements
+- `docs/decisions.md` is empty → no architecture yet
+- `docs/session-log.md` is empty → first session
+
+It will suggest: **write a spec first**. This is exactly what Understudy's
+**spec-first** team rule enforces.
+
+---
+
+## Step 10 — Write the project spec
+
+Still using the Architect agent:
+
+```
+I need a REST API for task management. Features:
+- User registration and login (JWT)
+- CRUD tasks (title, description, status, due date)
+- Assign tasks to users
+- Filter by status, assignee, due date
+- PostgreSQL database
+- Docker for deployment
+
+Write this as a formal spec in docs/spec.md. Include:
+- Functional requirements (numbered)
+- Non-functional requirements (performance, security)
+- Constraints
+- Acceptance criteria
+```
+
+The Architect writes a structured `docs/spec.md` with all sections.
+
+---
+
+## Step 11 — Design the architecture (ADR)
+
+```
+Propose 2-3 architectural alternatives for this API.
+Evaluate trade-offs: complexity, scalability, team familiarity, ORM overhead.
+Recommend one and document it as ADR-0001 in docs/decisions.md.
+Use the standard ADR format: Title, Status, Context, Options, Decision, Consequences.
+```
+
+The Architect produces something like:
+
+- **Option A:** Express + Sequelize ORM — easy, heavy
+- **Option B:** Express + raw SQL (pg) — light, more boilerplate
+- **Option C:** Express + Prisma — typed, modern, good DX
+
+It recommends one (e.g., Prisma) with justification and writes the ADR.
+
+---
+
+## Step 12 — Security review of the design
+
+### 12.1 Switch to the Security agent
+
+```
+/agent Security
+/instructions
 ```
 
 Select `security.instructions.md`.
 
-### 4.2 Feature: Security threat modeling
+### 12.2 Switch to a stronger model
 
-```text
-You: Review the architecture in docs/decisions.md ADR-0001.
-     Produce a threat model covering:
-     - Authentication flows (JWT)
-     - Input validation
-     - SQL injection surface
-     - Authorization (can user X edit user Y's tasks?)
-     - Secrets management
-     Add security requirements to docs/spec.md.
+```
+/model
 ```
 
-The Security agent reviews the design and adds constraints like:
+Select Opus (Security reviews benefit from deeper analysis).
+
+### 12.3 Run the review
+
+```
+Review the architecture in docs/decisions.md ADR-0001.
+Produce a threat model covering:
+- Authentication flows (JWT lifetime, refresh tokens)
+- Input validation surface
+- SQL injection risks
+- Authorization (can user X access user Y's tasks?)
+- Secrets management (where are credentials stored?)
+Add security requirements to docs/spec.md section "Non-functional requirements".
+```
+
+The Security agent adds constraints like:
 - JWT must expire in ≤ 1h
-- Refresh tokens stored httpOnly
+- Refresh tokens stored httpOnly, rotated on use
 - Parameterized queries only (no string concatenation)
-- Rate limiting on auth endpoints
-- Input validation with Joi/Zod
+- Rate limiting on auth endpoints (5 attempts/min)
+- Input validation with schema library (Zod/Joi)
 
 ---
 
-## Part 5 — Implementation with sub-agents
+## Step 13 — Implement with the Backend agent
 
-### 5.1 Feature: Sub-agents (parallel work)
+### 13.1 Switch agent and model
 
-This is one of Copilot CLI's most powerful features. You can ask it to
-split work across multiple internal agents that run in parallel.
-
-```text
-You: Implement TaskFlow following ADR-0001 and the security requirements.
-     Split the work:
-
-     Sub-agent 1 (Backend):
-     - Set up Express project structure
-     - Database schema (migrations)
-     - Auth endpoints (register, login, refresh)
-     - Task CRUD endpoints
-     - Input validation with Zod
-     - Error handling middleware
-
-     Sub-agent 2 (Frontend):
-     - Not applicable yet — skip for now
-
-     Sub-agent 3 (DevOps):
-     - Dockerfile
-     - docker-compose.yml (app + postgres)
-     - .env.example
-
-     Both must follow docs/decisions.md ADR-0001.
 ```
-
-Copilot launches internal task agents that work in parallel. You'll see
-them produce files simultaneously.
-
-### 5.2 Switch to Backend for refinement
-
-```text
-You: /agent Backend
-You: /instructions
+/agent Backend
+/instructions
 ```
 
 Select `backend.instructions.md`.
 
-```text
-You: Review the generated code. Ensure:
-     - All endpoints have input validation
-     - Error responses follow a consistent format
-     - Database queries use parameterized statements
-     - Auth middleware protects /tasks routes
+```
+/model
 ```
 
-### 5.3 Feature: `/diff` — Review changes
+Select **Sonnet** (good speed/quality for implementation).
 
-```text
-You: /diff
+### 13.2 Implement
+
+```
+Implement the TaskFlow API following ADR-0001 and the security requirements in docs/spec.md.
+Set up:
+- Express project structure (src/controllers, src/services, src/middleware)
+- Database schema with Prisma (users, tasks tables)
+- Auth endpoints: POST /register, POST /login, POST /refresh
+- Task CRUD: GET/POST/PUT/DELETE /tasks
+- Auth middleware protecting /tasks routes
+- Input validation with Zod
+- Error handling middleware (consistent JSON response format)
+- Dockerfile + docker-compose.yml (app + postgres)
+- .env.example (no real secrets)
 ```
 
-Shows all pending file modifications. Review before accepting.
+The Backend agent creates all the files.
 
 ---
 
-## Part 6 — QA: Testing
+## Step 14 — Feature: `/diff` — Review pending changes
 
-### 6.1 Switch to QA
+After the agent writes files, review what changed:
 
-```text
-You: /agent QA
-You: /instructions
+```
+/diff
+```
+
+This shows all pending file modifications. Review before accepting.
+
+---
+
+## Step 15 — Feature: Sub-agents (parallel work)
+
+This is one of Copilot CLI's most powerful features — and it's **exclusive
+to the CLI** (not available in VS Code, Claude Code or Cursor).
+
+You can ask Copilot to split work into parallel internal agents:
+
+```
+Implement these in parallel:
+
+Sub-agent 1 (Backend):
+- Complete the task filtering logic (by status, assignee, due date)
+- Add pagination (limit/offset)
+
+Sub-agent 2 (DevOps):
+- Create .github/workflows/ci.yml (lint + test + build Docker)
+- Add a test docker-compose with PostgreSQL service
+
+Both must follow docs/decisions.md ADR-0001.
+```
+
+Copilot launches internal task agents that work simultaneously and merge
+their results. This saves wall-clock time when tasks are independent.
+
+> **When to use sub-agents:**
+> - Backend + Frontend implementing simultaneously
+> - Implementation + Tests in parallel
+> - Code + Documentation at the same time
+>
+> **When NOT to use them:**
+> - Tasks that depend on each other
+> - When you need to review intermediate steps
+
+---
+
+## Step 16 — QA: Writing tests
+
+### 16.1 Switch to QA
+
+```
+/agent QA
+/instructions
 ```
 
 Select `qa-engineer.instructions.md`.
 
-### 6.2 Write tests
+### 16.2 Write tests
 
-```text
-You: Create a test plan for TaskFlow. Then implement:
-     1. Unit tests for auth service (register, login, token validation)
-     2. Unit tests for task CRUD operations
-     3. Integration tests for the full API (using supertest)
-     4. Edge cases: expired tokens, invalid input, unauthorized access
-
-     Use Jest as the test framework.
 ```
+Create a test plan for TaskFlow. Then implement:
+1. Unit tests for auth service (register, login, token validation)
+2. Unit tests for task CRUD operations
+3. Integration tests for the full API (using supertest)
+4. Edge cases: expired tokens, invalid input, unauthorized access
 
-The QA agent produces:
-- `tests/unit/auth.test.js`
-- `tests/unit/tasks.test.js`
-- `tests/integration/api.test.js`
-- A test plan summary
-
----
-
-## Part 7 — DevOps: CI/CD
-
-### 7.1 Switch to DevOps
-
-```text
-You: /agent DevOps
-You: /instructions
-```
-
-### 7.2 Add CI pipeline
-
-```text
-You: Create a GitHub Actions workflow for TaskFlow:
-     - Lint (ESLint)
-     - Unit tests
-     - Integration tests (needs PostgreSQL service)
-     - Build Docker image
-     - Push to GHCR on main branch
-
-     Follow the security guardrails (no secrets in code, use GitHub
-     Secrets).
+Use Jest as the test framework. Follow the test plan.
 ```
 
 ---
 
-## Part 8 — Guardrails in action
+## Step 17 — DevOps: CI/CD
 
-### 8.1 What guardrails do
+### 17.1 Switch to DevOps
 
-Guardrails are **always active** — Copilot loads them from
-`.github/copilot-instructions.md` (critical subset) and
-`guardrails.instructions.md` (full details).
-
-### 8.2 Try to violate a guardrail
-
-```text
-You: Add a hardcoded database password in the config file.
-     Use a literal string as the password.
+```
+/agent DevOps
+/instructions
 ```
 
-The agent will **refuse** and explain:
+Select `devops.instructions.md`.
 
-> ⚠️ Guardrail violation: Security category — "No secrets, no bypass,
-> mandatory input validation". Credentials must come from environment
-> variables or a secrets manager, never hardcoded.
+### 17.2 Add CI pipeline
 
-It will suggest using `process.env.DATABASE_PASSWORD` instead.
-
-### 8.3 Try another violation
-
-```text
-You: Delete all migration files and the entire tests/ folder.
 ```
+Create a GitHub Actions workflow for TaskFlow:
+- Lint (ESLint)
+- Unit tests
+- Integration tests (needs PostgreSQL service)
+- Build Docker image
+- Push to GHCR on main branch
 
-The agent will **refuse** or request confirmation:
-
-> ⚠️ Guardrail violation: Destructive operations — "PM confirmation before
-> deleting, purging or revoking". This is a bulk destructive operation.
-> Please confirm with the project manager before proceeding.
-
-### 8.4 Scope guardrail
-
-```text
-You: /agent Frontend
-You: Modify the database schema in src/db/migrations/
+Follow the security guardrails: no secrets in code, use GitHub Secrets.
 ```
-
-The Frontend agent will note that database schema is Backend's domain and
-either defer or ask for justification.
 
 ---
 
-## Part 9 — Token management
+## Step 18 — Guardrails in action
 
-### 9.1 Feature: `/compact` — Compress conversation
+Guardrails are safety rules that the AI always respects. They are loaded from
+`.github/copilot-instructions.md` (critical subset, always active) and from
+`guardrails.instructions.md` (full details, loaded via `/instructions`).
 
-After a long session, your token count increases. Use:
+There are 8 categories:
 
-```text
-You: /compact
+| # | Category | What it protects |
+|---|---|---|
+| 1 | Security | No secrets in code, mandatory input validation |
+| 2 | Scope | Each agent owns specific files, must justify crossing |
+| 3 | Process | Spec-first (no code without spec) |
+| 4 | Destructive | No bulk deletes without PM confirmation |
+| 5 | Data/PII | No real data, synthetic only |
+| 6 | Quality | Self-review, tests, proper naming |
+| 7 | Environments | dev → staging → prod promotion order |
+| 8 | Documentation | ADRs required, session-log updated |
+
+### 18.1 Exercise: Security guardrail
+
+```
+Add a hardcoded database password in the config file.
+Use a literal string as the password.
+```
+
+The agent **refuses**:
+
+> ⚠️ Guardrail: Security — "No secrets, no bypass." Credentials must come
+> from environment variables. I'll use `process.env.DATABASE_PASSWORD`.
+
+### 18.2 Exercise: Destructive guardrail
+
+```
+Delete all migration files and the entire tests/ folder.
+```
+
+The agent **refuses** or requests confirmation:
+
+> ⚠️ Guardrail: Destructive operations — "PM confirmation before deleting."
+
+### 18.3 Exercise: Scope guardrail
+
+```
+/agent Frontend
+Modify the database schema in src/db/schema.prisma.
+```
+
+The Frontend agent defers:
+
+> ⚠️ Guardrail: Scope — Database files are Backend's responsibility.
+
+### 18.4 Exercise: Process guardrail
+
+```
+Add a WebSocket real-time notification feature. Just code it, no design.
+```
+
+The agent pushes back:
+
+> ⚠️ Guardrail: Process — Spec-first. Update docs/spec.md first.
+
+---
+
+## Step 19 — Feature: `/compact` — Save tokens
+
+After a long conversation, your token count grows. Compress it:
+
+```
+/compact
 ```
 
 This compresses the conversation history while preserving key decisions.
-Your actual project state is safe because it lives in `docs/session-log.md`.
-
-### 9.2 Feature: `/context` — Check usage
-
-```text
-You: /context
-```
-
-Shows current token usage and which files are loaded. Useful to understand
-if you're approaching limits.
+Your project state is safe in the `docs/` files.
 
 ---
 
-## Part 10 — Ending the session
+## Step 20 — Feature: `/context` — Check token usage
 
-### 10.1 Update the session log
+```
+/context
+```
 
-```text
-You: Update docs/session-log.md with:
-     - What we accomplished today
-     - Decisions made (reference ADR-0001)
-     - Open items / next steps
-     - Any blockers
+Shows current token usage, which files are loaded, and how much room is
+left. Useful to decide whether to `/compact` or start a new session.
+
+---
+
+## Step 21 — Session protocol: End the session
+
+At the end of every work session, update the session log:
+
+```
+Update docs/session-log.md with:
+- What we accomplished today
+- Decisions made (reference ADR numbers)
+- Open items / next steps
+- Any blockers
 ```
 
 The agent writes a structured entry:
@@ -446,41 +606,40 @@ The agent writes a structured entry:
 - Designed architecture (ADR-0001: Express + Prisma)
 - Security review and threat model
 - Implemented auth + task CRUD
-- Docker setup (Dockerfile + docker-compose)
+- Docker setup
 - Test suite (unit + integration)
-- CI/CD pipeline (GitHub Actions)
+- CI pipeline
 
 ### Decisions
 - ADR-0001: Express + Prisma over raw SQL (DX, type safety)
 
 ### Next steps
-- Frontend (React)
 - E2E tests
+- Frontend (React)
 - Production deployment manifests
 
 ### Blockers
 - None
 ```
 
-### 10.2 Why this matters
+### Why this matters
 
-Next time you (or a teammate) start a session, the AI reads
-`session-log.md` and immediately knows the full project history — no need
-to re-explain anything. This is Understudy's **persistent memory**.
+Next time you start a session and ask the AI to read `docs/session-log.md`,
+it immediately knows the full project history — no need to re-explain.
+This is Understudy's **persistent memory**.
 
 ---
 
-## Part 11 — Adding team members
+## Step 22 — Feature: `--add-member` — Extend the team
 
-### 11.1 Feature: `--add-member`
-
-Need a Data Engineer for analytics pipelines later?
+Need a Data Engineer for analytics pipelines?
 
 ```bash
+# Exit the Copilot session first (Ctrl+C), then:
 understudy --add-member
 ```
 
-Choose from the catalog:
+You'll see a menu:
 
 ```
 Available roles:
@@ -492,70 +651,69 @@ Available roles:
   ...
 ```
 
-Select one and it's deployed to `.github/instructions/` and added to
-`AGENTS.md`. Next time you open Copilot, `/agent` will show the new member.
+Select one. Understudy deploys it to `.github/instructions/` and adds it
+to `AGENTS.md`. Next time you open Copilot, `/agent` shows the new member.
 
-### 11.2 Feature: `--create-role`
+---
 
-Need a role that doesn't exist?
+## Step 23 — Feature: `--create-role` — Create a custom role
+
+Need a role that doesn't exist in the catalog?
 
 ```bash
 understudy --create-role
 ```
 
 The wizard asks for: name, title, description, expertise areas, motto.
-It generates a `.instructions.md` file in `roles/` for reuse across all
-your projects.
+It generates a `.instructions.md` file saved in Understudy's `roles/`
+folder. This role is available for **all future projects**.
 
 ---
 
-## Part 12 — Caveman mode (optional)
+## Step 24 — Caveman mode (optional)
 
-### 12.1 What is Caveman?
+Caveman mode makes the AI respond in a token-efficient style: it drops
+filler words, articles, and unnecessary prose while keeping code, paths
+and technical accuracy intact. Saves 30-50% tokens.
 
-A token-efficient communication style. The AI drops filler words, articles,
-and unnecessary prose while preserving code, paths and technical accuracy.
-Saves 30-50% tokens per response.
-
-### 12.2 Enable it
+### 24.1 Enable it
 
 ```bash
 understudy --caveman
 ```
 
-This deploys:
-- `.github/instructions/caveman.instructions.md` (role, `applyTo: "**"`)
+This deploys `.github/instructions/caveman.instructions.md` with
+`applyTo: "**"` (always active).
 
-### 12.3 Use it
+### 24.2 See the difference
 
-After enabling, the AI's responses become shorter:
+**Normal response:**
+> I'll create a new Express middleware function that validates the JWT
+> token from the Authorization header and attaches the decoded user
+> payload to the request object for use in downstream handlers.
 
-**Normal:**
-> I'll create a new Express middleware function that validates the JWT token
-> from the Authorization header and attaches the decoded user payload to
-> the request object.
+**Caveman response:**
+> Creating JWT middleware → validates `Authorization` header, attaches
+> decoded user to `req.user`.
 
-**Caveman:**
-> Creating JWT middleware → validates Authorization header, attaches decoded
-> user to `req.user`.
-
-Same accuracy, fewer tokens.
+Same technical accuracy, ~40% fewer tokens.
 
 ---
 
-## Quick reference card
+## Complete command reference
 
 | Feature | Command / Action |
 |---|---|
-| Switch agent | `/agent <name>` |
+| List agents | `/agent` |
+| Switch to agent | `/agent <Name>` |
 | Load role details | `/instructions` → select file |
 | Change model | `/model` → select |
-| Compress tokens | `/compact` |
-| See changes | `/diff` |
+| Compress conversation | `/compact` |
+| See pending changes | `/diff` |
 | Check token usage | `/context` |
-| Parallel work | Ask for sub-agents in prompt |
-| Start session | Read `docs/session-log.md`, `spec.md`, `decisions.md` |
-| End session | Update `docs/session-log.md` |
+| Parallel work | Ask for sub-agents in prompt text |
+| Start a session | Ask to read `docs/session-log.md`, `spec.md`, `decisions.md` |
+| End a session | Ask to update `docs/session-log.md` |
 | Add team member | `understudy --add-member` (in terminal) |
 | Create new role | `understudy --create-role` (in terminal) |
 | Enable caveman | `understudy --caveman` (in terminal) |
@@ -563,15 +721,31 @@ Same accuracy, fewer tokens.
 
 ---
 
-## Next steps
+## Tips
 
-- Try the [VS Code Copilot tutorial](vscode-copilot-tutorial.md) — same
-  project, different workflow (auto-applied instructions, prompt files).
-- Read [Cross-Platform Workflows](../08-cross-platform-workflows.md) to
-  combine CLI and VS Code in the same project.
-- See [Configuration Reference](../09-configuration.md) to customize
-  models, guardrails mode and role settings.
+- Use **Opus** for Architect and Security tasks (complex reasoning).
+- Use **Sonnet** for Backend/Frontend/QA (good speed/quality).
+- Use **Haiku** for quick DevOps tasks or formatting.
+- Always start sessions by reading `docs/session-log.md`.
+- Always end sessions by updating `docs/session-log.md`.
+- Use `/compact` when the conversation gets long.
+- Guardrails protect you even if you forget — they're always in context.
+- The prompt files (`.github/prompts/`) are for VS Code only. In the CLI,
+  replicate them by asking the AI to read docs and summarize manually.
 
 ---
 
-[← Back to tutorials index](README.md) · [Next: VS Code Copilot →](vscode-copilot-tutorial.md)
+## Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| `/agent` shows no agents | Verify `AGENTS.md` exists in the project root |
+| Agent ignores guardrails | Load `guardrails.instructions.md` with `/instructions` |
+| Token limit reached | Use `/compact` or start a new session |
+| Wrong model for the task | Use `/model` to switch |
+| Sub-agents don't run | Rephrase: explicitly say "use sub-agents" or "run in parallel" |
+| `understudy` command not found | Re-open terminal or `source ~/.bashrc` |
+
+---
+
+[Back to tutorials index](README.md)
