@@ -368,6 +368,8 @@ check_for_updates() {
 
     latest_version="$(fetch_latest_version 2>/dev/null || true)"
     [[ -n "$latest_version" ]] || return 0
+    # Validate it looks like a semver tag (proxy/HTML responses would fail this)
+    [[ "$latest_version" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+ ]] || return 0
 
     if version_is_newer "$latest_version" "$current_version"; then
         warn "New Understudy version available: ${latest_version} (current: ${current_version})"
