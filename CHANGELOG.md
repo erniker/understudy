@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-05-13
+
 ### Added
 
 - **PowerShell installer** (`install.ps1`): native Windows installer that
