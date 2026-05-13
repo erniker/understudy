@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-05-13
+
+### Changed
+
+- Document `install.ps1` (PowerShell installer) across all docs: tutorials,
+  platform guides, troubleshooting, contributing guide, and tutorials README.
+
 ## [0.9.4] - 2026-05-13
 
 ### Fixed

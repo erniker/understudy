@@ -17,6 +17,12 @@ Install Understudy first:
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
 ```
 
+On Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/erniker/understudy/main/install.ps1 | iex
+```
+
 Then open a new terminal so the `understudy` command is available.
 
 If you prefer a manual clone instead of the installed command, you need

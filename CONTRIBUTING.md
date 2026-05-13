@@ -38,8 +38,9 @@ git fetch upstream
 git rebase upstream/main
 ```
 
-There are no build dependencies. The wizard requires **bash ≥ 3.2** (compatible with macOS, Linux, and Windows WSL).
+There are no build dependencies. The wizard requires **bash ≥ 3.2** (compatible with macOS, Linux, and Windows WSL / Git Bash).
 To contribute: clone the repo, then run the wizard with `./wizard.sh` or install globally with `./install.sh`.
+On Windows, you can also install with `install.ps1` (PowerShell) — it auto-detects Git for Windows `bash.exe`.
 
 ---
 
