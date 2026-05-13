@@ -1,14 +1,27 @@
 # 2. Quick Start
 
-Works the same way on Linux, macOS and Windows (Git Bash or WSL).
+Works the same way on Linux, macOS and Windows (Git Bash, WSL, or PowerShell).
 
 ## Install
+
+### Linux / macOS / Git Bash / WSL
 
 **One-liner (recommended):**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
 ```
+
+### Windows (PowerShell)
+
+**One-liner:**
+
+```powershell
+irm https://raw.githubusercontent.com/erniker/understudy/main/install.ps1 | iex
+```
+
+> Requires **Git for Windows** (`bash.exe`). The installer auto-detects it and
+> creates a PowerShell-native launcher that delegates execution to bash.
 
 Then open a new terminal so the `understudy` command is available.
 

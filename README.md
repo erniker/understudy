@@ -6,14 +6,13 @@
 
 ## Installation
 
-**One-liner** (Linux, macOS, Windows Git Bash / WSL):
+### Linux / macOS / Windows Git Bash / WSL
+
+**One-liner:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
 ```
-
-This downloads the latest release, installs it to `~/.understudy/` and adds the
-`understudy` command to your PATH.
 
 **Specific version:**
 
@@ -21,7 +20,24 @@ This downloads the latest release, installs it to `~/.understudy/` and adds the
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.0.0
 ```
 
-**Manual (clone):**
+### Windows (PowerShell)
+
+**One-liner:**
+
+```powershell
+irm https://raw.githubusercontent.com/erniker/understudy/main/install.ps1 | iex
+```
+
+**Specific version:**
+
+```powershell
+.\install.ps1 -Version v1.0.0
+```
+
+> Requires **Git for Windows** (provides `bash.exe`). The installer detects it
+> automatically and creates a PowerShell launcher that delegates to bash.
+
+### Manual (clone)
 
 ```bash
 git clone https://github.com/erniker/understudy.git
@@ -81,12 +97,23 @@ the full interactive wizard if you need to customize them.
 
 ### Install options
 
+**Bash (`install.sh`):**
+
 | Flag | Description |
 |---|---|
 | `--version <tag>` | Install a specific version (e.g. `v1.2.0`) |
 | `--dir <path>` | Custom install directory (default: `~/.understudy`) |
 | `--no-path` | Skip PATH setup |
 | `--uninstall` | Remove Understudy from the system |
+
+**PowerShell (`install.ps1`):**
+
+| Parameter | Description |
+|---|---|
+| `-Version <tag>` | Install a specific version (e.g. `v1.2.0`) |
+| `-InstallDir <path>` | Custom install directory (default: `~/.understudy`) |
+| `-NoPath` | Skip PATH setup |
+| `-Uninstall` | Remove Understudy from the system |
 
 ### Automatic update checks
 

@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **PowerShell installer** (`install.ps1`): native Windows installer that
+  auto-detects Git for Windows `bash.exe`, downloads the release, extracts it,
+  creates a PowerShell launcher (`understudy.ps1`), and adds it to the user
+  PATH. Supports `-Version`, `-InstallDir`, `-NoPath` and `-Uninstall` flags.
+  Falls back gracefully if only WSL bash is available (validates bash actually
+  works before accepting it).
+
+### Changed
+
+- README and Quick Start docs updated with PowerShell installation instructions
+  alongside the existing bash one-liner.
+
 ## [0.9.1] - 2026-05-12
 
 ### Fixed
