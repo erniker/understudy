@@ -40,11 +40,22 @@ By the end of this tutorial you will have used:
 
 ## Step 1 — Install Understudy
 
+### Linux / macOS / Git Bash / WSL
+
 Open a terminal and run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
 ```
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/erniker/understudy/main/install.ps1 | iex
+```
+
+> Requires **Git for Windows** (provides `bash.exe`). The installer detects it
+> automatically and creates a PowerShell launcher that delegates to bash.
 
 This downloads the latest release, installs it to `~/.understudy/` and adds
 the `understudy` command to your PATH.

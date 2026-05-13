@@ -80,10 +80,21 @@ If you prefer to update manually, re-run the installer:
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash
 ```
 
+On Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/erniker/understudy/main/install.ps1 | iex
+```
+
 To pin a specific version:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --version v1.2.0
+```
+
+```powershell
+# PowerShell
+.\install.ps1 -Version v1.2.0
 ```
 
 To disable the automatic check (CI, offline environments):
@@ -96,6 +107,11 @@ To uninstall:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh | bash -s -- --uninstall
+```
+
+```powershell
+# PowerShell
+.\install.ps1 -Uninstall
 ```
 
 ## Existing project — will the wizard overwrite my code?
@@ -151,15 +167,29 @@ The order does not matter. Module flags (`--caveman`, `--caveman-hooks`,
 
 ## Windows: the wizard fails or shows garbled output
 
-Understudy requires a **bash-compatible shell**. On Windows, use one of:
+The recommended way to install on Windows is the **PowerShell installer**,
+which auto-detects Git for Windows and handles everything:
+
+```powershell
+irm https://raw.githubusercontent.com/erniker/understudy/main/install.ps1 | iex
+```
+
+After installation, the `understudy` command works from **any shell**
+(PowerShell, Git Bash, cmd.exe).
+
+### Running `wizard.sh` directly (advanced)
+
+If you prefer to run the wizard manually (e.g. from a git clone), you need
+a **bash-compatible shell**. On Windows, use one of:
 
 - **Git Bash** (installed with Git for Windows) — recommended
 - **WSL** (Windows Subsystem for Linux)
 - **MSYS2** or **Cygwin**
 
-PowerShell and `cmd.exe` are **not supported** for running the wizard
-directly. However, once deployed, the AI tools (Copilot, Claude, Cursor)
-work normally regardless of your shell.
+PowerShell and `cmd.exe` cannot run `wizard.sh` directly — this is why
+the PowerShell installer (`install.ps1`) is recommended. Once deployed,
+the AI tools (Copilot, Claude, Cursor) work normally regardless of
+your shell.
 
 ## `understudy-compress` says "python3 not found"
 

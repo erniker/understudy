@@ -33,6 +33,6 @@ flows differently across platforms:
 
 ## Prerequisites
 
-- Understudy installed (`curl -fsSL ... | bash` or manual clone)
+- Understudy installed (`curl -fsSL ... | bash`, or `irm ... | iex` on Windows PowerShell, or manual clone)
 - The AI tool for your chosen platform installed and configured
-- A terminal with `bash ≥ 4` (for the wizard)
+- A terminal with `bash ≥ 4` (for the wizard; on Windows, Git for Windows provides it — the PowerShell installer sets this up automatically)
