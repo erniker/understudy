@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-05-13
+
 ### Fixed
 
 - `check_for_updates`: validate that the fetched version string matches semver
