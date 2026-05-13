@@ -261,7 +261,7 @@ function Show-PostInstall {
 
     Write-Host ""
     Write-Host "  ╔══════════════════════════════════════════╗" -ForegroundColor Green
-    Write-Host "  ║  🎭  Understudy $Ver installed!         ║" -ForegroundColor Green
+    Write-Host "  ║  🎭  Understudy $Ver installed!        ║" -ForegroundColor Green
     Write-Host "  ╚══════════════════════════════════════════╝" -ForegroundColor Green
     Write-Host ""
     Write-Step "Quick start"
