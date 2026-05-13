@@ -4,6 +4,8 @@
 > One assistant, multiple roles: Architect, Backend, Frontend, DevOps, Security, QA.
 > Compatible with **GitHub Copilot CLI**, **VS Code**, **Claude Code** and **Cursor**.
 
+📖 **Documentation:** <https://erniker.github.io/understudy/>
+
 ## Installation
 
 ### Linux / macOS / Windows Git Bash / WSL
