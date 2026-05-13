@@ -7,6 +7,16 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-05-13
+
+### Fixed
+
+- `install.ps1`: fix post-install box border alignment.
+
+### Added
+
+- Pester test suite for `install.ps1` (15 tests) + CI job on `windows-latest`.
+
 ## [0.9.3] - 2026-05-13
 
 ### Fixed
