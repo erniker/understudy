@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Fixed
+
+- `check_for_updates`: validate that the fetched version string matches semver
+  format before comparing. Prevents `unbound variable` crash when curl returns
+  non-JSON (e.g. proxy HTML pages) on Windows behind corporate proxies.
+
 ## [0.9.2] - 2026-05-13
 
 ### Added
