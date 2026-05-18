@@ -7,6 +7,24 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-18
+
+### Added
+
+- **GitHub Pages documentation site** (#93): full MkDocs Material deployment
+  with CI workflow publishing to <https://erniker.github.io/understudy/>.
+
+### Fixed
+
+- Remove strict mode from MkDocs build and add docs URL to README (#94).
+
+### Milestone
+
+This is the first stable release of Understudy. The API surface (wizard CLI
+flags, module layout, role format, and platform deploy targets) is now
+considered stable. All 10 releases from v0.5.0 through v0.9.5 have been
+battle-tested across GitHub Copilot, Claude Code, and Cursor.
+
 ## [0.9.5] - 2026-05-13
 
 ### Changed
