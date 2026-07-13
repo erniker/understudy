@@ -14,3 +14,8 @@ The work session has ended. Update `docs/session-log.md` by adding a new entry a
 
 Make sure the entry is detailed enough so that in the next session
 any agent can resume work without needing to re-explain context.
+
+After updating the log, remind the user that this is a good point to close
+this chat and start a new one: `/project:start-session` picks up full
+context from what you just wrote, and a fresh chat costs less (tokens,
+time) than continuing a long one.

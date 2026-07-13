@@ -60,6 +60,20 @@ This project follows **Spec-Driven Development**:
    - Decisions made
    - Blockers identified
 
+### Recognizing good stopping points
+
+A long conversation costs more (tokens, time, money) than starting fresh
+with a concise summary. Watch for natural stopping points — a feature just
+finished with tests passing, a bug fixed and verified, a question fully
+answered — and proactively suggest wrapping up: update
+`docs/session-log.md`, then tell the user this is a good point to close
+this chat and start a new one, since the next session picks up full context
+from `docs/session-log.md` — nothing is lost.
+
+Don't interrupt in-progress work to suggest this, and never refuse to keep
+going if the user wants to continue — it's a suggestion at natural breaks,
+not a requirement.
+
 ### Code standards
 - Readable and maintainable code by any team member
 - Single-responsibility functions

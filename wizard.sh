@@ -20,6 +20,10 @@
 #     understudy --here --yes        → Same as --here, skip confirmation
 #     understudy --add-member        → Add a team member
 #     understudy --create-role       → Create a new custom role
+#     understudy --all-roles         → Deploy the entire role catalog, not just the defaults
+#     understudy --global            → Deploy a default team machine-wide (see docs/12-global-mode.md)
+#     understudy --docs-only         → Create persistent per-repo memory only (pairs with --global)
+#     understudy --uninstall         → Remove Understudy files from the current project
 #     understudy --help              → Show help
 #
 # ═══════════════════════════════════════════════════════════════
@@ -73,6 +77,10 @@ DETECTED_HAS_SHELL=false
 # CLI flags
 DEPLOY_HERE=false        # --here: deploy in current directory using inferred values
 AUTO_CONFIRM=false       # --yes/-y: skip confirmation prompts when used with --here
+GLOBAL_MODE=false        # --global: deploy machine-wide instead of into a project
+GLOBAL_UNINSTALL=false   # --global --uninstall: remove everything a global deploy wrote
+ALL_ROLES=false          # --all-roles: deploy every role in the catalog, not just the defaults
+DOCS_ONLY=false          # --docs-only: create per-repo persistent memory only (docs/ + understudy.yaml), no agent files
 
 # Module registry — populated by discover_modules() from modules/<name>/module.yaml.
 #
@@ -505,6 +513,28 @@ validate_cursor_templates() {
     success "Cursor templates validated"
 }
 
+validate_global_templates() {
+    local global_files=(
+        "global/CLAUDE.md"
+        "global/copilot-instructions.instructions.md"
+        "global/cursor-user-rules.md"
+        "global/commands/start-session.md"
+        "global/commands/end-session.md"
+        "global/commands/start-session.prompt.md"
+        "global/commands/end-session.prompt.md"
+        "global/commands/localize-project.md"
+        "global/commands/localize-project.prompt.md"
+    )
+
+    for f in "${global_files[@]}"; do
+        if [[ ! -f "${TEMPLATES_DIR}/${f}" ]]; then
+            error "Missing global template: ${f}"
+            exit 1
+        fi
+    done
+    success "Global templates validated"
+}
+
 # ─── Existing project detection ─────────────────────────────
 
 detect_existing_project() {
@@ -928,6 +958,126 @@ gather_project_info_here() {
     esac
 }
 
+# ─── Gather project information — global mode ───────────────
+# Deploys machine-wide using `--global`. Mirrors the --here UX (numbered
+# editable summary) but drops project-identity questions (name, description,
+# tech stack, repo URL) since there is no single project at this scope.
+
+_global_print_summary() {
+    info "Global deployment settings:"
+    info "  ${BOLD}1)${NC} Guardrails mode: ${BOLD}${GUARDRAILS_MODE}${NC}"
+    info "  ${BOLD}2)${NC} Platforms:       ${BOLD}$(_here_platforms_label)${NC}"
+    info "     Claude target:    $(global_claude_dir)"
+    local vs_dirs
+    vs_dirs="$(detect_vscode_user_dirs)"
+    if [[ -n "$vs_dirs" ]]; then
+        info "     VS Code profile(s):"
+        while IFS= read -r d; do [[ -n "$d" ]] && info "       - ${d}"; done <<< "$vs_dirs"
+    else
+        info "     VS Code profile:  ${YELLOW}(none detected)${NC}"
+    fi
+    info "     Cursor:           manual paste block at $(global_state_dir)/cursor-user-rules.md"
+}
+
+_global_edit_field() {
+    local field="$1"
+    local ans
+    case "$field" in
+        1)
+            ask "Guardrails mode [1=split, 2=embedded]" ans "$([[ $GUARDRAILS_MODE == embedded ]] && echo 2 || echo 1)"
+            case "$ans" in
+                2|embedded) GUARDRAILS_MODE="embedded" ;;
+                *)          GUARDRAILS_MODE="split" ;;
+            esac
+            ;;
+        2)
+            local cur_c cur_cl cur_cu
+            cur_c=$($PLATFORM_COPILOT && echo Y || echo N)
+            cur_cl=$($PLATFORM_CLAUDE && echo Y || echo N)
+            cur_cu=$($PLATFORM_CURSOR && echo Y || echo N)
+            ask "Deploy for GitHub Copilot? [Y/n]" ans "$cur_c"
+            case "$(to_lower "$ans")" in n|no) PLATFORM_COPILOT=false ;; *) PLATFORM_COPILOT=true ;; esac
+            ask "Deploy for Claude Code? [Y/n]" ans "$cur_cl"
+            case "$(to_lower "$ans")" in n|no) PLATFORM_CLAUDE=false ;; *) PLATFORM_CLAUDE=true ;; esac
+            ask "Deploy for Cursor? [Y/n]" ans "$cur_cu"
+            case "$(to_lower "$ans")" in n|no) PLATFORM_CURSOR=false ;; *) PLATFORM_CURSOR=true ;; esac
+            if ! $PLATFORM_COPILOT && ! $PLATFORM_CLAUDE && ! $PLATFORM_CURSOR; then
+                warn "At least one platform required — re-enabling Claude."
+                PLATFORM_CLAUDE=true
+            fi
+            ;;
+        *)
+            warn "Invalid field: $field"
+            ;;
+    esac
+}
+
+_global_edit_loop() {
+    local pick
+    while true; do
+        echo ""
+        _global_print_summary
+        echo ""
+        ask "Field number to edit (1-2), or ${BOLD}d${NC} to deploy / ${BOLD}q${NC} to quit" pick "d"
+        case "$(to_lower "$pick")" in
+            d|deploy|y|yes) return 0 ;;
+            q|quit|n|no)
+                warn "Operation cancelled."
+                exit 0
+                ;;
+            [1-2]) _global_edit_field "$pick" ;;
+            *) warn "Enter 1-2, d (deploy) or q (quit)." ;;
+        esac
+    done
+}
+
+gather_project_info_global() {
+    step "Deploy machine-wide (--global)"
+    echo ""
+    info "This seeds a default Understudy team for every project on this machine."
+    info "Per-project customization (spec.md, models, apply_to overrides) is"
+    info "untouched — run 'understudy --here' inside any repo to fully"
+    info "customize it on top of the global team, exactly like today."
+    echo ""
+
+    GUARDRAILS_MODE="split"
+    PLATFORM_COPILOT=true
+    PLATFORM_CLAUDE=true
+    PLATFORM_CURSOR=true
+
+    # Generic values fed into the shared deploy_file substitution pipeline —
+    # there is no single project at this scope, so these are illustrative.
+    PROJECT_NAME="(this repository)"
+    PROJECT_DESCRIPTION="(varies per repository)"
+    TECH_STACK="(detected per repository)"
+    REPOSITORY_URL="(varies per repository)"
+    TEAM_LEAD="$(git config --global user.name 2>/dev/null || echo 'Project Lead')"
+    PROJECT_DATE="$(date +%Y-%m-%d)"
+    INTEGRATION_MODE=true
+
+    echo ""
+    _global_print_summary
+    echo ""
+
+    if $AUTO_CONFIRM; then
+        info "Auto-confirm enabled (--yes) — proceeding."
+        return
+    fi
+
+    local ans
+    ask "Deploy with these settings? [${BOLD}Y${NC}=yes / ${BOLD}n${NC}=cancel / ${BOLD}e${NC}=edit]" ans "Y"
+    case "$(to_lower "$ans")" in
+        n|no)
+            warn "Operation cancelled."
+            exit 0
+            ;;
+        e|edit)
+            _global_edit_loop
+            ;;
+        *) ;;
+    esac
+}
+
 # ─── Gather project information ─────────────────────────────
 
 gather_project_info() {
@@ -1189,6 +1339,197 @@ normalize_path() {
     echo "$path"
 }
 
+# ─── Global mode: cross-platform path resolution ────────────
+# Helpers used only by `understudy --global` to resolve machine-wide targets.
+# Kept separate from per-project deploy so the existing project flow is
+# never touched by this logic.
+
+os_family() {
+    case "$(uname -s)" in
+        MINGW*|CYGWIN*|MSYS*) echo "windows" ;;
+        Darwin*)              echo "macos" ;;
+        *)                    echo "linux" ;;
+    esac
+}
+
+# Claude Code always resolves its user-level directory relative to $HOME,
+# consistently across Linux/macOS/Windows (git-bash/WSL) — no OS branching
+# needed here, unlike the VS Code profile lookup below.
+global_claude_dir() {
+    echo "${HOME}/.claude"
+}
+
+# Understudy's own global-deploy bookkeeping (deploy manifest + the Cursor
+# paste-block). Deliberately NOT placed under ~/.understudy: install.sh runs
+# `rm -rf "$INSTALL_DIR"` on every self-update, which would silently wipe
+# this state since that directory is install payload, not deployed state.
+global_state_dir() {
+    echo "${HOME}/.understudy-global"
+}
+
+# Resolves VS Code user profile directories that could host global Copilot
+# instructions/prompts. Echoes one absolute path per line (stable and/or
+# Insiders, whichever exist); empty output means no VS Code profile found.
+#
+#   Linux:   ~/.config/Code[ - Insiders]/User
+#   macOS:   ~/Library/Application Support/Code[ - Insiders]/User
+#   Windows: %APPDATA%/Code[ - Insiders]/User
+detect_vscode_user_dirs() {
+    local base_stable base_insiders
+    case "$(os_family)" in
+        macos)
+            base_stable="${HOME}/Library/Application Support/Code/User"
+            base_insiders="${HOME}/Library/Application Support/Code - Insiders/User"
+            ;;
+        windows)
+            local appdata
+            appdata="$(normalize_path "${APPDATA:-${HOME}/AppData/Roaming}")"
+            base_stable="${appdata}/Code/User"
+            base_insiders="${appdata}/Code - Insiders/User"
+            ;;
+        *)
+            base_stable="${HOME}/.config/Code/User"
+            base_insiders="${HOME}/.config/Code - Insiders/User"
+            ;;
+    esac
+
+    [[ -d "$base_stable" ]] && echo "$base_stable"
+    [[ -d "$base_insiders" ]] && echo "$base_insiders"
+    return 0
+}
+
+# Records a path written during a --global deploy so `--global --uninstall`
+# can remove exactly what Understudy created — never a pre-existing file.
+global_manifest_add() {
+    local path="$1"
+    local state_dir
+    state_dir="$(global_state_dir)"
+    mkdir -p "$state_dir"
+    if [[ ! -f "${state_dir}/manifest" ]] || ! grep -qxF "$path" "${state_dir}/manifest" 2>/dev/null; then
+        printf '%s\n' "$path" >> "${state_dir}/manifest"
+    fi
+}
+
+# Wraps deploy_file() so global-mode deploys get manifest tracking for free,
+# while preserving the exact same "skip if exists" safety as project mode
+# (a file that already existed before this run is never recorded, so
+# --uninstall can never remove something the user already had).
+deploy_file_global() {
+    local src="$1"
+    local dst="$2"
+    local existed=false
+    [[ -f "$dst" ]] && existed=true
+
+    deploy_file "$src" "$dst"
+
+    $existed || global_manifest_add "$dst"
+}
+
+# ─── Global mode: ephemeral jq dependency ───────────────────
+# Understudy never leaves new dependencies on the developer's machine: if jq
+# is missing, install it long enough to safely patch VS Code's settings.json
+# (JSONC — unsafe to hand-edit with sed/awk), then remove it again. Never
+# attempted blindly under sudo in a non-interactive run.
+JQ_INSTALLED_BY_UNDERSTUDY=false
+JQ_PM_USED=""
+
+_jq_pm_available() {
+    command -v "$1" &>/dev/null
+}
+
+ensure_jq() {
+    command -v jq &>/dev/null && return 0
+
+    # Escape hatch for automated tests/CI — mirrors UNDERSTUDY_SKIP_UPDATE_CHECK.
+    # Never attempt a real package-manager install when set.
+    [[ "${UNDERSTUDY_SKIP_JQ_INSTALL:-0}" == "1" ]] && return 1
+
+    if ! $AUTO_CONFIRM; then
+        confirm "jq is required to safely edit VS Code's settings.json — install it temporarily?" "Y" || return 1
+    fi
+
+    local family
+    family="$(os_family)"
+
+    case "$family" in
+        macos)
+            if _jq_pm_available brew; then
+                JQ_PM_USED="brew"
+                brew install jq &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+            fi
+            ;;
+        windows)
+            if _jq_pm_available scoop; then
+                JQ_PM_USED="scoop"
+                scoop install jq &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+            elif _jq_pm_available winget; then
+                JQ_PM_USED="winget"
+                winget install -e --id jqlang.jq --accept-source-agreements --accept-package-agreements &>/dev/null \
+                    && JQ_INSTALLED_BY_UNDERSTUDY=true
+            elif _jq_pm_available choco; then
+                JQ_PM_USED="choco"
+                choco install jq -y &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+            fi
+            ;;
+        linux)
+            # System package managers need sudo — only attempt with a
+            # controlling terminal, mirroring the guard check_for_updates
+            # already uses before touching stdin/tty. Never risk a blind
+            # sudo password prompt in a non-interactive/--yes run.
+            if [[ -t 0 ]]; then
+                if _jq_pm_available apt-get; then
+                    JQ_PM_USED="apt-get"
+                    sudo apt-get install -y jq &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+                elif _jq_pm_available dnf; then
+                    JQ_PM_USED="dnf"
+                    sudo dnf install -y jq &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+                elif _jq_pm_available pacman; then
+                    JQ_PM_USED="pacman"
+                    sudo pacman -S --noconfirm jq &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+                elif _jq_pm_available apk; then
+                    JQ_PM_USED="apk"
+                    sudo apk add jq &>/dev/null && JQ_INSTALLED_BY_UNDERSTUDY=true
+                fi
+            fi
+            ;;
+    esac
+
+    # A package manager can report success (exit 0) without jq actually being
+    # invokable yet (e.g. winget installing to a path not yet on this shell's
+    # PATH). Trust the invocation, not the exit code, before proceeding.
+    if $JQ_INSTALLED_BY_UNDERSTUDY && command -v jq &>/dev/null; then
+        success "jq installed temporarily via ${JQ_PM_USED} (will be removed at the end of this run)"
+        trap cleanup_jq EXIT
+        return 0
+    fi
+
+    if $JQ_INSTALLED_BY_UNDERSTUDY; then
+        # Installed but not yet usable in this shell — still attempt cleanup
+        # so we don't claim to have left it behind on the machine, but don't
+        # report success for the patch step.
+        cleanup_jq
+    fi
+
+    warn "Could not install jq automatically — falling back to manual instructions for VS Code settings."
+    return 1
+}
+
+cleanup_jq() {
+    $JQ_INSTALLED_BY_UNDERSTUDY || return 0
+    case "$JQ_PM_USED" in
+        brew)    brew uninstall jq &>/dev/null ;;
+        scoop)   scoop uninstall jq &>/dev/null ;;
+        winget)  winget uninstall -e --id jqlang.jq &>/dev/null ;;
+        choco)   choco uninstall jq -y &>/dev/null ;;
+        apt-get) sudo apt-get remove -y jq &>/dev/null ;;
+        dnf)     sudo dnf remove -y jq &>/dev/null ;;
+        pacman)  sudo pacman -R --noconfirm jq &>/dev/null ;;
+        apk)     sudo apk del jq &>/dev/null ;;
+    esac
+    JQ_INSTALLED_BY_UNDERSTUDY=false
+    info "jq removed (temporary dependency cleaned up)"
+}
+
 # ─── Inject guardrails into copilot-instructions.md ─────────
 # Replaces the block between GUARDRAILS_START and GUARDRAILS_END with the generated content
 inject_guardrails_block() {
@@ -1379,6 +1720,467 @@ deploy_cursor() {
     if [[ -f "$guardrails_mdc" ]]; then
         inject_guardrails_block "$guardrails_mdc" "$GUARDRAILS_MODE"
     fi
+}
+
+# ─── Deploy files — global mode (`understudy --global`) ─────
+# Machine-wide equivalents of deploy_claude/deploy_copilot/deploy_cursor.
+# Fully additive: none of the functions above are touched, so
+# `understudy` / `understudy --here` keep behaving exactly as before.
+
+deploy_claude_global() {
+    step "Deploying Claude Code files (global)"
+
+    local target
+    target="$(global_claude_dir)"
+
+    mkdir -p "${target}/agents" "${target}/commands" "${target}/hooks"
+
+    deploy_file_global "${TEMPLATES_DIR}/global/CLAUDE.md" "${target}/CLAUDE.md"
+
+    for agent_file in "${TEMPLATES_DIR}/.claude/agents/"*.md; do
+        [[ -f "$agent_file" ]] && deploy_file_global "$agent_file" "${target}/agents/$(basename "$agent_file")"
+    done
+
+    for cmd_file in "${TEMPLATES_DIR}/.claude/commands/"*.md; do
+        [[ -f "$cmd_file" ]] || continue
+        # start-session/end-session are replaced by the global-flavored
+        # versions below — deploying the project ones first would win the
+        # "skip if exists" race and leave the wrong (docs/-assuming) content.
+        case "$(basename "$cmd_file")" in
+            start-session.md|end-session.md) continue ;;
+        esac
+        deploy_file_global "$cmd_file" "${target}/commands/$(basename "$cmd_file")"
+    done
+    # Global-flavored session commands replace the project-only versions:
+    # they check whether docs/ exists in the current repo instead of
+    # assuming it unconditionally, and flag stale project metadata.
+    deploy_file_global "${TEMPLATES_DIR}/global/commands/start-session.md" "${target}/commands/start-session.md"
+    deploy_file_global "${TEMPLATES_DIR}/global/commands/end-session.md" "${target}/commands/end-session.md"
+    deploy_file_global "${TEMPLATES_DIR}/global/commands/localize-project.md" "${target}/commands/localize-project.md"
+
+    deploy_file_global "${TEMPLATES_DIR}/.claude/hooks/guardrails-check.sh" "${target}/hooks/guardrails-check.sh"
+    chmod +x "${target}/hooks/guardrails-check.sh" 2>/dev/null || true
+
+    # settings.json needs an ABSOLUTE hook path here: the hook runs with
+    # cwd = whatever repo is open, not ~/.claude, so the project-relative
+    # path used by deploy_claude() would not resolve.
+    local settings_dst="${target}/settings.json"
+    if [[ ! -f "$settings_dst" ]]; then
+        sed "s|\.claude/hooks/guardrails-check.sh|${target}/hooks/guardrails-check.sh|" \
+            "${TEMPLATES_DIR}/.claude/settings.json" > "$settings_dst"
+        global_manifest_add "$settings_dst"
+        success "settings.json (global, absolute hook path)"
+    else
+        warn "File already exists, preserving: settings.json"
+    fi
+
+    step "Deploying Claude Code guardrails (global)"
+    local claude_md="${target}/CLAUDE.md"
+    [[ -f "$claude_md" ]] && inject_guardrails_block "$claude_md" "$GUARDRAILS_MODE"
+}
+
+# Applies the two Copilot user-scope settings via jq (installed on demand,
+# see ensure_jq). Backs up settings.json first so a failed merge is
+# trivially reversible.
+patch_vscode_settings() {
+    local vs_dir="$1" inst_dir="$2" prompt_dir="$3"
+    local settings="${vs_dir}/settings.json"
+
+    [[ -f "$settings" ]] || echo '{}' > "$settings"
+    cp "$settings" "${settings}.bak-understudy"
+
+    if jq --arg i "$inst_dir" --arg p "$prompt_dir" \
+        '.["chat.instructionsFilesLocations"] = ((.["chat.instructionsFilesLocations"] // {}) + {($i): true}) |
+         .["chat.promptFilesLocations"]       = ((.["chat.promptFilesLocations"] // {}) + {($p): true})' \
+        "$settings" > "${settings}.tmp-understudy"; then
+        mv "${settings}.tmp-understudy" "$settings"
+        success "VS Code settings.json updated: ${settings}"
+    else
+        rm -f "${settings}.tmp-understudy"
+        warn "Could not patch ${settings} with jq — restoring backup."
+        cp "${settings}.bak-understudy" "$settings"
+        print_vscode_manual_instructions "$vs_dir" "$inst_dir" "$prompt_dir"
+    fi
+}
+
+print_vscode_manual_instructions() {
+    local vs_dir="$1" inst_dir="$2" prompt_dir="$3"
+    warn "Manual step required for VS Code (${vs_dir}):"
+    info "Add to User settings.json (Command Palette → \"Preferences: Open User Settings (JSON)\"):"
+    echo "      \"chat.instructionsFilesLocations\": { \"${inst_dir}\": true },"
+    echo "      \"chat.promptFilesLocations\": { \"${prompt_dir}\": true }"
+}
+
+deploy_copilot_global() {
+    step "Deploying Copilot files (global)"
+
+    local vscode_dirs
+    vscode_dirs="$(detect_vscode_user_dirs)"
+
+    if [[ -z "$vscode_dirs" ]]; then
+        warn "No VS Code profile found (Code / Code - Insiders) — skipping Copilot global deploy."
+        info "Install VS Code and re-run 'understudy --global' to enable it later."
+        return
+    fi
+
+    local jq_available=false
+    ensure_jq && jq_available=true
+
+    local vs_dir
+    while IFS= read -r vs_dir; do
+        [[ -z "$vs_dir" ]] && continue
+        local inst_dir="${vs_dir}/understudy/instructions"
+        local prompt_dir="${vs_dir}/understudy/prompts"
+        mkdir -p "$inst_dir" "$prompt_dir"
+
+        deploy_file_global "${TEMPLATES_DIR}/global/copilot-instructions.instructions.md" "${inst_dir}/understudy-global.instructions.md"
+
+        for role_file in architect backend frontend devops security qa-engineer; do
+            deploy_file_global "${TEMPLATES_DIR}/.github/instructions/${role_file}.instructions.md" "${inst_dir}/${role_file}.instructions.md"
+        done
+
+        if [[ "$GUARDRAILS_MODE" == "split" ]]; then
+            deploy_file_global "${TEMPLATES_DIR}/.github/instructions/guardrails.instructions.md" "${inst_dir}/guardrails.instructions.md"
+        fi
+        inject_guardrails_block "${inst_dir}/understudy-global.instructions.md" "$GUARDRAILS_MODE"
+
+        for prompt_file in "${TEMPLATES_DIR}/.github/prompts/"*.prompt.md; do
+            [[ -f "$prompt_file" ]] || continue
+            # start-session/end-session are replaced by the global-flavored
+            # versions below — the project ones assume docs/ unconditionally.
+            case "$(basename "$prompt_file")" in
+                start-session.prompt.md|end-session.prompt.md) continue ;;
+            esac
+            deploy_file_global "$prompt_file" "${prompt_dir}/$(basename "$prompt_file")"
+        done
+        deploy_file_global "${TEMPLATES_DIR}/global/commands/start-session.prompt.md" "${prompt_dir}/start-session.prompt.md"
+        deploy_file_global "${TEMPLATES_DIR}/global/commands/end-session.prompt.md" "${prompt_dir}/end-session.prompt.md"
+        deploy_file_global "${TEMPLATES_DIR}/global/commands/localize-project.prompt.md" "${prompt_dir}/localize-project.prompt.md"
+
+        if $jq_available; then
+            patch_vscode_settings "$vs_dir" "$inst_dir" "$prompt_dir"
+        else
+            print_vscode_manual_instructions "$vs_dir" "$inst_dir" "$prompt_dir"
+        fi
+    done <<< "$vscode_dirs"
+
+    cleanup_jq
+}
+
+deploy_cursor_global() {
+    step "Deploying Cursor global rules (manual paste required)"
+
+    local state_dir dst
+    state_dir="$(global_state_dir)"
+    mkdir -p "$state_dir"
+    dst="${state_dir}/cursor-user-rules.md"
+
+    # This file only ever mirrors the current configuration (models,
+    # guardrails mode, roster) — always regenerate rather than skip-if-exists,
+    # unlike every other deploy_file_global call.
+    rm -f "$dst"
+    deploy_file_global "${TEMPLATES_DIR}/global/cursor-user-rules.md" "$dst"
+    inject_guardrails_block "$dst" "$GUARDRAILS_MODE"
+
+    warn "Cursor has no scriptable global-rules directory (platform limitation — see docs/12-global-mode.md)."
+    info "One-time manual step:"
+    info "  1. Open Cursor → Settings → Rules → User Rules"
+    info "  2. Paste the contents of: ${dst}"
+    info "Re-run 'understudy --global' anytime to refresh this file after a config change."
+
+    # Canonical per-role Cursor agent files. Cursor's Agent panel only reads
+    # .cursor/agents/ inside a repo, so these aren't directly usable yet —
+    # link_cursor_agents_into_project() (called by --docs-only) hard-links
+    # them into each localized repo, giving Cursor real selectable per-role
+    # agents backed by one shared source, instead of just the merged text
+    # block above.
+    local cursor_agents_dir="${state_dir}/cursor-agents"
+    mkdir -p "$cursor_agents_dir"
+    for agent_file in "${TEMPLATES_DIR}/.cursor/agents/"*.md; do
+        [[ -f "$agent_file" ]] && deploy_file_global "$agent_file" "${cursor_agents_dir}/$(basename "$agent_file")"
+    done
+}
+
+# ─── Global mode: shared per-role deploy helper ─────────────
+# Used by both the default-optional-roles pass and --global --add-member so
+# the Claude/Copilot writing logic for a single role lives in one place.
+_deploy_role_globally() {
+    local role_name="$1"
+    local src="$2"
+
+    if $PLATFORM_CLAUDE; then
+        local claude_dir dst_claude
+        claude_dir="$(global_claude_dir)"
+        dst_claude="${claude_dir}/agents/${role_name}.md"
+        if [[ -d "${claude_dir}/agents" ]] && [[ ! -f "$dst_claude" ]]; then
+            cat > "$dst_claude" << EOF
+---
+name: ${role_name}
+description: "Optional specialist role: ${role_name}"
+model: ${MODEL_BACKEND}
+tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+---
+
+EOF
+            cat "$src" >> "$dst_claude"
+            global_manifest_add "$dst_claude"
+            success "Optional role added globally (Claude): ${role_name}"
+        fi
+    fi
+
+    if $PLATFORM_COPILOT; then
+        local vs_dir
+        while IFS= read -r vs_dir; do
+            [[ -z "$vs_dir" ]] && continue
+            local inst_dir="${vs_dir}/understudy/instructions"
+            [[ -d "$inst_dir" ]] || continue
+            local dst_copilot="${inst_dir}/${role_name}.instructions.md"
+            if [[ ! -f "$dst_copilot" ]]; then
+                cp "$src" "$dst_copilot"
+                global_manifest_add "$dst_copilot"
+                success "Optional role added globally (Copilot): ${role_name}"
+            fi
+        done <<< "$(detect_vscode_user_dirs)"
+    fi
+
+    if $PLATFORM_CURSOR; then
+        local cursor_agents_dir dst_cursor
+        cursor_agents_dir="$(global_state_dir)/cursor-agents"
+        dst_cursor="${cursor_agents_dir}/${role_name}.md"
+        if [[ -d "$cursor_agents_dir" ]] && [[ ! -f "$dst_cursor" ]]; then
+            cat > "$dst_cursor" << EOF
+---
+name: ${role_name}
+description: "Optional specialist role: ${role_name}"
+model: ${MODEL_BACKEND}
+---
+
+EOF
+            cat "$src" >> "$dst_cursor"
+            global_manifest_add "$dst_cursor"
+            success "Optional role added globally (Cursor canonical source): ${role_name}"
+        fi
+    fi
+}
+
+add_optional_role_to_project_global() {
+    local role_name="$1"
+    local src
+    if ! src="$(module_role_source "$role_name")"; then
+        warn "Optional role not found in catalog: ${role_name}"
+        return
+    fi
+    _deploy_role_globally "$role_name" "$src"
+}
+
+deploy_default_optional_roles_global() {
+    if $ALL_ROLES; then
+        step "Deploying entire role catalog globally (--all-roles)"
+        local role_file role_name
+        for role_file in "${ROLES_DIR}"/*.instructions.md; do
+            [[ -f "$role_file" ]] || continue
+            role_name="$(basename "$role_file" .instructions.md)"
+            add_optional_role_to_project_global "$role_name"
+        done
+    else
+        # git-specialist / repo-documenter are useful in any repo — deployed by
+        # default just like in project mode. shell-scripting is skipped here:
+        # its auto-detection scans a single repo's files, which doesn't apply
+        # at machine scope.
+        add_optional_role_to_project_global "git-specialist"
+        add_optional_role_to_project_global "repo-documenter"
+    fi
+
+    local i
+    for i in "${!MODULE_NAMES[@]}"; do
+        if [[ "${MODULE_INCLUDED[$i]}" == "true" ]]; then
+            local mod_name="${MODULE_NAMES[$i]}"
+            add_optional_role_to_project_global "$mod_name"
+            info "Opt-in module (global): ${mod_name} (${MODULE_DESCS[$i]:-${MODULE_TITLES[$i]:-$mod_name}})"
+        fi
+    done
+}
+
+deploy_team_global() {
+    step "Deploying global Understudy team"
+
+    # Best-effort target for module post-install {TARGET} substitution
+    # (see run_postinstall_actions) — there is no single project directory
+    # in global mode, so ~/.claude is the closest sensible default.
+    TARGET_DIR="$(global_claude_dir)"
+
+    if $PLATFORM_CLAUDE; then
+        deploy_claude_global
+    fi
+    if $PLATFORM_COPILOT; then
+        deploy_copilot_global
+    fi
+    if $PLATFORM_CURSOR; then
+        deploy_cursor_global
+    fi
+
+    deploy_default_optional_roles_global
+}
+
+# ─── Global mode: add member ─────────────────────────────────
+
+add_team_member_global() {
+    step "Add team member (global)"
+
+    local claude_dir
+    claude_dir="$(global_claude_dir)"
+    if [[ ! -d "${claude_dir}/agents" ]] && [[ -z "$(detect_vscode_user_dirs)" ]]; then
+        error "No global Understudy deployment found. Run 'understudy --global' first."
+        exit 1
+    fi
+
+    if [[ ! -d "$ROLES_DIR" ]] || [[ -z "$(ls -A "$ROLES_DIR" 2>/dev/null)" ]]; then
+        warn "No additional roles found in: $ROLES_DIR"
+        return
+    fi
+
+    echo ""
+    info "Available roles:"
+    echo ""
+
+    local roles=()
+    local i=1
+    for role_file in "${ROLES_DIR}"/*.instructions.md; do
+        local role_name
+        role_name="$(basename "$role_file" .instructions.md)"
+        roles+=("$role_file")
+        echo -e "    ${CYAN}${i})${NC} ${role_name}"
+        i=$((i + 1))
+    done
+    echo ""
+
+    ask "Select a number" selection
+    local selected_file="${roles[$((selection - 1))]}"
+    local selected_name
+    selected_name="$(basename "$selected_file" .instructions.md)"
+
+    PLATFORM_CLAUDE=true
+    PLATFORM_COPILOT=true
+    PLATFORM_CURSOR=true
+    _deploy_role_globally "$selected_name" "$selected_file"
+
+    info "Cursor: added to the canonical source — repos already localized with"
+    info "'understudy --docs-only' will pick it up next time you re-run that"
+    info "command there (existing files are never overwritten, so it's safe"
+    info "to re-run). Also re-run 'understudy --global' to refresh the"
+    info "consolidated User Rules paste block with the new role."
+}
+
+# ─── Global mode: uninstall ──────────────────────────────────
+
+global_uninstall() {
+    step "Uninstalling global Understudy deployment"
+
+    local state_dir manifest_file
+    state_dir="$(global_state_dir)"
+    manifest_file="${state_dir}/manifest"
+
+    if [[ ! -f "$manifest_file" ]]; then
+        warn "No global deployment manifest found at ${manifest_file} — nothing to remove."
+        return
+    fi
+
+    local path
+    while IFS= read -r path; do
+        [[ -z "$path" ]] && continue
+        if [[ -f "$path" ]]; then
+            rm -f "$path"
+            success "Removed: $path"
+        fi
+    done < "$manifest_file"
+
+    # Restore VS Code settings.json backups written by patch_vscode_settings.
+    local vs_dir
+    while IFS= read -r vs_dir; do
+        [[ -z "$vs_dir" ]] && continue
+        local bak="${vs_dir}/settings.json.bak-understudy"
+        if [[ -f "$bak" ]]; then
+            mv "$bak" "${vs_dir}/settings.json"
+            success "Restored original settings.json: ${vs_dir}"
+        fi
+    done <<< "$(detect_vscode_user_dirs)"
+
+    rm -f "$manifest_file"
+
+    # Best-effort tidy-up of now-empty directories Understudy created.
+    rmdir "${state_dir}" 2>/dev/null || true
+    rmdir "$(global_claude_dir)/agents" "$(global_claude_dir)/commands" "$(global_claude_dir)/hooks" 2>/dev/null || true
+
+    success "Global Understudy deployment removed."
+}
+
+# ─── Project uninstall (`understudy --uninstall`) ───────────
+# Removes the well-known Understudy-owned paths from the current directory —
+# the same list documented as the manual "full reset" procedure in
+# docs/09-configuration.md, now automated. Unlike global_uninstall (which
+# tracks a manifest of exactly what one --global run created), this removes
+# anything Understudy could have deployed to a project, matching that
+# documented reset scope. Your source code, package.json, CI workflows and
+# any file outside this list are never touched.
+project_uninstall() {
+    step "Uninstall Understudy from this project"
+
+    local target="$PWD"
+    local paths=(
+        "AGENTS.md"
+        "CLAUDE.md"
+        "understudy.yaml"
+        ".github/instructions"
+        ".github/prompts"
+        ".github/copilot-instructions.md"
+        ".claude"
+        ".cursor/agents"
+        ".cursor/commands"
+        ".cursor/rules"
+        "docs/spec.md"
+        "docs/decisions.md"
+        "docs/session-log.md"
+        "docs/team-roster.md"
+    )
+
+    local existing=()
+    local p
+    for p in "${paths[@]}"; do
+        [[ -e "${target}/${p}" ]] && existing+=("$p")
+    done
+
+    if [[ ${#existing[@]} -eq 0 ]]; then
+        warn "No Understudy files found in ${target} — nothing to remove."
+        return
+    fi
+
+    echo ""
+    info "This will remove the following from ${BOLD}${target}${NC}:"
+    for p in "${existing[@]}"; do
+        echo -e "    ${CYAN}•${NC} ${p}"
+    done
+    echo ""
+
+    if ! $AUTO_CONFIRM; then
+        if ! confirm "Remove these Understudy files from this project?" "N"; then
+            warn "Operation cancelled."
+            return
+        fi
+    fi
+
+    for p in "${existing[@]}"; do
+        rm -rf "${target:?}/${p}"
+        success "Removed: ${p}"
+    done
+
+    echo ""
+    info "Your source code, package.json, CI workflows and any file not listed above were never touched."
 }
 
 # ─── Git integration: local-only mode ──────────────────────
@@ -1669,19 +2471,31 @@ EOF
 }
 
 deploy_default_optional_roles() {
-    # Always include repository workflow and documentation expertise by default.
-    add_optional_role_to_project "git-specialist"
-    add_optional_role_to_project "repo-documenter"
+    if $ALL_ROLES; then
+        step "Deploying entire role catalog (--all-roles)"
+        local role_file role_name
+        for role_file in "${ROLES_DIR}"/*.instructions.md; do
+            [[ -f "$role_file" ]] || continue
+            role_name="$(basename "$role_file" .instructions.md)"
+            add_optional_role_to_project "$role_name"
+        done
+    else
+        # Always include repository workflow and documentation expertise by default.
+        add_optional_role_to_project "git-specialist"
+        add_optional_role_to_project "repo-documenter"
 
-    # Auto-add shell scripting specialist on scripting-heavy repositories.
-    local stack_lc
-    stack_lc="$(to_lower "${TECH_STACK} ${DETECTED_STACK}")"
-    if $DETECTED_HAS_SHELL || [[ "$stack_lc" == *"bash"* ]] || [[ "$stack_lc" == *"shell"* ]] || [[ "$stack_lc" == *"scripting"* ]]; then
-        add_optional_role_to_project "shell-scripting"
-        info "Auto-selected optional role: shell-scripting"
+        # Auto-add shell scripting specialist on scripting-heavy repositories.
+        local stack_lc
+        stack_lc="$(to_lower "${TECH_STACK} ${DETECTED_STACK}")"
+        if $DETECTED_HAS_SHELL || [[ "$stack_lc" == *"bash"* ]] || [[ "$stack_lc" == *"shell"* ]] || [[ "$stack_lc" == *"scripting"* ]]; then
+            add_optional_role_to_project "shell-scripting"
+            info "Auto-selected optional role: shell-scripting"
+        fi
     fi
 
-    # Opt-in modules (discovered from modules/<name>/module.yaml).
+    # Opt-in modules (discovered from modules/<name>/module.yaml). Independent
+    # of --all-roles: modules change agent behavior (e.g. caveman mode), not
+    # just add a specialist, so they stay opt-in via their own flag.
     # Replaces the previous hard-coded `if $INCLUDE_CAVEMAN` branch:
     # adding/removing modules/<name>/ now toggles availability without
     # touching this file.
@@ -1748,6 +2562,129 @@ deploy_team() {
     else
         info "Git repository already exists"
     fi
+}
+
+# ─── Docs-only mode (`understudy --docs-only`) ──────────────
+# For repos that already get their agents from a --global install: creates
+# just the persistent per-repo memory (docs/spec.md, decisions.md,
+# session-log.md, team-roster.md) and a project-level understudy.yaml,
+# without deploying any per-platform agent files. Complements --global —
+# use `understudy --here` instead if you want full per-project agent
+# customization on top of this.
+# Cursor has no global agents directory — its Agent panel only reads
+# .cursor/agents/ inside a repo. So each repo still needs files there, but
+# instead of copying content (which drifts), hard-link each one to the
+# single canonical source under ~/.understudy-global/cursor-agents/
+# (populated by deploy_cursor_global / _deploy_role_globally): editing
+# either side updates both, with zero duplication or staleness. Falls back
+# to a plain copy when hard links aren't possible — they require both paths
+# on the same filesystem, so a repo on a different drive than the global
+# source would fail a hard link attempt.
+link_cursor_agents_into_project() {
+    local target_dir="$1"
+    local cursor_agents_dir
+    cursor_agents_dir="$(global_state_dir)/cursor-agents"
+
+    # Nothing to link if Cursor wasn't part of the --global deploy.
+    [[ -d "$cursor_agents_dir" ]] || return 0
+
+    mkdir -p "${target_dir}/.cursor/agents"
+
+    local src role_file dst
+    for src in "${cursor_agents_dir}"/*.md; do
+        [[ -f "$src" ]] || continue
+        role_file="$(basename "$src")"
+        dst="${target_dir}/.cursor/agents/${role_file}"
+        [[ -f "$dst" ]] && continue
+
+        if ln "$src" "$dst" 2>/dev/null; then
+            success "Linked Cursor agent (shared with global, edits sync both ways): ${role_file}"
+        else
+            cp "$src" "$dst"
+            warn "Copied Cursor agent ${role_file} (hard link unavailable — likely a different drive). Re-run to refresh if the global copy changes."
+        fi
+    done
+}
+
+deploy_docs_only() {
+    step "Creating persistent project memory (docs-only)"
+
+    if [[ ! -f "${TEMPLATES_DIR}/global/docs/team-roster.md" ]]; then
+        error "Missing template: global/docs/team-roster.md"
+        exit 1
+    fi
+
+    TARGET_DIR="$PWD"
+    detect_existing_project "$TARGET_DIR"
+
+    PROJECT_NAME="${DETECTED_NAME:-$(basename "$PWD")}"
+    PROJECT_DESCRIPTION="${DETECTED_DESC:-}"
+    TECH_STACK="${DETECTED_STACK:-Unknown}"
+    REPOSITORY_URL="${DETECTED_REPO:-local}"
+    TEAM_LEAD="$(git config user.name 2>/dev/null || echo 'Project Lead')"
+    PROJECT_DATE="$(date +%Y-%m-%d)"
+
+    echo ""
+    info "Target:       ${BOLD}${TARGET_DIR}${NC}"
+    info "Project name: ${PROJECT_NAME}"
+    info "Stack:        ${TECH_STACK}"
+    info "This creates docs/{spec,decisions,session-log,team-roster}.md,"
+    info "understudy.yaml, and (Cursor only) hard-linked agent files that"
+    info "share content with the global install — no other agent files are"
+    info "deployed or touched."
+    echo ""
+
+    if ! $AUTO_CONFIRM; then
+        if ! confirm "Create persistent project memory here?" "Y"; then
+            warn "Operation cancelled."
+            return
+        fi
+    fi
+
+    mkdir -p "${TARGET_DIR}/docs"
+
+    deploy_file "${TEMPLATES_DIR}/docs/spec.md" "${TARGET_DIR}/docs/spec.md"
+    deploy_file "${TEMPLATES_DIR}/docs/decisions.md" "${TARGET_DIR}/docs/decisions.md"
+    deploy_file "${TEMPLATES_DIR}/docs/session-log.md" "${TARGET_DIR}/docs/session-log.md"
+    deploy_file "${TEMPLATES_DIR}/global/docs/team-roster.md" "${TARGET_DIR}/docs/team-roster.md"
+
+    if [[ -f "$DEFAULT_CONFIG" ]] && [[ ! -f "${TARGET_DIR}/understudy.yaml" ]]; then
+        cp "$DEFAULT_CONFIG" "${TARGET_DIR}/understudy.yaml"
+        success "understudy.yaml (edit it to override per-project settings)"
+    fi
+
+    # There is no stored record of which platforms a prior --global run
+    # selected, so infer it from what actually exists on disk — the same
+    # signal link_cursor_agents_into_project already relies on for Cursor.
+    PLATFORM_CLAUDE=false
+    [[ -d "$(global_claude_dir)/agents" ]] && PLATFORM_CLAUDE=true
+    PLATFORM_COPILOT=false
+    [[ -n "$(detect_vscode_user_dirs)" ]] && PLATFORM_COPILOT=true
+    PLATFORM_CURSOR=false
+    [[ -d "$(global_state_dir)/cursor-agents" ]] && PLATFORM_CURSOR=true
+
+    # Mirrors the auto-detection deploy_default_optional_roles() does for
+    # project mode: a scripting-heavy repo gets the shell-scripting role
+    # without having to ask for it via --all-roles or --add-member. Adding
+    # it globally (not just to this repo) means every other repo you open
+    # gets it too, and it's a no-op if it already exists.
+    local stack_lc
+    stack_lc="$(to_lower "${TECH_STACK} ${DETECTED_STACK}")"
+    if $DETECTED_HAS_SHELL || [[ "$stack_lc" == *"bash"* ]] || [[ "$stack_lc" == *"shell"* ]] || [[ "$stack_lc" == *"scripting"* ]]; then
+        info "Detected shell scripts in this repo — adding shell-scripting role globally"
+        add_optional_role_to_project_global "shell-scripting"
+    fi
+
+    link_cursor_agents_into_project "$TARGET_DIR"
+
+    echo ""
+    success "Persistent project memory created for ${TARGET_DIR}."
+    info "Claude/Copilot agents remain purely global (~/.claude/, VS Code profile)."
+    info "Cursor agents (if any were linked above) are shared with the global"
+    info "install via hard link — no drift, no need to re-sync."
+    info "Run 'understudy --here' anytime later for full per-project agent"
+    info "customization (different models per role, apply_to scoping, etc.)"
+    info "on top of what was just created — nothing here would be lost."
 }
 
 # ─── Add team member ────────────────────────────────────────
@@ -2053,6 +2990,42 @@ post_deploy() {
     echo ""
 }
 
+# ─── Post-deploy — global mode ───────────────────────────────
+
+post_deploy_global() {
+    run_postinstall_actions
+
+    echo ""
+    echo -e "${GREEN}${BOLD}"
+    echo "    ╔═══════════════════════════════════════════════╗"
+    echo "    ║                                               ║"
+    echo "    ║    🎭  UNDERSTUDY INSTALLED GLOBALLY           ║"
+    echo "    ║                                               ║"
+    echo "    ╚═══════════════════════════════════════════════╝"
+    echo -e "${NC}"
+
+    step "What this means"
+    echo ""
+    info "Every repository you open now has the Understudy team available"
+    info "for the platforms you selected — no per-project setup required."
+    echo ""
+    info "Run ${CYAN}understudy --here${NC} inside any specific repo to add full"
+    info "per-project customization (spec.md, ADRs, session log, apply_to"
+    info "overrides, team roster) on top of the global team — nothing is lost."
+    echo ""
+
+    if $PLATFORM_CURSOR; then
+        warn "Cursor requires a one-time manual step — see above and docs/12-global-mode.md"
+        echo ""
+    fi
+
+    step "Manage this installation"
+    echo ""
+    echo -e "    ${CYAN}understudy --global --add-member${NC}   → add an optional role globally"
+    echo -e "    ${CYAN}understudy --global --uninstall${NC}    → remove everything installed globally"
+    echo ""
+}
+
 # ─── Help ────────────────────────────────────────────────────
 
 show_help() {
@@ -2064,7 +3037,19 @@ show_help() {
     echo "    understudy --here -y         Short form of --yes"
     echo "    understudy --add-member      Add a team member"
     echo "    understudy --create-role     Create a new custom role"
+    echo "    understudy --all-roles       Deploy the entire role catalog, not just the defaults"
+    echo "    understudy --uninstall       Remove Understudy files from the current project"
+    echo "    understudy --uninstall --yes Same as --uninstall, skip confirmation prompt"
     echo "    understudy --help            Show this help"
+    echo ""
+    echo "  Machine-wide install (see docs/12-global-mode.md):"
+    echo "    understudy --global               Deploy a default team for every project on this machine"
+    echo "    understudy --global --yes         Same as --global, skip confirmation prompt"
+    echo "    understudy --global --all-roles   Deploy the entire role catalog globally"
+    echo "    understudy --global --add-member  Add an optional role to the global team"
+    echo "    understudy --global --uninstall   Remove everything a --global deploy wrote"
+    echo "    understudy --docs-only            Create persistent per-repo memory only — no agent files (pairs with --global)"
+    echo "    understudy --docs-only --yes      Same as --docs-only, skip confirmation prompt"
     echo ""
 
     # Auto-list opt-in modules so adding modules/<name>/ surfaces in --help
@@ -2128,8 +3113,12 @@ main() {
     local _mod_idx _post_idx
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --here)     DEPLOY_HERE=true ;;
-            --yes|-y)   AUTO_CONFIRM=true ;;
+            --here)       DEPLOY_HERE=true ;;
+            --yes|-y)     AUTO_CONFIRM=true ;;
+            --global)     GLOBAL_MODE=true ;;
+            --uninstall)  GLOBAL_UNINSTALL=true ;;
+            --all-roles)  ALL_ROLES=true ;;
+            --docs-only)  DOCS_ONLY=true ;;
             *)
                 # Module flags (registered via discover_modules) flip the
                 # corresponding MODULE_INCLUDED entry. Module post-install
@@ -2158,7 +3147,11 @@ main() {
             ;;
         --add-member)
             banner
-            add_team_member
+            if $GLOBAL_MODE; then
+                add_team_member_global
+            else
+                add_team_member
+            fi
             ;;
         --create-role)
             banner
@@ -2166,6 +3159,37 @@ main() {
             ;;
         *)
             banner
+            if $GLOBAL_UNINSTALL && ! $GLOBAL_MODE; then
+                project_uninstall
+                return
+            fi
+            if $DOCS_ONLY; then
+                validate_templates
+                deploy_docs_only
+                return
+            fi
+            if $GLOBAL_MODE; then
+                if $GLOBAL_UNINSTALL; then
+                    global_uninstall
+                    return
+                fi
+                validate_templates
+                validate_global_templates
+                gather_project_info_global
+                if $PLATFORM_COPILOT; then
+                    validate_copilot_templates
+                fi
+                if $PLATFORM_CLAUDE; then
+                    validate_claude_templates
+                fi
+                if $PLATFORM_CURSOR; then
+                    validate_cursor_templates
+                fi
+                load_config
+                deploy_team_global
+                post_deploy_global
+                return
+            fi
             validate_templates
             gather_project_info
             if $PLATFORM_COPILOT; then
