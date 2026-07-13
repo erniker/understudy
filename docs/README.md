@@ -23,6 +23,7 @@ restructuring.
 9. [Caveman Mode (token-efficient role + compress script)](10-caveman-mode.md)
    - [Evals harness](../modules/caveman/evals/README.md) — reproducible token-reduction numbers
 10. [Troubleshooting and FAQ](11-troubleshooting.md)
+11. [Global Mode — machine-wide install (`--global`)](12-global-mode.md)
 
 ### 📖 Tutorials (hands-on walkthroughs)
 

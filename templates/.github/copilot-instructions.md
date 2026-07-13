@@ -78,6 +78,22 @@ This project follows **Spec-Driven Development**:
    - Blockers identified
 2. This ensures the next session (another day, another time) has full context
 
+### Recognizing good stopping points
+
+A long conversation costs more (tokens, time, money) than starting fresh
+with a concise summary. Watch for natural stopping points — a feature just
+finished with tests passing, a bug fixed and verified, a question fully
+answered — and proactively suggest wrapping up:
+1. Run `/end-session` (or update `docs/session-log.md` yourself) so the
+   next session has a clean handoff.
+2. Tell the user this is a good point to close this chat and start a new
+   one — `/start-session` picks up full context from `docs/session-log.md`,
+   so nothing is lost.
+
+Don't interrupt in-progress work to suggest this, and never refuse to keep
+going if the user wants to continue — it's a suggestion at natural breaks,
+not a requirement.
+
 ### Code standards
 - Readable and maintainable code for any team member
 - Single-responsibility functions

@@ -15,6 +15,14 @@ If you installed Understudy with the one-liner, that global config lives next
 to the installed wizard files under `~/.understudy/`. If you are running from
 a manual clone, it lives next to `wizard.sh` in the cloned repo.
 
+This chain is about **wizard defaults**, not deployment scope. It applies the
+same way whether you deploy per-project (`understudy --here`), machine-wide
+(`understudy --global`), or just persistent per-repo memory on top of a
+global install (`understudy --docs-only`) — see
+[Global Mode](12-global-mode.md) for the latter two. A project's own
+`understudy.yaml` always overrides the global defaults regardless of which
+mode originally deployed that project.
+
 ## Full example
 
 ```yaml
@@ -206,15 +214,28 @@ The wizard **will not** update the existing `backend.instructions.md` or `.claud
 
 **Need a full reset of all Understudy files:**
 ```bash
-# Remove all Understudy-generated files
-rm -f AGENTS.md CLAUDE.md understudy.yaml
-rm -rf .github/instructions .github/prompts .github/copilot-instructions.md
-rm -rf .claude
-rm -rf .cursor/agents .cursor/commands .cursor/rules
-rm -f docs/spec.md docs/decisions.md docs/session-log.md docs/team-roster.md
+# From the project root — prompts for confirmation, shows what it will
+# remove, and never touches anything outside the list below.
+understudy --uninstall
 # Re-run the wizard for a clean deploy
 understudy --here
 ```
+
+`understudy --uninstall` removes exactly the same paths the manual reset used
+to require:
+
+```text
+AGENTS.md, CLAUDE.md, understudy.yaml
+.github/instructions, .github/prompts, .github/copilot-instructions.md
+.claude
+.cursor/agents, .cursor/commands, .cursor/rules
+docs/spec.md, docs/decisions.md, docs/session-log.md, docs/team-roster.md
+```
+
+Your source code, `package.json`, CI workflows and any file not in that list
+are never touched. Use `understudy --uninstall --yes` to skip the
+confirmation prompt. For the machine-wide install, see `understudy --global
+--uninstall` in [Global Mode](12-global-mode.md).
 
 **If you lose a customization:**
 - Check your git history: `git log -p path/to/file`
@@ -236,6 +257,30 @@ Claude, Cursor) and the `docs/team-roster.md` is updated automatically.
 
 There is currently no YAML key to disable auto-deploy; the behavior is
 hardcoded in the wizard.
+
+`understudy --global` can't run this detection itself (it deploys once for
+the whole machine, not for any single repo), so it only includes
+`git-specialist`/`repo-documenter` by default. `understudy --docs-only` (see
+[Global Mode](12-global-mode.md)) fills that gap per repo: it runs the same
+`*.sh`/`*.bash`/`*.zsh` detection against the repo you're localizing, and if
+it finds scripts, adds `shell-scripting` **globally** (available in every
+repo from then on, not just this one) and links it into that repo's Cursor
+agents — without you needing `--all-roles` or `--add-member`.
+
+### Deploying the entire catalog at once
+
+Pass `--all-roles` to skip the defaults above and deploy every role under
+`roles/` in one run — useful if you don't want to add specialists one at a
+time with `--add-member`:
+
+```bash
+understudy --all-roles              # project mode
+understudy --global --all-roles     # global mode (see docs/12-global-mode.md)
+```
+
+Opt-in modules (e.g. `--caveman`) are unaffected by `--all-roles` — they
+change agent behavior rather than adding a specialist, so they still require
+their own explicit flag.
 
 ## Module system
 

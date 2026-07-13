@@ -17,16 +17,6 @@ teardown_tmp() {
 # Source only the pure functions from wizard.sh (no side-effects).
 # We set up the variables the functions depend on so they can run standalone.
 source_wizard_functions() {
-  # Stub interactive functions so sourcing doesn't execute them
-  banner()             { :; }
-  ask()                { :; }
-  confirm()            { return 0; }
-  info()               { :; }
-  success()            { :; }
-  warn()               { :; }
-  error()              { echo "$*" >&2; }
-  step()               { :; }
-
   # Minimal required globals
   SCRIPT_DIR="$UNDERSTUDY_ROOT"
   TEMPLATES_DIR="${UNDERSTUDY_ROOT}/templates"
@@ -56,6 +46,22 @@ source_wizard_functions() {
   # Source only — no main() call
   # shellcheck source=../../wizard.sh
   source "$WIZARD"
+
+  # Stub interactive/output functions so sourcing (and calling wizard.sh
+  # functions afterward) never blocks on real stdin or prints noise. This
+  # MUST run after `source "$WIZARD"`, not before: wizard.sh defines its own
+  # ask()/confirm()/etc. at the top level, and sourcing it re-executes those
+  # definitions — a stub applied before the source gets silently clobbered,
+  # and a test that calls a function invoking the real ask()/confirm()
+  # without its own local override hangs waiting on stdin that never comes.
+  banner()             { :; }
+  ask()                { :; }
+  confirm()            { return 0; }
+  info()               { :; }
+  success()            { :; }
+  warn()               { :; }
+  error()              { echo "$*" >&2; }
+  step()               { :; }
 
   # Populate the module registry so tests can flip module inclusion via
   # `module_set_included <name> true|false` exactly the way main() does.

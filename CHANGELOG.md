@@ -7,6 +7,68 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- **Global mode** (`understudy --global`): deploys a shared Understudy team
+  machine-wide instead of per-repo.
+  - **Claude Code**: full native support via `~/.claude/{CLAUDE.md,agents/,commands/,hooks/,settings.json}`.
+  - **GitHub Copilot / VS Code**: writes into the VS Code user profile and
+    registers it via `chat.instructionsFilesLocations`/`chat.promptFilesLocations`.
+    The one-time `settings.json` merge uses `jq`, installed on demand and
+    removed again at the end of the run (`ensure_jq`/`cleanup_jq`) — never
+    left behind as a new dependency. `UNDERSTUDY_SKIP_JQ_INSTALL=1` opts out
+    of any install attempt entirely.
+  - **Cursor**: generates a consolidated paste-block for Settings → Rules →
+    User Rules (Cursor has no scriptable global rules directory). Per-role
+    agent files are hard-linked (not copied) into any repo localized with
+    `--docs-only`, giving Cursor real selectable per-role agents backed by
+    one shared source, with a plain-copy fallback across filesystems/drives.
+  - `understudy --global --add-member` / `understudy --global --uninstall`
+    manage the global team; uninstall uses a manifest so it only ever
+    removes what a `--global` run itself created.
+- **`understudy --docs-only`**: creates persistent per-repo memory
+  (`docs/spec.md`, `decisions.md`, `session-log.md`, `team-roster.md`,
+  project `understudy.yaml`) without deploying any Claude/Copilot agent
+  files — the complement to `--global` for repos that need real
+  spec-driven tracking but not per-project agent customization. Also
+  auto-detects `*.sh`/`*.bash`/`*.zsh` scripts and adds `shell-scripting`
+  globally when found, mirroring `--here`'s existing auto-detection.
+- **`localize-project` command**: new global slash command/prompt (Claude +
+  Copilot) that runs `understudy --docs-only --yes` for the current repo.
+  The global `CLAUDE.md`/`copilot-instructions.md`/Cursor rules now also
+  recognize conversational intent ("let's set this up properly") and offer
+  to run it.
+- **`understudy --all-roles`**: deploys the entire `roles/` catalog at once
+  (project or global mode) instead of just the defaults
+  (`git-specialist`/`repo-documenter`).
+- **`understudy --uninstall`** (project mode): removes the well-known
+  Understudy-owned paths from the current project — the automated form of
+  the manual "full reset" procedure previously documented in
+  `docs/09-configuration.md`. Prompts for confirmation by default; `--yes`
+  skips it.
+- **Proactive session wrap-up guidance**: `CLAUDE.md`/`copilot-instructions.md`/
+  Cursor rules (project and global) now tell the agent to recognize natural
+  stopping points (a feature shipped with tests green, a bug fixed and
+  verified) and proactively suggest closing the chat and starting a new
+  one — a long conversation costs more tokens/time than a fresh one that
+  picks up context from `docs/session-log.md`.
+- New documentation: `docs/12-global-mode.md`.
+- ~90 new tests across global mode, `--docs-only`, `--all-roles`,
+  `--uninstall`, Cursor hard-linking, and previously-uncovered flows
+  (`--add-member` project + global, `--create-role`, `--help`, the `--here`/
+  `--global` interactive edit loops, and the real `jq` merge path in
+  `patch_vscode_settings`, which `skip`s gracefully wherever `jq` isn't
+  installed).
+
+### Fixed
+
+- `tests/lib/helpers.bash`: the shared `ask`/`confirm`/etc. test stubs were
+  applied *before* sourcing `wizard.sh`, which defines its own real versions
+  of those functions — sourcing silently clobbered the stubs, risking a
+  test hang (waiting on real stdin) for any test exercising a code path that
+  calls them without its own local override. Stubs now apply after the
+  source.
+
 ## [1.0.0] - 2026-05-18
 
 ### Added

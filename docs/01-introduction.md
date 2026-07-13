@@ -54,7 +54,10 @@ the questions, use `understudy --here` (numbered summary you can edit before
 deploying) or `understudy --here --yes` for a fully unattended run — see
 [Quick Start → Zero-question deploy](02-quick-start.md#zero-question-deploy---here).
 If you are using a manual `git clone`, run `./wizard.sh` from the cloned
-repo instead.
+repo instead. If your team wants Understudy as its default AI stack rather
+than re-running the wizard per project, `understudy --global` seeds a
+machine-wide default team once — see
+[Global Mode](12-global-mode.md).
 
 **Roles catalog.** The 6 core roles always ship (Architect, Backend,
 Frontend, DevOps, Security, QA). Optional roles live in `roles/` and you can
