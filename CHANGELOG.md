@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-13
+
 ### Added
 
 - **Global mode** (`understudy --global`): deploys a shared Understudy team
