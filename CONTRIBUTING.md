@@ -417,7 +417,6 @@ tests/
 │   │   ├── partial.yaml                  # Only some keys
 │   │   └── empty.yaml                    # Empty file (default fallback)
 │   ├── fake-node-project/                # React + Node.js project structure
-│   ├── fake-dotnet-project/              # .csproj project structure
 │   ├── fake-python-project/              # requirements.txt project
 │   └── fake-monorepo/                    # React + Node + Terraform + Docker
 ├── unit/

@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- `understudy --global`'s one-time Cursor setup instructions now include a
+  clickable `file://` link to the generated paste-block file, in addition to
+  the plain path — one less step to get from the terminal to the file on
+  disk (Windows drive letters are uppercased to match the OS convention).
+
 ## [1.1.0] - 2026-07-13
 
 ### Added
