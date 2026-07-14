@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-07-14
+
 ### Fixed
 
 - `understudy --global`'s automatic `jq` install (used to patch VS Code's
