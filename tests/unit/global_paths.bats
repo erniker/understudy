@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 # Tests for global-mode path resolution helpers in wizard.sh:
-# os_family, global_claude_dir, global_state_dir, detect_vscode_user_dirs.
-# Covers Linux/macOS/Windows detection and VS Code stable/Insiders lookup.
+# os_family, global_claude_dir, global_state_dir, detect_vscode_user_dirs,
+# path_to_file_uri. Covers Linux/macOS/Windows detection and VS Code
+# stable/Insiders lookup.
 
 load "../lib/helpers"
 
@@ -107,4 +108,42 @@ teardown() { teardown_tmp; }
   run normalize_path "${TEST_TMP}/AppData/Roaming"
   local expected_appdata="$output"
   [ "$expected_appdata" = "${TEST_TMP}/AppData/Roaming" ]
+}
+
+# ── path_to_file_uri ───────────────────────────────────────────────────────────
+
+@test "path_to_file_uri converts a git-bash mount path to an uppercase-drive file URI on Windows" {
+  uname() { echo "MINGW64_NT-10.0"; }
+  run path_to_file_uri "/c/Users/dev/.understudy-global/cursor-user-rules.md"
+  [ "$output" = "file:///C:/Users/dev/.understudy-global/cursor-user-rules.md" ]
+}
+
+@test "path_to_file_uri uppercases an already-lowercase drive letter" {
+  uname() { echo "MSYS_NT-10.0"; }
+  run path_to_file_uri "/d/repo/file.md"
+  [ "$output" = "file:///D:/repo/file.md" ]
+}
+
+@test "path_to_file_uri preserves an already-uppercase drive letter" {
+  uname() { echo "MINGW64_NT-10.0"; }
+  run path_to_file_uri "/C/repo/file.md"
+  [ "$output" = "file:///C:/repo/file.md" ]
+}
+
+@test "path_to_file_uri leaves plain paths untouched on Linux" {
+  uname() { echo "Linux"; }
+  run path_to_file_uri "/home/dev/.understudy-global/cursor-user-rules.md"
+  [ "$output" = "file:///home/dev/.understudy-global/cursor-user-rules.md" ]
+}
+
+@test "path_to_file_uri leaves plain paths untouched on macOS" {
+  uname() { echo "Darwin"; }
+  run path_to_file_uri "/Users/dev/.understudy-global/cursor-user-rules.md"
+  [ "$output" = "file:///Users/dev/.understudy-global/cursor-user-rules.md" ]
+}
+
+@test "path_to_file_uri falls back to a plain file:// prefix on Windows for a non-mount path" {
+  uname() { echo "MINGW64_NT-10.0"; }
+  run path_to_file_uri "relative/or/unrecognized/path.md"
+  [ "$output" = "file://relative/or/unrecognized/path.md" ]
 }

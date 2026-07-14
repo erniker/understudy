@@ -1339,6 +1339,24 @@ normalize_path() {
     echo "$path"
 }
 
+# ─── Path -> clickable file:// URI ───────────────────────────
+# Converts an absolute path into a file:// URI that most modern terminals
+# (Windows Terminal, iTerm2, VS Code's integrated terminal, GNOME Terminal)
+# auto-detect and render as a clickable link. Git-bash mount-style paths
+# (/c/Users/...) are converted back to Windows drive notation
+# (file:///C:/Users/...), since that's the form file:// URIs expect on
+# Windows; Linux/macOS paths only need the scheme prepended.
+path_to_file_uri() {
+    local path="$1"
+    if [[ "$(os_family)" == "windows" ]] && [[ "$path" =~ ^/([a-zA-Z])/(.*)$ ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        local rest="${BASH_REMATCH[2]}"
+        echo "file:///$(tr '[:lower:]' '[:upper:]' <<< "$drive"):/${rest}"
+    else
+        echo "file://${path}"
+    fi
+}
+
 # ─── Global mode: cross-platform path resolution ────────────
 # Helpers used only by `understudy --global` to resolve machine-wide targets.
 # Kept separate from per-project deploy so the existing project flow is
@@ -1886,6 +1904,7 @@ deploy_cursor_global() {
     info "One-time manual step:"
     info "  1. Open Cursor → Settings → Rules → User Rules"
     info "  2. Paste the contents of: ${dst}"
+    info "     $(path_to_file_uri "$dst")"
     info "Re-run 'understudy --global' anytime to refresh this file after a config change."
 
     # Canonical per-role Cursor agent files. Cursor's Agent panel only reads
