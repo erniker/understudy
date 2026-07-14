@@ -1844,6 +1844,8 @@ patch_vscode_settings() {
     [[ -f "$settings" ]] || echo '{}' > "$settings"
     cp "$settings" "${settings}.bak-understudy"
 
+    # shellcheck disable=SC2016 # single quotes are intentional: $i/$p are jq's
+    # own --arg-bound variables, not shell variables — must not expand here.
     if "$JQ_BIN" --arg i "$inst_dir" --arg p "$prompt_dir" \
         '.["chat.instructionsFilesLocations"] = ((.["chat.instructionsFilesLocations"] // {}) + {($i): true}) |
          .["chat.promptFilesLocations"]       = ((.["chat.promptFilesLocations"] // {}) + {($p): true})' \
