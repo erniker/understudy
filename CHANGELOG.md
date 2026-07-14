@@ -7,6 +7,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Fixed
+
+- `understudy --global`'s automatic `jq` install (used to patch VS Code's
+  `chat.instructionsFilesLocations`/`chat.promptFilesLocations` settings) no
+  longer falls back to manual instructions when `winget`/`scoop`/`choco`
+  install `jq` successfully but the already-open terminal's `PATH` hasn't
+  picked up the change yet. It now looks the binary up at each package
+  manager's known install location and uses it by absolute path for the rest
+  of that run, so the whole flow — install, patch, uninstall — completes
+  automatically as intended.
+
 ## [1.2.0] - 2026-07-14
 
 ### Added

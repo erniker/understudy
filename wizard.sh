@@ -1450,9 +1450,36 @@ deploy_file_global() {
 # attempted blindly under sudo in a non-interactive run.
 JQ_INSTALLED_BY_UNDERSTUDY=false
 JQ_PM_USED=""
+JQ_BIN="jq"
 
 _jq_pm_available() {
     command -v "$1" &>/dev/null
+}
+
+# A package manager can report success installing jq into a directory it
+# just added to the *persistent* (registry-level) PATH — but this process's
+# own PATH was captured at shell startup and won't see it until a new
+# terminal is opened. Rather than force the user to restart their shell
+# mid-run, look the binary up directly at each package manager's known
+# install location so this run can still use it by absolute path.
+_jq_fallback_path() {
+    local candidate=""
+    case "$JQ_PM_USED" in
+        winget)
+            [[ -n "${LOCALAPPDATA:-}" ]] || return 1
+            candidate="$(normalize_path "$LOCALAPPDATA")/Microsoft/WinGet/Links/jq.exe"
+            ;;
+        scoop)
+            candidate="${HOME}/scoop/shims/jq.exe"
+            ;;
+        choco)
+            candidate="$(normalize_path "${ProgramData:-C:\\ProgramData}")/chocolatey/bin/jq.exe"
+            ;;
+        brew)
+            _jq_pm_available brew && candidate="$(brew --prefix jq 2>/dev/null)/bin/jq"
+            ;;
+    esac
+    [[ -n "$candidate" && -f "$candidate" ]] && printf '%s\n' "$candidate"
 }
 
 ensure_jq() {
@@ -1513,18 +1540,27 @@ ensure_jq() {
     esac
 
     # A package manager can report success (exit 0) without jq actually being
-    # invokable yet (e.g. winget installing to a path not yet on this shell's
-    # PATH). Trust the invocation, not the exit code, before proceeding.
-    if $JQ_INSTALLED_BY_UNDERSTUDY && command -v jq &>/dev/null; then
-        success "jq installed temporarily via ${JQ_PM_USED} (will be removed at the end of this run)"
-        trap cleanup_jq EXIT
-        return 0
-    fi
-
+    # on this shell's PATH yet (e.g. winget/scoop/choco updating the
+    # persistent, registry-level PATH that only a *new* terminal will see).
+    # Try the bare command first, then fall back to each package manager's
+    # known install location so this same run can still use it.
     if $JQ_INSTALLED_BY_UNDERSTUDY; then
-        # Installed but not yet usable in this shell — still attempt cleanup
-        # so we don't claim to have left it behind on the machine, but don't
-        # report success for the patch step.
+        if command -v jq &>/dev/null; then
+            JQ_BIN="jq"
+        else
+            JQ_BIN="$(_jq_fallback_path)"
+        fi
+
+        if [[ -n "$JQ_BIN" ]] && command -v "$JQ_BIN" &>/dev/null; then
+            success "jq installed temporarily via ${JQ_PM_USED} (will be removed at the end of this run)"
+            trap cleanup_jq EXIT
+            return 0
+        fi
+
+        # Installed but not usable by any means we know of — still attempt
+        # cleanup so we don't claim to have left it behind on the machine,
+        # but don't report success for the patch step.
+        JQ_BIN="jq"
         cleanup_jq
     fi
 
@@ -1545,6 +1581,7 @@ cleanup_jq() {
         apk)     sudo apk del jq &>/dev/null ;;
     esac
     JQ_INSTALLED_BY_UNDERSTUDY=false
+    JQ_BIN="jq"
     info "jq removed (temporary dependency cleaned up)"
 }
 
@@ -1807,7 +1844,9 @@ patch_vscode_settings() {
     [[ -f "$settings" ]] || echo '{}' > "$settings"
     cp "$settings" "${settings}.bak-understudy"
 
-    if jq --arg i "$inst_dir" --arg p "$prompt_dir" \
+    # shellcheck disable=SC2016 # single quotes are intentional: $i/$p are jq's
+    # own --arg-bound variables, not shell variables — must not expand here.
+    if "$JQ_BIN" --arg i "$inst_dir" --arg p "$prompt_dir" \
         '.["chat.instructionsFilesLocations"] = ((.["chat.instructionsFilesLocations"] // {}) + {($i): true}) |
          .["chat.promptFilesLocations"]       = ((.["chat.promptFilesLocations"] // {}) + {($p): true})' \
         "$settings" > "${settings}.tmp-understudy"; then

@@ -240,3 +240,106 @@ teardown() { teardown_tmp; }
   [ "$JQ_INSTALLED_BY_UNDERSTUDY" = "false" ]
   grep -q "uninstall jq" "${TEST_TMP}/brew-call.log"
 }
+
+@test "cleanup_jq resets JQ_BIN back to the bare 'jq' command" {
+  JQ_INSTALLED_BY_UNDERSTUDY=true
+  JQ_PM_USED="winget"
+  JQ_BIN="${TEST_TMP}/fake/jq.exe"
+  winget() { return 0; }
+
+  cleanup_jq
+
+  [ "$JQ_BIN" = "jq" ]
+}
+
+# ── _jq_fallback_path / PATH-not-refreshed-yet recovery ───────────────────────
+# Regression coverage for the real-world case this was built for: winget (or
+# scoop/choco) installs jq successfully, but the directory it just added to
+# the user's PATH is only visible to *new* terminals — this shell's own PATH
+# was captured at startup. ensure_jq must still be able to use the binary by
+# its known, package-manager-specific absolute path in the same run.
+
+@test "ensure_jq falls back to the winget Links path when jq installs but isn't on this shell's PATH yet" {
+  uname() { echo "MINGW64_NT-10.0"; }
+  LOCALAPPDATA="${TEST_TMP}/AppData/Local"
+  mkdir -p "${LOCALAPPDATA}/Microsoft/WinGet/Links"
+  local jq_stub="${LOCALAPPDATA}/Microsoft/WinGet/Links/jq.exe"
+  cat > "$jq_stub" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+  chmod +x "$jq_stub"
+
+  command() {
+    if [[ "$1" == "-v" ]]; then
+      case "$2" in
+        jq)     return 1 ;;
+        scoop)  return 1 ;;
+        winget) return 0 ;;
+      esac
+    fi
+    builtin command "$@"
+  }
+  winget() { return 0; }
+  AUTO_CONFIRM=true
+
+  ensure_jq
+
+  [ "$JQ_INSTALLED_BY_UNDERSTUDY" = "true" ]
+  [ "$JQ_PM_USED" = "winget" ]
+  [ "$JQ_BIN" = "$jq_stub" ]
+}
+
+@test "ensure_jq falls back to the scoop shims path when jq installs but isn't on this shell's PATH yet" {
+  uname() { echo "MINGW64_NT-10.0"; }
+  HOME="${TEST_TMP}/fake-home"
+  mkdir -p "${HOME}/scoop/shims"
+  local jq_stub="${HOME}/scoop/shims/jq.exe"
+  cat > "$jq_stub" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+  chmod +x "$jq_stub"
+
+  command() {
+    if [[ "$1" == "-v" ]]; then
+      case "$2" in
+        jq)    return 1 ;;
+        scoop) return 0 ;;
+      esac
+    fi
+    builtin command "$@"
+  }
+  scoop() { return 0; }
+  AUTO_CONFIRM=true
+
+  ensure_jq
+
+  [ "$JQ_INSTALLED_BY_UNDERSTUDY" = "true" ]
+  [ "$JQ_BIN" = "$jq_stub" ]
+}
+
+@test "ensure_jq gives up and cleans up when no fallback path exists either" {
+  uname() { echo "MINGW64_NT-10.0"; }
+  LOCALAPPDATA="${TEST_TMP}/AppData/Local"
+  # Deliberately do NOT create the WinGet Links directory/binary.
+  command() {
+    if [[ "$1" == "-v" ]]; then
+      case "$2" in
+        jq)     return 1 ;;
+        scoop)  return 1 ;;
+        winget) return 0 ;;
+      esac
+    fi
+    builtin command "$@"
+  }
+  winget() { return 0; }
+  AUTO_CONFIRM=true
+
+  run_result=0
+  ensure_jq || run_result=$?
+
+  [ "$run_result" -ne 0 ]
+  [ "$JQ_INSTALLED_BY_UNDERSTUDY" = "false" ]
+  [ "$JQ_BIN" = "jq" ]
+}
