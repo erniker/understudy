@@ -4,10 +4,10 @@
 
 | Version | Active Support |
 |---|---|
-| `0.1.x` | ✅ Yes |
+| `1.2.x` | ✅ Yes |
+| `< 1.2.0` | ❌ No |
 
-While the project is at `0.x.y`, only the most recent version receives security patches.
-From `1.0.0` onwards we will maintain a more detailed table of supported versions.
+Only the most recent minor release receives security patches.
 
 ## Reporting a Vulnerability
 
