@@ -348,6 +348,7 @@ published as a static site without restructuring.
 | [Configuration Reference](docs/09-configuration.md) | Full `understudy.yaml` reference |
 | [Caveman Mode](docs/10-caveman-mode.md) | Token-efficient role, compress script, hooks, statusline, evals |
 | [Troubleshooting and FAQ](docs/11-troubleshooting.md) | Common issues, model choice, reporting bugs |
+| [Global Mode — machine-wide install](docs/12-global-mode.md) | `--global`, `--docs-only`, `--all-roles`, Cursor's hard-link workaround, ephemeral `jq` dependency |
 
 ## Wizard Commands
 
@@ -358,6 +359,13 @@ published as a static site without restructuring.
 | `understudy --here --yes` | Same as `--here` but skip the confirmation prompt (fully unattended) |
 | `understudy --add-member` | Add a team member (data engineer, QA, etc.) |
 | `understudy --create-role` | Create a custom role from scratch |
+| `understudy --all-roles` | Deploy the entire role catalog, not just the defaults |
+| `understudy --uninstall` | Remove Understudy files from the current project |
+| `understudy --global` | Deploy a shared team machine-wide instead of per-project — see [Global Mode](docs/12-global-mode.md) |
+| `understudy --global --all-roles` | Same as `--global`, deploying the entire role catalog |
+| `understudy --global --add-member` | Add an optional role to the global team |
+| `understudy --global --uninstall` | Remove everything a `--global` deploy wrote |
+| `understudy --docs-only` | Create persistent per-repo memory (spec/ADRs/session log) without deploying agent files — pairs with `--global` |
 | `understudy --help` | Show help |
 
 > If you installed manually via `git clone`, replace `understudy` with `./wizard.sh`.

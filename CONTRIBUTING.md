@@ -359,7 +359,7 @@ so minor formatting differences do not break the gate.
 ## 8. Tests
 
 The test suite uses **[bats-core](https://github.com/bats-core/bats-core)** — the standard testing framework for bash.
-All 122 tests must pass before a PR is merged. CI runs them automatically on Ubuntu and macOS.
+All tests must pass before a PR is merged. CI runs them automatically on Ubuntu and macOS.
 
 ### Install bats
 

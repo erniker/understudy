@@ -49,6 +49,7 @@ nav:
   - Configuration: 09-configuration.md
   - Caveman Mode: 10-caveman-mode.md
   - Troubleshooting: 11-troubleshooting.md
+  - Global Mode: 12-global-mode.md
   - Platforms:
       - GitHub Copilot CLI: platforms/copilot-cli.md
       - VS Code Copilot: platforms/vscode-copilot.md
