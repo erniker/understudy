@@ -192,6 +192,7 @@ understudy --global --yes         Same as --global, skip confirmation prompts
 understudy --global --all-roles   Deploy the entire role catalog globally, not just the defaults
 understudy --global --add-member  Add an optional role to the global team (Claude + Copilot)
 understudy --global --uninstall   Remove everything a --global deploy wrote
+understudy --upgrade --global     Refresh the deployed global files to the installed templates
 ```
 
 `--global` reuses the same numbered, editable summary as `--here` — guardrails
@@ -226,12 +227,42 @@ already existed before your `--global` run (e.g. a file you had manually in
 touched or removed. VS Code `settings.json` files patched via `jq` are
 restored from their `.bak-understudy` backup.
 
+## Upgrading a global install
+
+Updating Understudy does not change files a previous `--global` run already
+wrote. `understudy --upgrade --global` refreshes the pure template-rendered
+ones (`~/.claude/agents|commands|hooks`, the VS Code `understudy/instructions`
+and `understudy/prompts` folders, and `~/.understudy-global/cursor-agents/`)
+to the installed templates. It only considers platforms that are actually
+deployed and never adds a file; `~/.claude/CLAUDE.md`, `settings.json`, the
+global Copilot instructions and `cursor-user-rules.md` are never touched
+(re-run `understudy --global` to regenerate the Cursor paste block).
+Add `--dry-run` to preview and `--yes` for non-interactive runs, where
+customized files are always kept.
+
+To tell an untouched file from an edited one, every `--global` deploy records
+`<sha256>  <absolute path>` for each file it writes in
+`~/.understudy-global/state`, next to the manifest (`--global --uninstall`
+removes it too). Overwrites happen in place after saving
+`<file>.bak-understudy`, so the hard links that project `.cursor/agents/`
+files share with `cursor-agents/` stay intact and both sides update. A project
+whose Cursor agents are hard-linked to the global install reports them as
+`skipped (linked to global)`.
+
+**One limitation.** Files deployed by versions before the baseline state
+file existed have no recorded baseline, so the first `understudy --upgrade`
+treats any such file that differs from the current template as customized: it
+is kept unless you confirm the overwrite interactively. The exception is the
+deterministic Claude model-line migration, which always applies. Every file
+that matched its template gets a baseline on that first run, so later
+upgrades can refresh it automatically.
+
 ## Why global state doesn't live in `~/.understudy`
 
 `~/.understudy` is the Understudy **install payload** (wizard, templates,
 roles, modules) — `install.sh` runs `rm -rf ~/.understudy` on every
-self-update. Global-deploy bookkeeping (the manifest and the Cursor paste
-file) instead lives in the sibling directory `~/.understudy-global/`, which
+self-update. Global-deploy bookkeeping (the manifest, the baseline state
+file and the Cursor paste file) instead lives in the sibling directory `~/.understudy-global/`, which
 self-updates never touch.
 
 ---

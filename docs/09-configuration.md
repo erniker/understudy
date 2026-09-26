@@ -143,7 +143,7 @@ created. This means:
 | --- | --- | --- |
 | `platforms.*` (enable a new platform) | New platform files are created; existing platform files are untouched | — (works automatically) |
 | `platforms.*` (disable a platform) | Nothing is deleted; files remain in place | Delete the platform directory manually (`.github/`, `.claude/`, `.cursor/`) |
-| `models.<role>` | No effect — existing agent files are preserved with the old model value | Delete the specific agent file and re-run the wizard, or edit the file manually |
+| `models.<role>` | No effect — existing agent files are preserved with the old model value | Run `understudy --upgrade` (untouched files are refreshed, customized ones are kept unless you confirm), or edit the file manually |
 | `roles.<role>.apply_to` | No effect — existing `.instructions.md` files keep their old `applyTo` frontmatter | Edit the `applyTo` in the `.instructions.md` file directly |
 | `guardrails.mode` | The guardrails block between `GUARDRAILS_START` / `GUARDRAILS_END` markers is refreshed | — (works automatically) |
 | `git.local_config` / `git.local_memory` | `.gitignore` block is appended if not already present | — (works automatically; idempotent) |
@@ -200,7 +200,9 @@ The wizard **will not** update the existing `backend.instructions.md` or `.claud
    - Claude: edit the `model:` field in `.claude/agents/backend.md` frontmatter (use `opus`, `sonnet`, `haiku` or a dashed full ID; Claude Code does not accept dotted names)
    - Cursor: edit the `model:` field in `.cursor/agents/backend.md` frontmatter
 
-2. **Option B** — Delete and regenerate:
+2. **Option B** — Run `understudy --upgrade` (add `--dry-run` to preview). Files you never edited are refreshed with the new value automatically; files you customized are kept unless you confirm each one interactively. Old copies are saved as `<file>.bak-understudy`. See [Quick Start → Update Understudy](02-quick-start.md#refresh-the-files-you-already-deployed).
+
+3. **Option C** — Delete and regenerate:
    ```bash
    # Delete the specific file(s)
    rm .github/instructions/backend.instructions.md
@@ -219,7 +221,7 @@ The wizard **will not** update the existing `backend.instructions.md` or `.claud
 ### Troubleshooting regeneration
 
 **Files don't reflect the new YAML values:**
-- This is expected — the wizard skips existing files. Delete the file you want to regenerate and re-run.
+- This is expected — the wizard skips existing files. Run `understudy --upgrade` to refresh untouched files, or delete the file you want to regenerate and re-run.
 
 **The guardrails block didn't update:**
 - Ensure the `<!-- GUARDRAILS_START -->` and `<!-- GUARDRAILS_END -->` markers are still present in the file. If you deleted them, the wizard cannot find the block to replace.

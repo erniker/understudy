@@ -128,6 +128,26 @@ To disable this check (for CI or offline environments):
 export UNDERSTUDY_SKIP_UPDATE_CHECK=1
 ```
 
+### Refreshing already-deployed agents: `understudy --upgrade`
+
+Updating Understudy does not touch files it deployed earlier (the wizard never
+overwrites an existing file). To bring deployed agents, commands and
+instructions up to the installed templates, run from your project:
+
+```bash
+understudy --upgrade --dry-run   # report only, write nothing
+understudy --upgrade             # refresh; asks before touching customized files
+understudy --upgrade --yes       # non-interactive; customized files are always kept
+understudy --upgrade --global    # same, for the machine-wide (--global) install
+```
+
+Only files that are pure template output are candidates (agents, commands,
+prompts, per-role instructions, hooks). Files you edited are **never**
+overwritten without your confirmation, `CLAUDE.md`, `AGENTS.md`,
+`copilot-instructions.md`, `settings.json`, `understudy.yaml` and `docs/` are
+never touched, and nothing is ever added. Every overwritten file is first
+copied to `<file>.bak-understudy`. See [Update Understudy](docs/02-quick-start.md#update-understudy).
+
 ## What is this?
 
 A system that automatically generates all the configuration needed for
