@@ -3589,21 +3589,28 @@ upgrade_real_role_files() {
 # $1 = stage dir, $2 = newline-separated optional roles to render.
 upgrade_stage_project() {
     local stage="$1" role_list="$2"
-    (
-        TARGET_DIR="$stage"
-        UPGRADE_STAGING=true
-        PLATFORM_COPILOT=$up_copilot
-        PLATFORM_CLAUDE=$up_claude
-        PLATFORM_CURSOR=$up_cursor
-        if $up_copilot; then deploy_copilot; fi
-        if $up_claude; then deploy_claude; fi
-        if $up_cursor; then deploy_cursor; fi
-        local role
-        while IFS= read -r role; do
-            [[ -n "$role" ]] || continue
-            add_optional_role_to_project "$role"
-        done <<< "$role_list"
-    ) > /dev/null
+    ( upgrade_stage_project_body "$stage" "$role_list" ) > /dev/null
+}
+
+# Reassigns TARGET_DIR and PLATFORM_*: it must only ever run inside the subshell
+# opened by upgrade_stage_project, which is what keeps those globals from leaking.
+# It lives in its own function (instead of inline in the subshell) so ShellCheck
+# does not see the assignments as subshell-local changes to variables the rest
+# of the file legitimately reads (SC2030/SC2031).
+upgrade_stage_project_body() {
+    local stage="$1" role_list="$2" role
+    TARGET_DIR="$stage"
+    UPGRADE_STAGING=true
+    PLATFORM_COPILOT=$up_copilot
+    PLATFORM_CLAUDE=$up_claude
+    PLATFORM_CURSOR=$up_cursor
+    if $up_copilot; then deploy_copilot; fi
+    if $up_claude; then deploy_claude; fi
+    if $up_cursor; then deploy_cursor; fi
+    while IFS= read -r role; do
+        [[ -n "$role" ]] || continue
+        add_optional_role_to_project "$role"
+    done <<< "$role_list"
 }
 
 # Global mode: HOME and APPDATA point into the stage, so the global deploy
@@ -3624,28 +3631,33 @@ upgrade_stage_global() {
         fi
     done <<< "$(detect_vscode_user_dirs)"
 
-    (
-        HOME="${stage}/home"
-        APPDATA="${stage}/appdata"
-        UPGRADE_STAGING=true
-        ensure_jq() { return 1; }
-        PLATFORM_COPILOT=$up_copilot
-        PLATFORM_CLAUDE=$up_claude
-        PLATFORM_CURSOR=$up_cursor
-        if $up_claude; then deploy_claude_global; fi
-        if $up_copilot; then deploy_copilot_global; fi
-        if $up_cursor; then deploy_cursor_global; fi
-        # Role files are only written where the staged platform dir exists.
-        PLATFORM_COPILOT=true
-        PLATFORM_CLAUDE=true
-        PLATFORM_CURSOR=true
-        local role src
-        while IFS= read -r role; do
-            [[ -n "$role" ]] || continue
-            src="$(module_role_source "$role")" || continue
-            _deploy_role_globally "$role" "$src"
-        done <<< "$role_list"
-    ) > /dev/null
+    ( upgrade_stage_global_body "$stage" "$role_list" ) > /dev/null
+}
+
+# Reassigns HOME, APPDATA and PLATFORM_*: it must only ever run inside the
+# subshell opened by upgrade_stage_global (see upgrade_stage_project_body for why
+# it is a separate function).
+upgrade_stage_global_body() {
+    local stage="$1" role_list="$2" role src
+    HOME="${stage}/home"
+    APPDATA="${stage}/appdata"
+    UPGRADE_STAGING=true
+    ensure_jq() { return 1; }
+    PLATFORM_COPILOT=$up_copilot
+    PLATFORM_CLAUDE=$up_claude
+    PLATFORM_CURSOR=$up_cursor
+    if $up_claude; then deploy_claude_global; fi
+    if $up_copilot; then deploy_copilot_global; fi
+    if $up_cursor; then deploy_cursor_global; fi
+    # Role files are only written where the staged platform dir exists.
+    PLATFORM_COPILOT=true
+    PLATFORM_CLAUDE=true
+    PLATFORM_CURSOR=true
+    while IFS= read -r role; do
+        [[ -n "$role" ]] || continue
+        src="$(module_role_source "$role")" || continue
+        _deploy_role_globally "$role" "$src"
+    done <<< "$role_list"
 }
 
 # Maps a staged global path back to the real machine path it stands for.
