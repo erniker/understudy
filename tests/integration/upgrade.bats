@@ -444,6 +444,16 @@ state_hash_of() {
   [ "$(tree_sum "$FAKE_HOME")" = "$before" ]
 }
 
+@test "--upgrade --global ignores a project override found via an inherited TARGET_DIR" {
+  deploy_global
+  mkdir -p "${TEST_TMP}/stray"
+  printf 'models:\n  architect: "project-override-model"\n' > "${TEST_TMP}/stray/understudy.yaml"
+
+  TARGET_DIR="${TEST_TMP}/stray" run run_wizard --upgrade --global --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *", 0 would-upgrade,"* ]]
+}
+
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 @test "--upgrade --dry-run runs end-to-end as a subprocess" {

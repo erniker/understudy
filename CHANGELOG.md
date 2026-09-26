@@ -7,6 +7,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Fixed
+
+- `understudy --global` and `understudy --upgrade --global` no longer look for a
+  per-project `understudy.yaml` override. The override path was built from
+  `TARGET_DIR` before it was set, so it resolved to `/understudy.yaml` (or to
+  any `TARGET_DIR` inherited from the environment). The machine-wide install
+  now only uses the wizard defaults and the global `understudy.yaml`.
+
 ### Security
 
 - Bump `mkdocs-material` from 9.6.14 to 9.7.7 in `docs/requirements.txt`
