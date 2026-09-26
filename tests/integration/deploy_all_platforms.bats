@@ -77,6 +77,15 @@ run_wizard_noninteractive() {
   [ -f "$TEST_TMP/myproject/.github/instructions/guardrails.instructions.md" ]
 }
 
+@test "full deploy writes Claude model aliases and keeps dotted names for Cursor" {
+  run_wizard_noninteractive "myproject" "$TEST_TMP" "Y" "Y" "Y"
+  local proj="$TEST_TMP/myproject"
+  grep -q '^model: opus$' "$proj/.claude/agents/architect.md"
+  grep -q '^model: haiku$' "$proj/.claude/agents/devops.md"
+  grep -q '^model: claude-opus-4.6$' "$proj/.cursor/agents/architect.md"
+  grep -q '^model: claude-haiku-4.5$' "$proj/.cursor/agents/devops.md"
+}
+
 @test "full deploy creates all 6 Claude Code agent files" {
   run_wizard_noninteractive "myproject" "$TEST_TMP" "Y" "Y" "Y"
   local dir="$TEST_TMP/myproject/.claude/agents"

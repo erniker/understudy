@@ -102,6 +102,8 @@ not a requirement.
 
 Recommended models per role are defined in `understudy.yaml` at the project root.
 Each agent in `.claude/agents/` has its model configured in the frontmatter.
+Claude Code does not resolve dotted names, so the frontmatter gets the family alias
+(`opus`, `sonnet`, `haiku`); a dashed full ID in `understudy.yaml` is written as-is.
 
 ```yaml
 models:

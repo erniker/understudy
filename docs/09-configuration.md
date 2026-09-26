@@ -173,6 +173,18 @@ After running `understudy --here`:
 - New optional role files for Copilot (`git-specialist`, `repo-documenter`, `shell-scripting` if applicable)
 - `docs/team-roster.md` is updated to include the new roles (only if the role wasn't already listed)
 
+### Model names per platform
+
+`understudy.yaml` uses the platform-neutral dotted names (`claude-opus-4.6`,
+`claude-sonnet-4.5`, `claude-haiku-4.5`). Copilot and Cursor files receive them
+as written. Claude Code cannot resolve dotted names (the API answers
+`model_not_found`), so Claude agent files (project and global) get the family
+alias instead: `opus`, `sonnet` or `haiku`, which always track the current model
+of that family. If you need an exact version pinned for Claude Code, write a
+dashed full ID such as `"claude-sonnet-4-5"` in `understudy.yaml`; it passes
+through untouched. Values that are already aliases (`sonnet`, `inherit`, ...)
+or custom names are also left as they are.
+
 ### Example: Changing recommended models
 
 If you change the model for a role:
@@ -185,7 +197,7 @@ The wizard **will not** update the existing `backend.instructions.md` or `.claud
 
 1. **Option A** — Edit the file directly:
    - Copilot: edit the `{{MODEL_BACKEND}}` placeholder value in `.github/instructions/backend.instructions.md`
-   - Claude: edit the `model:` field in `.claude/agents/backend.md` frontmatter
+   - Claude: edit the `model:` field in `.claude/agents/backend.md` frontmatter (use `opus`, `sonnet`, `haiku` or a dashed full ID; Claude Code does not accept dotted names)
    - Cursor: edit the `model:` field in `.cursor/agents/backend.md` frontmatter
 
 2. **Option B** — Delete and regenerate:

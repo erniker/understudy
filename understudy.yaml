@@ -27,6 +27,15 @@
 #   claude-opus-4.6      → deep reasoning, complex design
 #   claude-sonnet-4.5    → best quality/speed balance
 #   claude-haiku-4.5     → fast and economical
+#
+# Write the platform-neutral dotted names above. Copilot and Cursor files get
+# them exactly as written. Claude Code does not resolve dotted names
+# (model_not_found), so its agent files get the family alias instead:
+#   claude-opus-N.M → opus, claude-sonnet-N.M → sonnet, claude-haiku-N.M → haiku
+# Aliases always track the current model of that family. To pin an exact
+# version for Claude Code, write a dashed full ID (e.g. "claude-sonnet-4-5"):
+# it is passed through untouched (Copilot/Cursor receive it as written too).
+# Other values (sonnet, opus, haiku, inherit, custom names) also pass through.
 
 models:
   architect: "claude-opus-4.6"
