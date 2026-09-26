@@ -212,3 +212,28 @@ create_fake_vscode_profile() {
 # Per-project deploy (understudy/--here) is exercised unmodified by
 # tests/integration/deploy_all_platforms.bats — this file only adds global
 # mode coverage and must never need changes there.
+
+# ── Model names per platform ──────────────────────────────────────────────────
+# Claude Code cannot resolve the dotted Copilot-style names (model_not_found),
+# so the Claude files get family aliases while Cursor keeps the configured name.
+
+@test "--global writes Claude Code model aliases, not dotted names" {
+  run_global_deploy
+  local dir="${FAKE_HOME}/.claude/agents"
+  grep -q '^model: opus$' "$dir/architect.md"
+  grep -q '^model: sonnet$' "$dir/backend.md"
+  grep -q '^model: haiku$' "$dir/devops.md"
+  ! grep -q '^model: claude-.*\.' "$dir"/*.md
+}
+
+@test "--global --all-roles writes model aliases for optional Claude roles" {
+  run_global_deploy --all-roles
+  grep -q '^model: sonnet$' "${FAKE_HOME}/.claude/agents/data-engineer.md"
+}
+
+@test "--global keeps the dotted model names in the Cursor canonical agents" {
+  run_global_deploy
+  local dir="${FAKE_HOME}/.understudy-global/cursor-agents"
+  grep -q '^model: claude-opus-4.6$' "$dir/architect.md"
+  grep -q '^model: claude-haiku-4.5$' "$dir/devops.md"
+}

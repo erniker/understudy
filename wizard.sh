@@ -1626,6 +1626,28 @@ inject_guardrails_block() {
 
 # ─── Deploy files ───────────────────────────────────────────
 
+# Translate a configured model name into what Claude Code accepts in agent
+# frontmatter. understudy.yaml and the defaults use the platform-neutral,
+# dotted tier names (claude-opus-4.6, claude-sonnet-4.5, ...) that Copilot and
+# Cursor understand, but Claude Code cannot resolve them (the API answers
+# model_not_found). Dotted claude-opus/sonnet/haiku names become the family
+# alias (opus/sonnet/haiku); everything else passes through untouched:
+# existing aliases, `inherit`, dashed full IDs (claude-sonnet-4-5), custom
+# strings and the empty string.
+#
+# This intentionally trades version pinning for robustness: aliases always
+# resolve to the current model of the family. A user who needs a pinned
+# version writes a dashed full ID in understudy.yaml, which is never rewritten.
+claude_model_id() {
+    local model="$1"
+    case "$model" in
+        claude-opus-*.*)   printf '%s\n' "opus" ;;
+        claude-sonnet-*.*) printf '%s\n' "sonnet" ;;
+        claude-haiku-*.*)  printf '%s\n' "haiku" ;;
+        *)                 printf '%s\n' "$model" ;;
+    esac
+}
+
 # Function to copy a template and replace placeholders
 deploy_file() {
     local src="$1"
@@ -1708,6 +1730,25 @@ deploy_copilot() {
 deploy_claude() {
     step "Deploying Claude Code files"
 
+    # Claude Code cannot resolve the dotted tier names: shadow the MODEL_*
+    # globals with function-local copies so deploy_file's {{MODEL_*}}
+    # substitution writes what Claude accepts. Dynamic scoping lets deploy_file
+    # see them and they vanish on return, so the Cursor/Copilot deploys of the
+    # same run keep the raw values. The value must be computed on the same
+    # line as `local`: the right-hand side reads the global before it is shadowed.
+    # shellcheck disable=SC2155
+    local MODEL_ARCHITECT="$(claude_model_id "$MODEL_ARCHITECT")"
+    # shellcheck disable=SC2155
+    local MODEL_BACKEND="$(claude_model_id "$MODEL_BACKEND")"
+    # shellcheck disable=SC2155
+    local MODEL_FRONTEND="$(claude_model_id "$MODEL_FRONTEND")"
+    # shellcheck disable=SC2155
+    local MODEL_DEVOPS="$(claude_model_id "$MODEL_DEVOPS")"
+    # shellcheck disable=SC2155
+    local MODEL_SECURITY="$(claude_model_id "$MODEL_SECURITY")"
+    # shellcheck disable=SC2155
+    local MODEL_QA="$(claude_model_id "$MODEL_QA")"
+
     mkdir -p "${TARGET_DIR}/.claude/agents"
     mkdir -p "${TARGET_DIR}/.claude/commands"
     mkdir -p "${TARGET_DIR}/.claude/hooks"
@@ -1784,6 +1825,25 @@ deploy_cursor() {
 
 deploy_claude_global() {
     step "Deploying Claude Code files (global)"
+
+    # Claude Code cannot resolve the dotted tier names: shadow the MODEL_*
+    # globals with function-local copies so deploy_file's {{MODEL_*}}
+    # substitution writes what Claude accepts. Dynamic scoping lets deploy_file
+    # see them and they vanish on return, so the Cursor/Copilot deploys of the
+    # same run keep the raw values. The value must be computed on the same
+    # line as `local`: the right-hand side reads the global before it is shadowed.
+    # shellcheck disable=SC2155
+    local MODEL_ARCHITECT="$(claude_model_id "$MODEL_ARCHITECT")"
+    # shellcheck disable=SC2155
+    local MODEL_BACKEND="$(claude_model_id "$MODEL_BACKEND")"
+    # shellcheck disable=SC2155
+    local MODEL_FRONTEND="$(claude_model_id "$MODEL_FRONTEND")"
+    # shellcheck disable=SC2155
+    local MODEL_DEVOPS="$(claude_model_id "$MODEL_DEVOPS")"
+    # shellcheck disable=SC2155
+    local MODEL_SECURITY="$(claude_model_id "$MODEL_SECURITY")"
+    # shellcheck disable=SC2155
+    local MODEL_QA="$(claude_model_id "$MODEL_QA")"
 
     local target
     target="$(global_claude_dir)"
@@ -1975,7 +2035,7 @@ _deploy_role_globally() {
 ---
 name: ${role_name}
 description: "Optional specialist role: ${role_name}"
-model: ${MODEL_BACKEND}
+model: $(claude_model_id "$MODEL_BACKEND")
 tools:
   - Read
   - Write
@@ -2479,7 +2539,7 @@ add_optional_role_to_project() {
 ---
 name: ${role_name}
 description: "Optional specialist role: ${role_name}"
-model: ${MODEL_BACKEND}
+model: $(claude_model_id "$MODEL_BACKEND")
 tools:
   - Read
   - Write
@@ -2818,7 +2878,7 @@ add_team_member() {
 ---
 name: ${selected_name}
 description: "Optional specialist role: ${selected_name}"
-model: ${MODEL_BACKEND}
+model: $(claude_model_id "$MODEL_BACKEND")
 tools:
   - Read
   - Write

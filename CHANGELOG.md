@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Fixed
+
+- Claude Code agent files (project `.claude/agents/` and global
+  `~/.claude/agents/`, including optional roles and `--add-member`) no longer
+  get the dotted model names (`claude-opus-4.6`, `claude-sonnet-4.5`,
+  `claude-haiku-4.5`) in their `model:` frontmatter. Claude Code cannot
+  resolve them, so launching a subagent failed with `model_not_found`. They
+  are now written as the family aliases `opus`, `sonnet` and `haiku`; dashed
+  full IDs, `inherit` and custom values pass through unchanged, so a specific
+  version can still be pinned in `understudy.yaml`. Copilot and Cursor output
+  keeps the configured names. Existing agent files are never overwritten:
+  delete the affected `.claude/agents/*.md` and re-run the wizard, or edit
+  their `model:` line.
+
 ## [1.2.1] - 2026-07-14
 
 ### Fixed

@@ -81,7 +81,7 @@ Each role has its own file with a frontmatter like:
 ---
 name: architect
 description: "Solutions Architect — designs systems, evaluates trade-offs"
-model: claude-opus-4.6
+model: opus
 tools: [read, edit, bash]
 ---
 ```

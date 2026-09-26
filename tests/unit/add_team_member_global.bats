@@ -34,6 +34,14 @@ teardown() { teardown_tmp; }
   [ -f "${FAKE_HOME}/.claude/agents/data-engineer.md" ]
 }
 
+@test "add_team_member_global writes a model alias for Claude and keeps the dotted name for Cursor" {
+  mkdir -p "${FAKE_HOME}/.understudy-global/cursor-agents"
+  selection=1
+  HOME="$FAKE_HOME" run add_team_member_global
+  grep -q "^model: sonnet$" "${FAKE_HOME}/.claude/agents/data-engineer.md"
+  grep -q "^model: claude-sonnet-4.5$" "${FAKE_HOME}/.understudy-global/cursor-agents/data-engineer.md"
+}
+
 @test "add_team_member_global also seeds the Cursor canonical source" {
   mkdir -p "${FAKE_HOME}/.understudy-global/cursor-agents"
   selection=1

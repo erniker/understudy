@@ -37,14 +37,21 @@ teardown() { teardown_tmp; }
   [ -f "${PROJECT_DIR}/.cursor/agents/data-engineer.md" ]
 }
 
-@test "add_team_member's Claude file has correct frontmatter and model" {
+@test "add_team_member's Claude file has correct frontmatter and a Claude-resolvable model alias" {
   selection=1
   TARGET_DIR="$PROJECT_DIR"
   add_team_member
   local f="${PROJECT_DIR}/.claude/agents/data-engineer.md"
   grep -q "^name: data-engineer" "$f"
-  grep -q "^model: claude-sonnet-4.5" "$f"
+  grep -q "^model: sonnet$" "$f"
   grep -q "Handles ETL pipelines." "$f"
+}
+
+@test "add_team_member keeps the dotted model name in the Cursor file" {
+  selection=1
+  TARGET_DIR="$PROJECT_DIR"
+  add_team_member
+  grep -q "^model: claude-sonnet-4.5$" "${PROJECT_DIR}/.cursor/agents/data-engineer.md"
 }
 
 @test "add_team_member only copies to platforms that already exist in the target" {
