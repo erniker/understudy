@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-09-26
+
 ### Fixed
 
 - Claude Code agent files (project `.claude/agents/` and global
