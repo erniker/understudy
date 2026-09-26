@@ -24,6 +24,9 @@
 #     understudy --global            → Deploy a default team machine-wide (see docs/12-global-mode.md)
 #     understudy --docs-only         → Create persistent per-repo memory only (pairs with --global)
 #     understudy --uninstall         → Remove Understudy files from the current project
+#     understudy --upgrade           → Refresh deployed agents/instructions to the installed templates
+#     understudy --upgrade --global  → Same, for the machine-wide (--global) install
+#     understudy --upgrade --dry-run → Report what --upgrade would change, write nothing
 #     understudy --help              → Show help
 #
 # ═══════════════════════════════════════════════════════════════
@@ -81,6 +84,15 @@ GLOBAL_MODE=false        # --global: deploy machine-wide instead of into a proje
 GLOBAL_UNINSTALL=false   # --global --uninstall: remove everything a global deploy wrote
 ALL_ROLES=false          # --all-roles: deploy every role in the catalog, not just the defaults
 DOCS_ONLY=false          # --docs-only: create per-repo persistent memory only (docs/ + understudy.yaml), no agent files
+UPGRADE_MODE=false       # --upgrade: refresh already-deployed, template-rendered files (never adds or clobbers)
+DRY_RUN=false            # --dry-run: with --upgrade, report what would change and write nothing
+
+# Baseline state (see "Deploy baseline state" below). UPGRADE_STAGING is true
+# only while --upgrade renders the expected templates into a throwaway tree;
+# DEPLOY_STATE_SCOPE picks which state file recordings go to ("project" or
+# "global") and is shadowed as a function local by the global deploy paths.
+UPGRADE_STAGING=false
+DEPLOY_STATE_SCOPE="project"
 
 # Module registry — populated by discover_modules() from modules/<name>/module.yaml.
 #
@@ -402,6 +414,7 @@ check_for_updates() {
                 step "Updating Understudy"
                 if curl -fsSL "$UPDATE_INSTALL_URL" | bash; then
                     success "Update completed. Restarting Understudy..."
+                    info "To refresh agents you already deployed, run: understudy --upgrade"
                     exec "$0" "$@"
                 else
                     warn "Update failed. Continuing with current version (${current_version})."
@@ -1031,6 +1044,19 @@ _global_edit_loop() {
     done
 }
 
+# Generic values fed into the shared deploy_file substitution pipeline —
+# there is no single project at global scope, so these are illustrative.
+# Shared by the global deploy and `--upgrade --global`, which must render
+# with exactly the same values to reproduce what a deploy wrote.
+set_global_identity_defaults() {
+    PROJECT_NAME="(this repository)"
+    PROJECT_DESCRIPTION="(varies per repository)"
+    TECH_STACK="(detected per repository)"
+    REPOSITORY_URL="(varies per repository)"
+    TEAM_LEAD="$(git config --global user.name 2>/dev/null || echo 'Project Lead')"
+    PROJECT_DATE="$(date +%Y-%m-%d)"
+}
+
 gather_project_info_global() {
     step "Deploy machine-wide (--global)"
     echo ""
@@ -1045,14 +1071,7 @@ gather_project_info_global() {
     PLATFORM_CLAUDE=true
     PLATFORM_CURSOR=true
 
-    # Generic values fed into the shared deploy_file substitution pipeline —
-    # there is no single project at this scope, so these are illustrative.
-    PROJECT_NAME="(this repository)"
-    PROJECT_DESCRIPTION="(varies per repository)"
-    TECH_STACK="(detected per repository)"
-    REPOSITORY_URL="(varies per repository)"
-    TEAM_LEAD="$(git config --global user.name 2>/dev/null || echo 'Project Lead')"
-    PROJECT_DATE="$(date +%Y-%m-%d)"
+    set_global_identity_defaults
     INTEGRATION_MODE=true
 
     echo ""
@@ -1435,6 +1454,7 @@ global_manifest_add() {
 deploy_file_global() {
     local src="$1"
     local dst="$2"
+    local DEPLOY_STATE_SCOPE="global"
     local existed=false
     [[ -f "$dst" ]] && existed=true
 
@@ -1585,11 +1605,120 @@ cleanup_jq() {
     info "jq removed (temporary dependency cleaned up)"
 }
 
+# ─── Deploy baseline state ──────────────────────────────────
+# Every file deploy_file writes is recorded as "<sha256>  <path>" (two spaces,
+# sha256sum-compatible) so `understudy --upgrade` can later tell a file nobody
+# touched (hash still equals the baseline: safe to refresh) from one the user
+# edited (hash differs, or no baseline at all: never overwritten silently).
+#
+#   project mode: <project root>/.understudy-state   paths relative to the root
+#   global mode:  <global_state_dir>/state           absolute paths
+#
+# Recording is best-effort: it must never make a deploy fail, and it is a
+# no-op while --upgrade renders its throwaway staging tree.
+
+# Prints the SHA-256 of a file: sha256sum on Linux/Git-Bash, shasum on macOS.
+file_sha256() {
+    local file="$1"
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$file" | awk '{print $1}'
+    elif command -v shasum &>/dev/null; then
+        shasum -a 256 "$file" | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+# Absolute path of the state file for the active scope; fails when a project
+# scope has no target directory (nothing sensible to record against).
+state_file_path() {
+    if [[ "$DEPLOY_STATE_SCOPE" == "global" ]]; then
+        echo "$(global_state_dir)/state"
+    elif [[ -n "${TARGET_DIR:-}" ]]; then
+        echo "${TARGET_DIR%/}/.understudy-state"
+    else
+        return 1
+    fi
+}
+
+# State key for a path: relative to the project root in project mode
+# (so the state file survives moving the project), absolute in global mode.
+state_key() {
+    local path="$1"
+    if [[ "$DEPLOY_STATE_SCOPE" != "global" && -n "${TARGET_DIR:-}" ]]; then
+        path="${path#"${TARGET_DIR%/}"/}"
+    fi
+    printf '%s\n' "$path"
+}
+
+# Prints the baseline hash recorded for a key (nothing when there is none).
+# The path starts at column 67: 64 hex chars + two spaces. It is matched with
+# substr() rather than field splitting because global paths can contain
+# spaces ("Code - Insiders"), and passed through ENVIRON because awk -v would
+# interpret backslash escapes.
+state_get() {
+    local key="$1" sf
+    sf="$(state_file_path)" || return 0
+    [[ -f "$sf" ]] || return 0
+    K="$key" awk 'BEGIN { k = ENVIRON["K"] } substr($0, 67) == k { print substr($0, 1, 64); exit }' "$sf"
+}
+
+# Sets the baseline for a key, replacing any previous entry (no duplicates).
+# Rewrites the file through a temp copy and `cat >` instead of mv: the state
+# file may sit on a cloud-synced or Windows-mounted folder where renames can
+# fail with "Permission denied".
+state_set() {
+    local key="$1" hash="$2" sf tmp
+    sf="$(state_file_path)" || return 0
+    tmp="$(mktemp)" || return 0
+    {
+        if [[ -f "$sf" ]]; then
+            K="$key" awk 'BEGIN { k = ENVIRON["K"] } substr($0, 67) != k' "$sf"
+        fi
+        printf '%s  %s\n' "$hash" "$key"
+    } > "$tmp" || { rm -f "$tmp"; return 0; }
+    mkdir -p "$(dirname "$sf")" 2>/dev/null || true
+    cat "$tmp" > "$sf" 2>/dev/null || true
+    rm -f "$tmp"
+    return 0
+}
+
+# Records the current content of a just-deployed file as its baseline.
+state_record() {
+    local dst="$1" hash
+    if $UPGRADE_STAGING; then
+        return 0
+    fi
+    [[ -f "$dst" ]] || return 0
+    hash="$(file_sha256 "$dst")" || return 0
+    [[ -n "$hash" ]] || return 0
+    state_set "$(state_key "$dst")" "$hash"
+}
+
+# True when a file has a baseline and still matches it byte for byte.
+state_is_pristine() {
+    local file="$1" base cur
+    [[ -f "$file" ]] || return 1
+    base="$(state_get "$(state_key "$file")")"
+    [[ -n "$base" ]] || return 1
+    cur="$(file_sha256 "$file")" || return 1
+    [[ "$base" == "$cur" ]]
+}
+
 # ─── Inject guardrails into copilot-instructions.md ─────────
 # Replaces the block between GUARDRAILS_START and GUARDRAILS_END with the generated content
 inject_guardrails_block() {
     local target_file="$1"
     local mode="$2"
+
+    # The injection rewrites the file after deploy_file recorded its baseline.
+    # Re-baseline only if the file still matched that baseline beforehand, so a
+    # pre-existing (user-edited) file that merely gets its block refreshed is
+    # never promoted to "pristine".
+    local rebaseline=false
+    if state_is_pristine "$target_file"; then
+        rebaseline=true
+    fi
 
     if [[ "$mode" == "embedded" ]] || [[ "$mode" == "split" ]]; then
         # Write content to a temp file — avoids passing multi-line strings via
@@ -1621,6 +1750,10 @@ inject_guardrails_block() {
             /<!-- GUARDRAILS_END -->/ { skip=0; next }
             !skip { print }
         ' "$target_file" > "${target_file}.tmp" && mv "${target_file}.tmp" "$target_file"
+    fi
+
+    if $rebaseline; then
+        state_record "$target_file" || true
     fi
 }
 
@@ -1684,6 +1817,8 @@ deploy_file() {
         -e "s|{{APPLY_TO_SECURITY}}|${APPLY_TO_SECURITY}|g" \
         -e "s|{{APPLY_TO_QA}}|${APPLY_TO_QA}|g" \
         "$dst" > "$tmp" && mv "$tmp" "$dst"
+
+    state_record "$dst" || true
 
     success "$(basename "$dst")"
 }
@@ -1826,6 +1961,9 @@ deploy_cursor() {
 deploy_claude_global() {
     step "Deploying Claude Code files (global)"
 
+    # Baselines (and guardrails re-baselining) go to the global state file.
+    local DEPLOY_STATE_SCOPE="global"
+
     # Claude Code cannot resolve the dotted tier names: shadow the MODEL_*
     # globals with function-local copies so deploy_file's {{MODEL_*}}
     # substitution writes what Claude accepts. Dynamic scoping lets deploy_file
@@ -1931,6 +2069,8 @@ print_vscode_manual_instructions() {
 deploy_copilot_global() {
     step "Deploying Copilot files (global)"
 
+    local DEPLOY_STATE_SCOPE="global"
+
     local vscode_dirs
     vscode_dirs="$(detect_vscode_user_dirs)"
 
@@ -1987,6 +2127,8 @@ deploy_copilot_global() {
 deploy_cursor_global() {
     step "Deploying Cursor global rules (manual paste required)"
 
+    local DEPLOY_STATE_SCOPE="global"
+
     local state_dir dst
     state_dir="$(global_state_dir)"
     mkdir -p "$state_dir"
@@ -2025,6 +2167,7 @@ deploy_cursor_global() {
 _deploy_role_globally() {
     local role_name="$1"
     local src="$2"
+    local DEPLOY_STATE_SCOPE="global"
 
     if $PLATFORM_CLAUDE; then
         local claude_dir dst_claude
@@ -2048,6 +2191,7 @@ tools:
 EOF
             cat "$src" >> "$dst_claude"
             global_manifest_add "$dst_claude"
+            state_record "$dst_claude" || true
             success "Optional role added globally (Claude): ${role_name}"
         fi
     fi
@@ -2062,6 +2206,7 @@ EOF
             if [[ ! -f "$dst_copilot" ]]; then
                 cp "$src" "$dst_copilot"
                 global_manifest_add "$dst_copilot"
+                state_record "$dst_copilot" || true
                 success "Optional role added globally (Copilot): ${role_name}"
             fi
         done <<< "$(detect_vscode_user_dirs)"
@@ -2082,6 +2227,7 @@ model: ${MODEL_BACKEND}
 EOF
             cat "$src" >> "$dst_cursor"
             global_manifest_add "$dst_cursor"
+            state_record "$dst_cursor" || true
             success "Optional role added globally (Cursor canonical source): ${role_name}"
         fi
     fi
@@ -2216,6 +2362,8 @@ global_uninstall() {
             rm -f "$path"
             success "Removed: $path"
         fi
+        # Backup left by `understudy --upgrade`, if any.
+        rm -f "${path}.bak-understudy"
     done < "$manifest_file"
 
     # Restore VS Code settings.json backups written by patch_vscode_settings.
@@ -2229,7 +2377,7 @@ global_uninstall() {
         fi
     done <<< "$(detect_vscode_user_dirs)"
 
-    rm -f "$manifest_file"
+    rm -f "$manifest_file" "${state_dir}/state"
 
     # Best-effort tidy-up of now-empty directories Understudy created.
     rmdir "${state_dir}" 2>/dev/null || true
@@ -2265,6 +2413,7 @@ project_uninstall() {
         "docs/decisions.md"
         "docs/session-log.md"
         "docs/team-roster.md"
+        ".understudy-state"
     )
 
     local existing=()
@@ -2525,6 +2674,7 @@ add_optional_role_to_project() {
             info "Optional role already present (Copilot): ${role_name}"
         else
             cp "$src" "$dst_copilot"
+            state_record "$dst_copilot" || true
             success "Optional role added (Copilot): ${role_name}"
         fi
         [[ -z "$roster_ref" ]] && roster_ref=".github/instructions/${role_name}.instructions.md"
@@ -2551,6 +2701,7 @@ tools:
 
 EOF
             cat "$src" >> "$dst_claude"
+            state_record "$dst_claude" || true
             success "Optional role added (Claude): ${role_name}"
         fi
         [[ -z "$roster_ref" ]] && roster_ref=".claude/agents/${role_name}.md"
@@ -2570,6 +2721,7 @@ model: ${MODEL_BACKEND}
 
 EOF
             cat "$src" >> "$dst_cursor"
+            state_record "$dst_cursor" || true
             success "Optional role added (Cursor): ${role_name}"
         fi
         [[ -z "$roster_ref" ]] && roster_ref=".cursor/agents/${role_name}.md"
@@ -2866,6 +3018,7 @@ add_team_member() {
         local dest_copilot="${TARGET_DIR}/.github/instructions/${selected_name}.instructions.md"
         if [[ ! -f "$dest_copilot" ]]; then
             cp "$selected_file" "$dest_copilot"
+            state_record "$dest_copilot" || true
             copied_any=true
             [[ -z "$roster_ref" ]] && roster_ref=".github/instructions/${selected_name}.instructions.md"
         fi
@@ -2890,6 +3043,7 @@ tools:
 
 EOF
             cat "$selected_file" >> "$dest_claude"
+            state_record "$dest_claude" || true
             copied_any=true
             [[ -z "$roster_ref" ]] && roster_ref=".claude/agents/${selected_name}.md"
         fi
@@ -2907,6 +3061,7 @@ model: ${MODEL_BACKEND}
 
 EOF
             cat "$selected_file" >> "$dest_cursor"
+            state_record "$dest_cursor" || true
             copied_any=true
             [[ -z "$roster_ref" ]] && roster_ref=".cursor/agents/${selected_name}.md"
         fi
@@ -3144,6 +3299,625 @@ post_deploy_global() {
     echo ""
 }
 
+# ─── Upgrade (`understudy --upgrade`) ───────────────────────
+# deploy_file never overwrites an existing file, so agents and instructions
+# deployed by an older version never receive template fixes. --upgrade
+# refreshes them to what the INSTALLED templates produce today, without ever
+# clobbering the user's edits:
+#
+#   1. Staging: the existing deploy_* functions render the expected files into
+#      a throwaway tree (TARGET_DIR, or HOME/APPDATA in global mode, pointed
+#      at a temp dir; baseline recording off), so rendering is never
+#      duplicated. Only platforms and roles that are actually deployed.
+#   2. Each deployed file that also exists in the staged tree is compared with
+#      its staged render and with the baseline hash recorded at deploy time
+#      (see "Deploy baseline state"):
+#        identical to the render      -> up-to-date (baseline refreshed)
+#        differs, still == baseline   -> pristine-outdated: refreshed
+#        differs, no/other baseline   -> customized: kept unless the user
+#                                        confirms interactively (never --yes)
+#   3. Overwrites are IN PLACE (`cat >`, never temp+mv) so the hard links
+#      Cursor agents share with the global install stay intact, and every
+#      overwritten file is first copied to <file>.bak-understudy.
+#
+# Only purely template-rendered files are candidates (see upgrade_is_denied);
+# the upgrade never adds files. Separately, a deterministic one-line
+# migration repairs dotted Claude model names in agent frontmatter.
+
+UPGRADE_WORK=""            # scratch dir (stage/ + meta/), removed when the run ends
+UPGRADE_COUNT_UPTODATE=0
+UPGRADE_COUNT_UPGRADED=0   # upgraded, or would-upgrade under --dry-run
+UPGRADE_COUNT_KEPT=0
+UPGRADE_COUNT_SKIPPED=0
+UPGRADE_COUNT_MIGRATED=0   # migrated, or would-migrate under --dry-run
+
+# True for paths --upgrade must never touch nor report: files that mix
+# template text with user content (instructions, specs, logs, config) or that
+# belong to the user's tooling. Works on project-relative and absolute paths.
+upgrade_is_denied() {
+    local path="$1" base="${1##*/}"
+    case "$base" in
+        CLAUDE.md|AGENTS.md|copilot-instructions.md|understudy-global.instructions.md) return 0 ;;
+        cursor-user-rules.md|settings.json|understudy.yaml|.gitignore) return 0 ;;
+        .understudy-state|manifest|state|*.bak-understudy|*.tmp) return 0 ;;
+    esac
+    case "$path" in
+        docs/*|*/docs/*) return 0 ;;
+    esac
+    return 1
+}
+
+# True when the role is one of the bundled core roles (deployed from
+# templates/, never from the optional-role catalog).
+upgrade_is_core_role() {
+    local name="$1"
+    [[ -f "${TEMPLATES_DIR}/.claude/agents/${name}.md" ]] \
+        || [[ -f "${TEMPLATES_DIR}/.cursor/agents/${name}.md" ]] \
+        || [[ -f "${TEMPLATES_DIR}/.github/instructions/${name}.instructions.md" ]]
+}
+
+# One line per report row; also keeps the summary counters.
+upgrade_report() {
+    local status="$1" label="$2" note="${3:-}"
+    local color="$NC"
+    case "$status" in
+        up-to-date)
+            color="$GREEN"
+            UPGRADE_COUNT_UPTODATE=$((UPGRADE_COUNT_UPTODATE + 1)) ;;
+        upgraded|would-upgrade)
+            color="$CYAN"
+            UPGRADE_COUNT_UPGRADED=$((UPGRADE_COUNT_UPGRADED + 1)) ;;
+        migrated|would-migrate)
+            color="$CYAN" ;;
+        kept*)
+            color="$YELLOW"
+            UPGRADE_COUNT_KEPT=$((UPGRADE_COUNT_KEPT + 1)) ;;
+        skipped*)
+            UPGRADE_COUNT_SKIPPED=$((UPGRADE_COUNT_SKIPPED + 1)) ;;
+    esac
+    printf '  %b%-30s%b %s%s\n' "$color" "$status" "$NC" "$label" "${note:+  ($note)}"
+}
+
+# True when a file's line list ($1) contains the exact line $2.
+upgrade_list_has() {
+    [[ -f "$1" ]] && grep -qxF -- "$2" "$1"
+}
+
+# Human-friendly label for a real path: relative to the project, ~ for HOME.
+upgrade_label() {
+    local path="$1"
+    if $GLOBAL_MODE; then
+        if [[ "$path" == "${UPGRADE_REAL_HOME}/"* ]]; then
+            # The literal "~/" is the label shown to the user, not a path to expand.
+            # shellcheck disable=SC2088
+            printf '%s\n' "~/${path#"${UPGRADE_REAL_HOME}"/}"
+        else
+            printf '%s\n' "$path"
+        fi
+    else
+        printf '%s\n' "${path#"${TARGET_DIR}"/}"
+    fi
+}
+
+# Copies a file to <file>.bak-understudy (replacing an older backup), at most
+# once per run so a migrated-then-upgraded file keeps its ORIGINAL content.
+upgrade_backup() {
+    local file="$1"
+    if upgrade_list_has "${UPGRADE_META}/backed_up" "$file"; then
+        return 0
+    fi
+    cp "$file" "${file}.bak-understudy" || return 1
+    printf '%s\n' "$file" >> "${UPGRADE_META}/backed_up"
+}
+
+# Overwrites $2 with the staged render $1, IN PLACE: `cat >` rewrites the same
+# inode, so hard links (Cursor agents shared with the global install) and
+# file modes (hook scripts) survive. Refreshes the baseline afterwards.
+upgrade_overwrite() {
+    local staged="$1" real="$2" key="$3" hash
+    upgrade_backup "$real" || return 1
+    cat "$staged" > "$real" || return 1
+    hash="$(file_sha256 "$real")" || return 0
+    state_set "$key" "$hash"
+}
+
+# Asks whether to overwrite a customized file: [y/N/d], d shows the diff and
+# asks again. Reads /dev/tty (like check_for_updates) so buffered stdin cannot
+# pre-answer it; without a terminal the answer is N.
+upgrade_prompt_overwrite() {
+    local label="$1" current="$2" staged="$3" answer=""
+    while true; do
+        printf '  %b?%b  %s looks customized. Overwrite it with the new template? %b[y/N/d]%b: ' \
+            "$YELLOW" "$NC" "$label" "$CYAN" "$NC"
+        if ! { IFS= read -r answer < /dev/tty; } 2>/dev/null; then
+            answer=""
+            echo ""
+        fi
+        case "$(to_lower "${answer:-n}")" in
+            y|yes) return 0 ;;
+            d|diff) diff -u "$current" "$staged" || true ;;
+            *) return 1 ;;
+        esac
+    done
+}
+
+# ─── Upgrade: Claude model-line migration ───────────────────
+# Older versions wrote dotted tier names (model: claude-sonnet-4.5) that Claude
+# Code cannot resolve. This rewrites ONLY the first `model:` line inside the
+# frontmatter block, and only when it has exactly that dotted form, to the
+# family alias claude_model_id produces. Nothing else in the file is touched,
+# so it is safe even on customized files.
+
+# Prints "<line number><TAB><replacement line>" when the file needs the fix.
+upgrade_model_line_fix() {
+    local file="$1" hit n line id alias cr=""
+    local re='^model: claude-(opus|sonnet|haiku)-[0-9]+\.[0-9]+[[:space:]]*$'
+    hit="$(awk '
+        NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; infm = 1; next }
+        infm && /^---[[:space:]]*$/ { exit }
+        infm && /^model:/ { print NR "\t" $0; exit }
+    ' "$file")"
+    [[ -n "$hit" ]] || return 0
+    n="${hit%%$'\t'*}"
+    line="${hit#*$'\t'}"
+    [[ "$line" =~ $re ]] || return 0
+    if [[ "$line" == *$'\r' ]]; then
+        cr=$'\r'
+    fi
+    id="${line#model: }"
+    id="${id%%[[:space:]]*}"
+    alias="$(claude_model_id "$id")"
+    [[ "$alias" != "$id" ]] || return 0
+    printf '%s\t%s\n' "$n" "model: ${alias}${cr}"
+}
+
+# Prints the file with line $2 replaced by $3. head/tail (not awk) so the rest
+# stays byte-identical, including a missing final newline.
+upgrade_model_line_apply() {
+    local file="$1" n="$2" replacement="$3"
+    head -n $((n - 1)) "$file"
+    printf '%s\n' "$replacement"
+    tail -n +$((n + 1)) "$file"
+}
+
+# Migrates every agent file in a Claude agents directory ($1) and records the
+# ones it touched (or would touch, under --dry-run) in the meta/migrated list.
+upgrade_migrate_claude_agents() {
+    local dir="$1" file fix n replacement pre post key base tmp
+    [[ -d "$dir" ]] || return 0
+    tmp="${UPGRADE_META}/migrate.tmp"
+    for file in "$dir"/*.md; do
+        [[ -f "$file" ]] || continue
+        fix="$(upgrade_model_line_fix "$file")"
+        [[ -n "$fix" ]] || continue
+        n="${fix%%$'\t'*}"
+        replacement="${fix#*$'\t'}"
+        if ! $DRY_RUN; then
+            pre="$(file_sha256 "$file")"
+            upgrade_model_line_apply "$file" "$n" "$replacement" > "$tmp"
+            if ! upgrade_backup "$file"; then
+                warn "Could not back up ${file} — model line left as is."
+                continue
+            fi
+            cat "$tmp" > "$file"
+            # The tool itself just changed the file: if it was untouched before,
+            # it still counts as untouched (baseline follows the new content).
+            key="$(state_key "$file")"
+            base="$(state_get "$key")"
+            if [[ -n "$base" && "$base" == "$pre" ]]; then
+                post="$(file_sha256 "$file")" && state_set "$key" "$post"
+            fi
+        fi
+        printf '%s\n' "$file" >> "${UPGRADE_META}/migrated"
+        UPGRADE_COUNT_MIGRATED=$((UPGRADE_COUNT_MIGRATED + 1))
+    done
+}
+
+# ─── Upgrade: discovery of what is deployed ─────────────────
+
+# Reads "- **<label>**: value" from a deployed instructions file.
+upgrade_read_field() {
+    local file="$1" label="$2"
+    awk -v p="- **${label}**: " '
+        index($0, p) == 1 { v = substr($0, length(p) + 1); sub(/\r$/, "", v); print v; exit }
+    ' "$file"
+}
+
+# Project files embed the identity the user chose at deploy time
+# ({{PROJECT_NAME}} and friends), which nothing else records. Recover it from
+# the identity block deployed into the instruction files; fall back to the
+# same inferred defaults `--here` uses when none of them is present.
+upgrade_infer_identity() {
+    local src file value
+    PROJECT_NAME="$(basename "$TARGET_DIR")"
+    PROJECT_DESCRIPTION=""
+    TECH_STACK="Unknown"
+    REPOSITORY_URL="local"
+    TEAM_LEAD="$(git config user.name 2>/dev/null || echo 'Project Lead')"
+    PROJECT_DATE="$(date +%Y-%m-%d)"
+
+    for src in "CLAUDE.md" ".github/copilot-instructions.md" ".cursor/rules/understudy-global.mdc"; do
+        file="${TARGET_DIR}/${src}"
+        [[ -f "$file" ]] || continue
+        value="$(upgrade_read_field "$file" "Name")"
+        [[ -n "$value" ]] || continue
+        PROJECT_NAME="$value"
+        PROJECT_DESCRIPTION="$(upgrade_read_field "$file" "Description")"
+        value="$(upgrade_read_field "$file" "Main stack")"
+        if [[ -n "$value" ]]; then TECH_STACK="$value"; fi
+        value="$(upgrade_read_field "$file" "Repository")"
+        if [[ -n "$value" ]]; then REPOSITORY_URL="$value"; fi
+        value="$(upgrade_read_field "$file" "Project Manager")"
+        if [[ -n "$value" ]]; then TEAM_LEAD="$value"; fi
+        break
+    done
+}
+
+# Prints "<role name><TAB><path>" for every deployed per-role file (Claude
+# agents, Cursor agents, Copilot instructions), skipping denylisted ones.
+upgrade_real_role_files() {
+    local file vs_dir
+    if $GLOBAL_MODE; then
+        for file in "$(global_claude_dir)/agents/"*.md "$(global_state_dir)/cursor-agents/"*.md; do
+            [[ -f "$file" ]] || continue
+            upgrade_is_denied "$file" || printf '%s\t%s\n' "$(basename "$file" .md)" "$file"
+        done
+        while IFS= read -r vs_dir; do
+            [[ -n "$vs_dir" ]] || continue
+            for file in "${vs_dir}/understudy/instructions/"*.instructions.md; do
+                [[ -f "$file" ]] || continue
+                upgrade_is_denied "$file" || printf '%s\t%s\n' "$(basename "$file" .instructions.md)" "$file"
+            done
+        done <<< "$(detect_vscode_user_dirs)"
+    else
+        for file in "${TARGET_DIR}/.claude/agents/"*.md "${TARGET_DIR}/.cursor/agents/"*.md; do
+            [[ -f "$file" ]] || continue
+            printf '%s\t%s\n' "$(basename "$file" .md)" "$file"
+        done
+        for file in "${TARGET_DIR}/.github/instructions/"*.instructions.md; do
+            [[ -f "$file" ]] || continue
+            upgrade_is_denied "$file" || printf '%s\t%s\n' "$(basename "$file" .instructions.md)" "$file"
+        done
+    fi
+}
+
+# ─── Upgrade: staging ───────────────────────────────────────
+# Both stagers run in a subshell so the globals the deploy functions mutate
+# (TARGET_DIR, HOME, PLATFORM_*, ...) cannot leak, with stdout silenced: the
+# deploy functions narrate every file they write.
+
+# $1 = stage dir, $2 = newline-separated optional roles to render.
+upgrade_stage_project() {
+    local stage="$1" role_list="$2"
+    (
+        TARGET_DIR="$stage"
+        UPGRADE_STAGING=true
+        PLATFORM_COPILOT=$up_copilot
+        PLATFORM_CLAUDE=$up_claude
+        PLATFORM_CURSOR=$up_cursor
+        if $up_copilot; then deploy_copilot; fi
+        if $up_claude; then deploy_claude; fi
+        if $up_cursor; then deploy_cursor; fi
+        local role
+        while IFS= read -r role; do
+            [[ -n "$role" ]] || continue
+            add_optional_role_to_project "$role"
+        done <<< "$role_list"
+    ) > /dev/null
+}
+
+# Global mode: HOME and APPDATA point into the stage, so the global deploy
+# functions write ~/.claude, the VS Code profile and ~/.understudy-global
+# (including its manifest) there and nothing reaches the real machine. VS Code
+# profile dirs are recreated inside the stage first, because the deploy only
+# targets profiles that exist. ensure_jq is stubbed out: staging must never
+# install a package or prompt.
+upgrade_stage_global() {
+    local stage="$1" role_list="$2" vs_dir
+    mkdir -p "${stage}/home" "${stage}/appdata"
+    while IFS= read -r vs_dir; do
+        [[ -n "$vs_dir" && -d "${vs_dir}/understudy/instructions" ]] || continue
+        if [[ "$vs_dir" == "${UPGRADE_REAL_APPDATA}/"* ]]; then
+            mkdir -p "${stage}/appdata/${vs_dir#"${UPGRADE_REAL_APPDATA}"/}"
+        elif [[ "$vs_dir" == "${UPGRADE_REAL_HOME}/"* ]]; then
+            mkdir -p "${stage}/home/${vs_dir#"${UPGRADE_REAL_HOME}"/}"
+        fi
+    done <<< "$(detect_vscode_user_dirs)"
+
+    (
+        HOME="${stage}/home"
+        APPDATA="${stage}/appdata"
+        UPGRADE_STAGING=true
+        ensure_jq() { return 1; }
+        PLATFORM_COPILOT=$up_copilot
+        PLATFORM_CLAUDE=$up_claude
+        PLATFORM_CURSOR=$up_cursor
+        if $up_claude; then deploy_claude_global; fi
+        if $up_copilot; then deploy_copilot_global; fi
+        if $up_cursor; then deploy_cursor_global; fi
+        # Role files are only written where the staged platform dir exists.
+        PLATFORM_COPILOT=true
+        PLATFORM_CLAUDE=true
+        PLATFORM_CURSOR=true
+        local role src
+        while IFS= read -r role; do
+            [[ -n "$role" ]] || continue
+            src="$(module_role_source "$role")" || continue
+            _deploy_role_globally "$role" "$src"
+        done <<< "$role_list"
+    ) > /dev/null
+}
+
+# Maps a staged global path back to the real machine path it stands for.
+upgrade_real_path() {
+    local staged="$1"
+    case "$staged" in
+        "${UPGRADE_WORK}/stage/home/"*)
+            printf '%s\n' "${UPGRADE_REAL_HOME}/${staged#"${UPGRADE_WORK}/stage/home/"}" ;;
+        "${UPGRADE_WORK}/stage/appdata/"*)
+            printf '%s\n' "${UPGRADE_REAL_APPDATA}/${staged#"${UPGRADE_WORK}/stage/appdata/"}" ;;
+        *) return 1 ;;
+    esac
+}
+
+# Writes "<staged><TAB><real><TAB><label>" for every non-denylisted staged file.
+upgrade_list_candidates() {
+    local stage="${UPGRADE_WORK}/stage" staged real label rel
+    while IFS= read -r staged; do
+        [[ -n "$staged" ]] || continue
+        if $GLOBAL_MODE; then
+            real="$(upgrade_real_path "$staged")" || continue
+            upgrade_is_denied "$real" && continue
+        else
+            rel="${staged#"${stage}"/}"
+            upgrade_is_denied "$rel" && continue
+            real="${TARGET_DIR}/${rel}"
+        fi
+        label="$(upgrade_label "$real")"
+        printf '%s\t%s\t%s\n' "$staged" "$real" "$label"
+    done <<< "$(find "$stage" -type f 2>/dev/null | sort)"
+}
+
+# ─── Upgrade: classification of one file ────────────────────
+
+upgrade_process_file() {
+    local staged="$1" real="$2" label="$3"
+    local key note="" view cur_hash orig_hash stg_hash base migrated=false global_link fix
+
+    if [[ ! -f "$real" ]]; then
+        upgrade_report "skipped (not deployed)" "$label"
+        return 0
+    fi
+
+    # A project's Cursor agents may be hard links to the global install:
+    # rewriting them here would silently change the global copy too.
+    if ! $GLOBAL_MODE && [[ "$real" == */.cursor/agents/* ]]; then
+        global_link="$(global_state_dir)/cursor-agents/$(basename "$real")"
+        if [[ -f "$global_link" && "$real" -ef "$global_link" ]]; then
+            upgrade_report "skipped (linked to global)" "$label" "run: understudy --upgrade --global"
+            return 0
+        fi
+    fi
+
+    key="$(state_key "$real")"
+    orig_hash="$(file_sha256 "$real")"
+    view="$real"
+    if upgrade_list_has "${UPGRADE_META}/migrated" "$real"; then
+        migrated=true
+        note="Claude model line migrated"
+        if $DRY_RUN; then
+            # Nothing was written: classify what the file WOULD look like.
+            view="${UPGRADE_META}/view"
+            fix="$(upgrade_model_line_fix "$real")"
+            upgrade_model_line_apply "$real" "${fix%%$'\t'*}" "${fix#*$'\t'}" > "$view"
+            note="Claude model line would be migrated"
+        fi
+    fi
+
+    cur_hash="$(file_sha256 "$view")"
+    stg_hash="$(file_sha256 "$staged")"
+    base="$(state_get "$key")"
+
+    if [[ "$cur_hash" == "$stg_hash" ]]; then
+        if $migrated; then
+            if $DRY_RUN; then upgrade_report "would-migrate" "$label"; else upgrade_report "migrated" "$label"; fi
+        else
+            upgrade_report "up-to-date" "$label"
+        fi
+        # Legacy pristine files gain a baseline here.
+        if ! $DRY_RUN && [[ "$base" != "$cur_hash" ]]; then
+            state_set "$key" "$cur_hash"
+        fi
+        return 0
+    fi
+
+    if [[ -n "$base" && "$base" == "$orig_hash" ]]; then
+        # Untouched since deploy: only the template moved.
+        if $DRY_RUN; then
+            upgrade_report "would-upgrade" "$label" "$note"
+        elif upgrade_overwrite "$staged" "$real" "$key"; then
+            upgrade_report "upgraded" "$label" "$note"
+        else
+            warn "Could not back up ${label} — left untouched."
+            upgrade_report "kept (backup failed)" "$label" "$note"
+        fi
+        return 0
+    fi
+
+    # Customized, or no baseline to prove otherwise (legacy deploy).
+    if ! $DRY_RUN && ! $AUTO_CONFIRM && upgrade_prompt_overwrite "$label" "$view" "$staged"; then
+        if upgrade_overwrite "$staged" "$real" "$key"; then
+            upgrade_report "upgraded" "$label" "$note"
+        else
+            warn "Could not back up ${label} — left untouched."
+            upgrade_report "kept (backup failed)" "$label" "$note"
+        fi
+        return 0
+    fi
+    upgrade_report "kept (customized)" "$label" "$note"
+    return 0
+}
+
+# ─── Upgrade: orchestrator ──────────────────────────────────
+
+run_upgrade() {
+    local scope="project"
+    if $GLOBAL_MODE; then scope="global"; fi
+    local DEPLOY_STATE_SCOPE="$scope"
+
+    step "Upgrade deployed files (${scope})"
+
+    if ! file_sha256 /dev/null > /dev/null 2>&1; then
+        error "--upgrade needs sha256sum or shasum (shasum -a 256) to compare files."
+        exit 1
+    fi
+
+    # Scratch state shared with the helpers above through dynamic scoping.
+    local up_copilot=false up_claude=false up_cursor=false
+    local UPGRADE_REAL_HOME="$HOME"
+    local UPGRADE_REAL_APPDATA
+    UPGRADE_REAL_APPDATA="$(normalize_path "${APPDATA:-${HOME}/AppData/Roaming}")"
+    local UPGRADE_META=""
+    UPGRADE_COUNT_UPTODATE=0
+    UPGRADE_COUNT_UPGRADED=0
+    UPGRADE_COUNT_KEPT=0
+    UPGRADE_COUNT_SKIPPED=0
+    UPGRADE_COUNT_MIGRATED=0
+
+    # Detect what is actually deployed — an upgrade never adds a platform.
+    validate_templates
+    if $GLOBAL_MODE; then
+        local vs_dir
+        [[ -d "$(global_claude_dir)/agents" ]] && up_claude=true
+        [[ -d "$(global_state_dir)/cursor-agents" ]] && up_cursor=true
+        while IFS= read -r vs_dir; do
+            [[ -n "$vs_dir" && -d "${vs_dir}/understudy/instructions" ]] && up_copilot=true
+        done <<< "$(detect_vscode_user_dirs)"
+        validate_global_templates
+    else
+        TARGET_DIR="$PWD"
+        [[ -d "${TARGET_DIR}/.github/instructions" ]] && up_copilot=true
+        [[ -d "${TARGET_DIR}/.claude/agents" ]] && up_claude=true
+        [[ -d "${TARGET_DIR}/.cursor/agents" ]] && up_cursor=true
+    fi
+
+    if ! $up_copilot && ! $up_claude && ! $up_cursor; then
+        if $GLOBAL_MODE; then
+            warn "No global Understudy deployment found — nothing to upgrade. Run 'understudy --global' first."
+        else
+            warn "No Understudy deployment found in ${PWD} — nothing to upgrade. Run 'understudy --here' first."
+        fi
+        return 0
+    fi
+    if $up_copilot; then validate_copilot_templates; fi
+    if $up_claude; then validate_claude_templates; fi
+    if $up_cursor; then validate_cursor_templates; fi
+
+    # Current configuration, exactly as a normal run would resolve it.
+    load_config > /dev/null
+    if $GLOBAL_MODE; then
+        set_global_identity_defaults
+    else
+        upgrade_infer_identity
+    fi
+
+    UPGRADE_WORK="$(mktemp -d "${TMPDIR:-/tmp}/understudy-upgrade.XXXXXX")" \
+        || { error "Could not create a temporary directory."; exit 1; }
+    UPGRADE_META="${UPGRADE_WORK}/meta"
+    mkdir -p "${UPGRADE_WORK}/stage" "$UPGRADE_META"
+    : > "${UPGRADE_META}/migrated"
+
+    # Optional roles (anything that is not a bundled core role) are re-rendered
+    # from the catalog; a role whose source is gone cannot be, and is reported.
+    local role_files names name roles_to_stage="" unresolved=""
+    role_files="$(upgrade_real_role_files)"
+    names="$(printf '%s\n' "$role_files" | awk -F'\t' 'NF { print $1 }' | sort -u)"
+    while IFS= read -r name; do
+        [[ -n "$name" ]] || continue
+        if upgrade_is_core_role "$name"; then continue; fi
+        if module_role_source "$name" > /dev/null; then
+            roles_to_stage+="${name}"$'\n'
+        else
+            unresolved+="${name}"$'\n'
+        fi
+    done <<< "$names"
+
+    info "Rendering the installed templates (nothing is written yet)..."
+    local staging_ok=true
+    if $GLOBAL_MODE; then
+        upgrade_stage_global "${UPGRADE_WORK}/stage" "$roles_to_stage" || staging_ok=false
+    else
+        upgrade_stage_project "${UPGRADE_WORK}/stage" "$roles_to_stage" || staging_ok=false
+    fi
+    if ! $staging_ok; then
+        rm -rf "$UPGRADE_WORK"
+        error "Could not render the installed templates — nothing was changed."
+        exit 1
+    fi
+
+    if $DRY_RUN; then
+        info "Dry run: reporting only — no file, backup or baseline is written."
+    fi
+
+    # Deterministic model-line fix first, so the classification below sees
+    # the migrated content.
+    if $GLOBAL_MODE; then
+        upgrade_migrate_claude_agents "$(global_claude_dir)/agents"
+    else
+        upgrade_migrate_claude_agents "${TARGET_DIR}/.claude/agents"
+    fi
+
+    echo ""
+    upgrade_list_candidates > "${UPGRADE_META}/candidates"
+    : > "${UPGRADE_META}/seen"
+    local staged real label path
+    while IFS=$'\t' read -r staged real label; do
+        [[ -n "$staged" ]] || continue
+        upgrade_process_file "$staged" "$real" "$label"
+        printf '%s\n' "$real" >> "${UPGRADE_META}/seen"
+    done < "${UPGRADE_META}/candidates"
+
+    # Migrated agent files that are not template candidates (e.g. the user's
+    # own agents in ~/.claude/agents) still get their own report row.
+    while IFS= read -r path; do
+        [[ -n "$path" ]] || continue
+        if upgrade_list_has "${UPGRADE_META}/seen" "$path"; then continue; fi
+        if $DRY_RUN; then
+            upgrade_report "would-migrate" "$(upgrade_label "$path")" "Claude model line"
+        else
+            upgrade_report "migrated" "$(upgrade_label "$path")" "Claude model line"
+        fi
+    done < "${UPGRADE_META}/migrated"
+
+    # Roles deployed earlier whose catalog source no longer exists. Only files
+    # Understudy itself deployed (they have a baseline) are worth a row.
+    while IFS=$'\t' read -r name path; do
+        [[ -n "$name" ]] || continue
+        [[ $'\n'"$unresolved" == *$'\n'"$name"$'\n'* ]] || continue
+        if [[ -n "$(state_get "$(state_key "$path")")" ]]; then
+            upgrade_report "skipped (role source missing)" "$(upgrade_label "$path")"
+        fi
+    done <<< "$role_files"
+
+    rm -rf "$UPGRADE_WORK"
+
+    local upgraded_word="upgraded" migrated_word="migrated"
+    if $DRY_RUN; then
+        upgraded_word="would-upgrade"
+        migrated_word="would-migrate"
+    fi
+    echo ""
+    echo "  Summary: ${UPGRADE_COUNT_UPTODATE} up-to-date, ${UPGRADE_COUNT_UPGRADED} ${upgraded_word}, ${UPGRADE_COUNT_KEPT} kept (customized), ${UPGRADE_COUNT_SKIPPED} skipped, ${UPGRADE_COUNT_MIGRATED} model line(s) ${migrated_word}"
+    if [[ "$UPGRADE_COUNT_KEPT" -gt 0 ]]; then
+        echo "  ${UPGRADE_COUNT_KEPT} file(s) differ from the new templates and were kept."
+        echo "  Re-run \`understudy --upgrade\` without --yes to review them interactively."
+    fi
+    if $DRY_RUN; then
+        echo "  Dry run: nothing was written."
+    fi
+    return 0
+}
+
 # ─── Help ────────────────────────────────────────────────────
 
 show_help() {
@@ -3158,6 +3932,9 @@ show_help() {
     echo "    understudy --all-roles       Deploy the entire role catalog, not just the defaults"
     echo "    understudy --uninstall       Remove Understudy files from the current project"
     echo "    understudy --uninstall --yes Same as --uninstall, skip confirmation prompt"
+    echo "    understudy --upgrade         Refresh deployed agents/instructions to the installed templates"
+    echo "    understudy --upgrade --yes   Same, non-interactive: customized files are always kept"
+    echo "    understudy --upgrade --dry-run  Report what --upgrade would change, write nothing"
     echo "    understudy --help            Show this help"
     echo ""
     echo "  Machine-wide install (see docs/12-global-mode.md):"
@@ -3166,6 +3943,7 @@ show_help() {
     echo "    understudy --global --all-roles   Deploy the entire role catalog globally"
     echo "    understudy --global --add-member  Add an optional role to the global team"
     echo "    understudy --global --uninstall   Remove everything a --global deploy wrote"
+    echo "    understudy --upgrade --global     Refresh the machine-wide install (add --dry-run / --yes)"
     echo "    understudy --docs-only            Create persistent per-repo memory only — no agent files (pairs with --global)"
     echo "    understudy --docs-only --yes      Same as --docs-only, skip confirmation prompt"
     echo ""
@@ -3237,6 +4015,8 @@ main() {
             --uninstall)  GLOBAL_UNINSTALL=true ;;
             --all-roles)  ALL_ROLES=true ;;
             --docs-only)  DOCS_ONLY=true ;;
+            --upgrade)    UPGRADE_MODE=true ;;
+            --dry-run)    DRY_RUN=true ;;
             *)
                 # Module flags (registered via discover_modules) flip the
                 # corresponding MODULE_INCLUDED entry. Module post-install
@@ -3277,6 +4057,14 @@ main() {
             ;;
         *)
             banner
+            if $DRY_RUN && ! $UPGRADE_MODE; then
+                error "--dry-run only applies to --upgrade."
+                exit 1
+            fi
+            if $UPGRADE_MODE; then
+                run_upgrade
+                return
+            fi
             if $GLOBAL_UNINSTALL && ! $GLOBAL_MODE; then
                 project_uninstall
                 return

@@ -97,6 +97,13 @@ curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh 
 .\install.ps1 -Version v1.2.0
 ```
 
+Updating the tool does **not** change agents you already deployed. Run
+`understudy --upgrade` in the project (or `understudy --upgrade --global`) to
+refresh them; add `--dry-run` to preview. Files you customized are kept unless
+you confirm interactively, and overwritten files are backed up as
+`<file>.bak-understudy`. Details: [Quick Start → Update
+Understudy](02-quick-start.md#refresh-the-files-you-already-deployed).
+
 To disable the automatic check (CI, offline environments):
 
 ```bash

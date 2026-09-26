@@ -55,6 +55,21 @@ setup() {
   [[ "$output" == *"--create-role"* ]]
 }
 
+@test "show_help mentions --upgrade" {
+  run show_help
+  [[ "$output" == *"--upgrade"* ]]
+}
+
+@test "show_help mentions --dry-run" {
+  run show_help
+  [[ "$output" == *"--dry-run"* ]]
+}
+
+@test "show_help documents --upgrade --global" {
+  run show_help
+  [[ "$output" == *"--upgrade --global"* ]]
+}
+
 @test "show_help lists supported platforms" {
   run show_help
   [[ "$output" == *"Copilot"* ]]

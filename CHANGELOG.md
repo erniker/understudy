@@ -7,6 +7,41 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- `understudy --upgrade` (with `--global` for the machine-wide install)
+  refreshes already-deployed, purely template-rendered files (agents,
+  commands, prompts, per-role instructions, hooks) to the installed version's
+  templates, so template fixes reach existing deployments. It renders the
+  expected files into a throwaway tree with the current configuration and only
+  considers platforms and roles that are actually deployed; it never adds a
+  file.
+- `--dry-run` (with `--upgrade`) reports what would change and writes nothing.
+  `--upgrade --yes` runs non-interactively.
+- Baseline state file: every file a deploy writes is now recorded as
+  `<sha256>  <path>` in `.understudy-state` (project root, relative paths) or
+  `~/.understudy-global/state` (global mode, absolute paths). `--uninstall`
+  and `--global --uninstall` remove it. Normal deploys still never overwrite
+  an existing file.
+- `--upgrade` never overwrites your customizations: a file is refreshed
+  automatically only when it still matches its recorded baseline; a file that
+  differs from the new template and has no matching baseline is kept (with
+  `--yes` always, otherwise only after an interactive `[y/N/d]` confirmation).
+  Overwrites happen in place after copying the old file to
+  `<file>.bak-understudy`, which keeps the Cursor hard links shared with the
+  global install intact. `CLAUDE.md`, `AGENTS.md`, `copilot-instructions.md`,
+  `settings.json`, `understudy.yaml`, `.gitignore` and `docs/` are never
+  touched.
+- `--upgrade` repairs installed Claude Code agents that still carry a dotted
+  model name (`model: claude-sonnet-4.5` becomes `model: sonnet`): only that
+  frontmatter line is rewritten, so it is safe on customized files.
+- Known limitation: files deployed before the state file existed have no
+  baseline, so the first `--upgrade` treats any of them that differs from the
+  current template as customized (kept unless confirmed interactively), except
+  for the model-line migration. Files that match get a baseline on that first
+  run.
+- After a self-update, the wizard now suggests running `understudy --upgrade`.
+
 ## [1.2.2] - 2026-09-26
 
 ### Fixed

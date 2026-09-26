@@ -176,6 +176,47 @@ curl -fsSL https://raw.githubusercontent.com/erniker/understudy/main/install.sh 
 export UNDERSTUDY_SKIP_UPDATE_CHECK=1
 ```
 
+### Refresh the files you already deployed
+
+Updating the tool does not change files deployed earlier: the wizard never
+overwrites an existing file. Run `understudy --upgrade` inside a project (or
+`understudy --upgrade --global` for the machine-wide install) to bring the
+deployed agents, commands, prompts, per-role instructions and hooks up to the
+installed templates:
+
+```bash
+understudy --upgrade --dry-run   # report only, write nothing
+understudy --upgrade             # refresh; asks before touching customized files
+understudy --upgrade --yes       # non-interactive; customized files are always kept
+```
+
+How it decides, per file (compared with what the installed templates render
+with your current `understudy.yaml`):
+
+| Status | Meaning | Action |
+| --- | --- | --- |
+| `up-to-date` | Identical to the new render | Nothing written |
+| `upgraded` | Differs, but you never edited it (it still matches the hash recorded at deploy time) | Overwritten, old copy saved as `<file>.bak-understudy` |
+| `kept (customized)` | Differs and you edited it, or there is no record to prove you did not | Kept. Interactively you are asked `[y/N/d]` (`d` shows a diff); with `--yes` it is always kept |
+| `skipped (not deployed)` | The template has it but your project does not | Never added |
+
+`CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `settings.json`,
+`understudy.yaml`, `.gitignore` and everything under `docs/` are never touched
+or reported: they mix template text with your content. Deploys record a
+SHA-256 of every file they write in `.understudy-state` at the project root
+(`~/.understudy-global/state` in global mode); commit or ignore it as you
+prefer. The upgrade also rewrites a dotted Claude model line such as
+`model: claude-sonnet-4.5` in agent frontmatter to `model: sonnet`, changing
+nothing else in the file, even when you customized it.
+
+**One limitation.** Files deployed by versions before the baseline state
+file existed have no recorded baseline, so the first `understudy --upgrade`
+treats any such file that differs from the current template as customized: it
+is kept unless you confirm the overwrite interactively. The exception is the
+deterministic Claude model-line migration, which always applies. Every file
+that matched its template gets a baseline on that first run, so later
+upgrades can refresh it automatically.
+
 ---
 
 Next: [Platform Capability Matrix](03-platform-comparison.md)
