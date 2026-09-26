@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Security
+
+- Bump `mkdocs-material` from 9.6.14 to 9.7.7 in `docs/requirements.txt`
+  (GHSA-xvg9-69gf-fjrf / CVE-2026-73295: DOM XSS in the search suggestions via
+  a query parameter, affecting `>= 7.2.0, < 9.7.7`). It only affects the
+  documentation site build, not the installed tool.
+
 ## [1.3.0] - 2026-09-26
 
 ### Added
