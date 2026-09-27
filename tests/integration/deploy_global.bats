@@ -237,3 +237,29 @@ create_fake_vscode_profile() {
   grep -q '^model: claude-opus-4.6$' "$dir/architect.md"
   grep -q '^model: claude-haiku-4.5$' "$dir/devops.md"
 }
+
+# ── Project override (understudy.yaml) is not read at global scope ────────────
+# --global has no project directory; load_config used to resolve the override
+# as "${TARGET_DIR:-}/understudy.yaml" while TARGET_DIR was still unset (i.e.
+# "/understudy.yaml"). Pointing an inherited TARGET_DIR at a temp dir simulates
+# that accidental lookup without touching the filesystem root.
+
+write_project_override() {
+  mkdir -p "$1"
+  printf 'models:\n  architect: "project-override-model"\n' > "$1/understudy.yaml"
+}
+
+@test "--global ignores a project override found via an inherited TARGET_DIR" {
+  write_project_override "${TEST_TMP}/stray"
+  TARGET_DIR="${TEST_TMP}/stray" run_global_deploy
+  [ -f "${FAKE_HOME}/.claude/agents/architect.md" ]
+  ! grep -q "project-override-model" "${FAKE_HOME}/.claude/agents/architect.md"
+}
+
+@test "--global ignores an understudy.yaml in the current working directory" {
+  write_project_override "${TEST_TMP}/cwd"
+  cd "${TEST_TMP}/cwd"
+  run_global_deploy
+  [ -f "${FAKE_HOME}/.claude/agents/architect.md" ]
+  ! grep -q "project-override-model" "${FAKE_HOME}/.claude/agents/architect.md"
+}

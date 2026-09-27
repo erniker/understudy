@@ -21,7 +21,11 @@ same way whether you deploy per-project (`understudy --here`), machine-wide
 global install (`understudy --docs-only`) — see
 [Global Mode](12-global-mode.md) for the latter two. A project's own
 `understudy.yaml` always overrides the global defaults regardless of which
-mode originally deployed that project.
+mode originally deployed that project. The one exception is the `--global`
+deploy itself (and `--upgrade --global`): it is machine-wide and has no
+project, so it never reads a project `understudy.yaml` — not from the current
+directory either — and only uses the wizard defaults plus the global
+`understudy.yaml`.
 
 ## Full example
 

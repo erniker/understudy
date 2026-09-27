@@ -178,7 +178,13 @@ config_read() {
 
 # Reads system configuration, then project override if it exists
 load_config() {
-    local project_config="${TARGET_DIR:-}/understudy.yaml"
+    # --global is machine-wide: it has no project directory (TARGET_DIR is not
+    # set yet when this runs), so no project override applies. Without this
+    # guard the path would collapse to "/understudy.yaml".
+    local project_config=""
+    if ! $GLOBAL_MODE; then
+        project_config="${TARGET_DIR:-}/understudy.yaml"
+    fi
 
     # Capa 1: defaults del sistema (junto a wizard.sh)
     if [[ -f "$DEFAULT_CONFIG" ]]; then
@@ -217,7 +223,7 @@ load_config() {
     fi
 
     # Capa 2: override del proyecto (si existe)
-    if [[ -f "$project_config" ]]; then
+    if [[ -n "$project_config" && -f "$project_config" ]]; then
         info "Project override found: $project_config"
         MODEL_ARCHITECT=$(config_read "models" "architect" "$MODEL_ARCHITECT" "$project_config")
         MODEL_BACKEND=$(config_read "models" "backend" "$MODEL_BACKEND" "$project_config")
