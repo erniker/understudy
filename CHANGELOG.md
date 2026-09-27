@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-27
+
 ### Fixed
 
 - `understudy --global` and `understudy --upgrade --global` no longer look for a
